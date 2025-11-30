@@ -24,7 +24,7 @@ class Analyser:
             "typedefs": [],
             "includes": [],
         }
-        self.header_constant: str = header_file.split("/")[-1][:-2].upper()
+        self.header_constant: str = f"_{header_file.split("/")[-1][:-2].upper()}_H_"
         self.force: bool = force
 
     def analyse(self) -> None:
@@ -660,7 +660,10 @@ def compile(args: argparse.Namespace) -> None:
         if args.keepbinary:
             keep = 1
         else:
-            keep = 0
+            if args.c :
+                keep = 1
+            else :
+                keep = 0
 
         final_command = f'/usr/lib/zc/zcsh "{command}" {executable} {keep}'
 
@@ -763,11 +766,11 @@ def main() -> None:
         "-v",
         "--version",
         action="version",
-        version="ZC 0.1",
+        version="ZC 0.1 (stable)",
         help="show ZC current version and exit",
     )
     parser.add_argument(
-        "-c", action="store_true", help="compile and assemble, but do not link"
+        "-c", action="store_true", help="compile and assemble, but do not link. Doesn't destroy the binary."
     )
     # Positional argument(s)
     parser.add_argument("files", nargs="+", help="The file(s) to be compiled")
