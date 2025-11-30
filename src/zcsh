@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Args:
+# $1 : compiler command
+# $2 : output executable name
+# $3 : remove executable after running (0 = yes, 1 = no)
+
 # Verify arguments number
 if [ $# -ne 3 ]; then
     echo "Error: one argument expected. $# found."
@@ -29,7 +34,19 @@ elif [[ "$output" == *"warning:"* ]]; then
     printf "${YELLOW}%*s${RESET}\n" "$width" | tr ' ' '='
 fi
 
-./"$2"
-if [ $3 -eq 0 ]; then
-    rm $2
+# Execute the program: allow absolute paths, relative paths with directories,
+# and plain filenames (run from current directory).
+if [[ "$2" == /* ]] || [[ "$2" == *"/"* ]]; then
+    # Path is absolute or contains a directory component -> run directly
+    "${2}"
+    echo # skip line in case the program output doesn't end with a newline
+else
+    # Plain filename -> run from current directory
+    "./${2}"
+    echo
+fi
+
+# Optionally remove the executable after running. Use rm safely with quoting.
+if [ "$3" -eq 0 ]; then
+    rm -f -- "$2"
 fi

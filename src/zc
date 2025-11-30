@@ -47,7 +47,7 @@ class Analyser:
             # Things that always have to be at the beginning of the header file
             f.write(f"#ifndef {self.header_constant}\n")
             f.write(f"#define {self.header_constant}\n\n")
-            f.write("// This file was automatically generated with PCC\n\n")
+            f.write("// This file was automatically generated with ZC\n\n")
 
             # Inclusions
             f.write("// * Inclusions\n")
@@ -113,7 +113,8 @@ class Analyser:
             f.write(f"#endif // {self.header_constant}\n")
 
     def generate_header_file(self) -> None:
-        """Ensure that the program doesn't unintentionally overwrite an existing file
+        """
+        Ensure that the program doesn't unintentionally overwrite an existing file
         and proceed with the creation of the header file
         """
         if os.path.exists(self.header_file) and not self.force:
@@ -318,9 +319,9 @@ def get_conf() -> dict:
     """Load and a return a dict conatining the configuration from the configuration file
 
     Returns:
-        dict: PCC configuration
+        dict: ZC configuration
     """
-    json_path = "/etc/pcc/conf.json"
+    json_path = "/etc/zc/conf.json"
     with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -436,7 +437,7 @@ def add_library_conf(library: str) -> None:
     conf["libraries"][library] = f"-l{library}"
 
     # Rewrite the file
-    json_path = "/etc/pcc/conf.json"
+    json_path = "/etc/zc/conf.json"
     try:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(conf, f, indent=4, ensure_ascii=False)
@@ -456,21 +457,20 @@ def remove_tmp_file(file_name: str):
         sys.exit(1)
 
 
-def compile_into_static_library(is_local: str, file_name: str) -> None:
+def compile_into_static_library(file_name: str) -> None:
     """Compile an object file into a static library
 
     Args:
-        is_local (str): if set to "local/", save the library in /usr/local/lib, else in /usr/lib
         file_name (str): the name of the object file without the extension
     """
-    if os.system(f"ar rcs /usr/{is_local}lib/lib{file_name}.a /tmp/{file_name}.o") == 0:
+    if os.system(f"ar rcs /usr/local/lib/lib{file_name}.a /tmp/{file_name}.o") == 0:
         add_library_conf(file_name)
         print("The library was successfully created")
         remove_tmp_file(file_name)
         sys.exit(0)
     else:
         print(
-            f"Error : the file /tmp/{file_name}.o was unsuccessfully compiled into /usr/{is_local}lib/lib{file_name}.a."
+            f"Error : the file /tmp/{file_name}.o was unsuccessfully compiled into /usr/local/lib/lib{file_name}.a."
         )
         sys.exit(1)
 
@@ -548,21 +548,20 @@ def check_1_header_extension(file : str) -> str :
         return file
 
 def check_file_exists(file : str) -> tuple[str, str] :
-    file_path1 : str = f"/usr/include/{file}"
-    file_path2 : str = f"/usr/local/include/{file}"
-    if os.path.exists(file_path1) :
-        
-        lib_file : str = f"/usr/lib/lib{file[:-2]}.a"
-        if os.path.exists(lib_file) :
-            return (file_path1, lib_file)
-        else :
-            print(f"Error : the static library file {lib_file} doesn't exist.")
-            sys.exit(1)
-    elif os.path.exists(file_path2) :
+    """Checks if the given header file exists
+
+    Args:
+        file (str): The header file
+
+    Returns:
+        tuple[str, str]: The header file path and the static library file path
+    """
+    file_path : str = f"/usr/local/include/{file}"
+    if os.path.exists(file_path) :
         
         lib_file : str = f"/usr/local/lib/lib{file[:-2]}.a"
         if os.path.exists(lib_file) :
-            return (file_path2, lib_file)
+            return (file_path, lib_file)
         else :
             print(f"Error : the static library file {lib_file} doesn't exist.")
             sys.exit(1)
@@ -571,6 +570,11 @@ def check_file_exists(file : str) -> tuple[str, str] :
         sys.exit(1)
         
 def remove_lib(files : tuple[str, str]) :
+    """Remove the given files (two expected)
+
+    Args:
+        files (tuple[str, str]): the two files to be deleted
+    """
     
     if os.system(f"sudo rm {files[0]}") == 0 :
         
@@ -616,21 +620,19 @@ def add_lib(args: argparse.Namespace) -> None:
 
     check_names_correspond(header_file, library_file)
 
-    is_local = "local/" if args.local else ""
-    
-    place1 = f"/usr/{is_local}lib/"
-    place2 = f"/usr/{is_local}include/"
+    libpath = f"/usr/local/lib/"
+    headerpath = f"/usr/local/include/"
 
-    if os.path.exists(f"{place1}{library_file}") and not args.force:
-        print(f"The file {place1}{library_file} already exists. Do you want to overwrite it ?")
+    if os.path.exists(f"{libpath}{library_file}") and not args.force:
+        print(f"The file {libpath}{library_file} already exists. Do you want to overwrite it ?")
         if get_ans():
             # Call copy_library() which will copy the library file to the destination directory and call copy_header()
-            copy_library(place1, place2, header_file, library_file, args.force)
+            copy_library(libpath, headerpath, header_file, library_file, args.force)
         else:
             print("Cancelling operations")
             sys.exit(0)
     else:
-        copy_library(place1, place2, header_file, library_file, args.force)
+        copy_library(libpath, headerpath, header_file, library_file, args.force)
 
 
 def compile(args: argparse.Namespace) -> None:
@@ -660,7 +662,7 @@ def compile(args: argparse.Namespace) -> None:
         else:
             keep = 0
 
-        final_command = f'/usr/lib/pcc/pcc-sh "{command}" {executable} {keep}'
+        final_command = f'/usr/lib/zc/zcsh "{command}" {executable} {keep}'
 
         # Set to false if you don't want the terminal to be cleared before running the command and displaying the result
         if conf["clear_before_run"]:
@@ -702,15 +704,13 @@ def create_lib(args: argparse.Namespace) -> None:
 
     is_name_defined: bool = check_header_extensions(args.files)
 
-    is_local = "local/" if args.local else ""
-
     if is_name_defined:
         file_name = args.files.pop()[:-2]
     else:
         # The name of the header file is the name of the first given file per default
         file_name = args.files[0][:-2]
 
-    header_name: str = f"/usr/{is_local}include/{file_name}.h"
+    header_name: str = f"/usr/local/include/{file_name}.h"
 
     # Create a header file containing all functions etc...
     a = Analyser(args.files, header_name, args.force)
@@ -721,26 +721,24 @@ def create_lib(args: argparse.Namespace) -> None:
         # Then into a static library directly in the right directory
 
         # If the file already exists, ask before overwriting it
-        if os.path.exists(f"/usr/{is_local}lib/lib{file_name}.a"):
+        if os.path.exists(f"/usr/local/lib/lib{file_name}.a"):
             print(
-                f"The file /usr/{is_local}lib/lib{file_name}.a already exists. Do you want to overwrite it ?"
+                f"The file /usr/local/lib/lib{file_name}.a already exists. Do you want to overwrite it ?"
             )
             if get_ans():
-                compile_into_static_library(is_local, file_name)
+                compile_into_static_library(file_name)
             else:
                 remove_tmp_file(file_name)
                 print("Cancelling operations")
                 sys.exit(0)
         else:
-            compile_into_static_library(is_local, file_name)
+            compile_into_static_library(file_name)
     else:
-        print(
-            f"Error : the file(s) {' '.join(args.files)} were unsuccessfully compiled into /tmp/{file_name}.o."
-        )
+        print(f"Error : the file(s) {' '.join(args.files)} were unsuccessfully compiled into /tmp/{file_name}.o.")
         sys.exit(1)
 
 def handle_remove_lib(args: argparse.Namespace) :
-    """Remove a library created by PCC by removing its header and library files
+    """Remove a library created by ZC by removing its header and library files
 
     Args:
         args (argparse.Namespace): The arguments passed into the command
@@ -760,13 +758,13 @@ def handle_remove_lib(args: argparse.Namespace) :
 
 def main() -> None:
     # Arguments
-    parser = argparse.ArgumentParser(description="pcc - an easier C compiler")
+    parser = argparse.ArgumentParser(description="ZC - the easiest C compiler for Linux and soon Windows and macOS (using GCC under the hood)")
     parser.add_argument(
         "-v",
         "--version",
         action="version",
-        version="PCC 1.1",
-        help="show PCC current version and exit",
+        version="ZC 0.1",
+        help="show ZC current version and exit",
     )
     parser.add_argument(
         "-c", action="store_true", help="compile and assemble, but do not link"
@@ -781,16 +779,10 @@ def main() -> None:
         help="keep the created binary instead of deleting it after execution",
     )
     parser.add_argument(
-        "-al",
-        "--addlib",
+        "-a",
+        "--addlibrary",
         action="store_true",
         help="create static library by putting the given files in the correct directory on the system",
-    )
-    parser.add_argument(
-        "-l",
-        "--local",
-        action="store_true",
-        help="paired with -cl or -al : store the created library in the /usr/local directory to create it only for the current user.",
     )
     parser.add_argument(
         "-ch",
@@ -799,8 +791,8 @@ def main() -> None:
         help="automatically create a header file based on the given C file(s).",
     )
     parser.add_argument(
-        "-cl",
-        "--createlib",
+        "-l",
+        "--createlibrary",
         action="store_true",
         help="create a library and install it based on the given C file(s)",
     )
@@ -811,10 +803,10 @@ def main() -> None:
         help="force the creation of the library/header file even if it already exists",
     )
     parser.add_argument(
-        "-rl",
-        "--removelib",
+        "-r",
+        "--removelibrary",
         action="store_true",
-        help="remove the library installed with pcc indicated by the header file. Deletes files permanently per default"
+        help="remove the library installed with zc indicated by the header file. Deletes files permanently per default"
     )
     args : argparse.Namespace = parser.parse_args()
 
@@ -822,11 +814,11 @@ def main() -> None:
     # TODO : pouvoir créer une librairie dynamique en une commande
     # TODO : script postinst qui demande à l'utilisateur s'il veut installer de nouvelles librairies C codées à l'occasion
 
-    if args.addlib:
+    if args.addlibrary :
         add_lib(args)
-    elif args.createlib:
+    elif args.createlibrary :
         create_lib(args)
-    elif args.removelib :
+    elif args.removelibrary :
         handle_remove_lib(args)
     elif args.createheader:
         create_header_file(args)
