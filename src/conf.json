@@ -1,0 +1,7 @@
+{
+    "libraries": {
+        "math": "-lm"
+    },
+    "clear_before_run": true,
+    "delete_permanently": true
+}

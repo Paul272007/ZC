@@ -1,0 +1,838 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import sys
+import json
+
+#############################################################################################################################################
+################################################################### Classes #################################################################
+#############################################################################################################################################
+
+
+class Analyser:
+    def __init__(self, files: list[str], header_file: str, force: bool = False) -> None:
+        self.files: list[str] = files
+        self.header_file: str = header_file
+        self.declarations: dict[str, list[str]] = {
+            "structs": [],
+            "unions": [],
+            "enums": [],
+            "functions": [],
+            "globals": [],
+            "constants": [],
+            "typedefs": [],
+            "includes": [],
+        }
+        self.header_constant: str = header_file.split("/")[-1][:-2].upper()
+        self.force: bool = force
+
+    def analyse(self) -> None:
+        """Fill self.declarations with all declarations from all types sorted by type and by file"""
+        # For every file given, get declarations
+        for file in self.files:
+            tmp = File(file)
+            decl: dict[str, list[str]] = tmp.declarations
+            # tmp.declarations now contains a dict with all declarations
+            for decl_type, decl_list in self.declarations.items():
+                for decl_type2, decl_list2 in decl.items():
+                    if decl_type == decl_type2:
+                        for elt in decl_list2:
+                            if elt not in decl_list:
+                                decl_list.append(elt)
+
+    def write_file(self) -> None:
+        """Write the contents of self.declarations into a header file"""
+        with open(self.header_file, "w", encoding="utf-8") as f:
+            # Things that always have to be at the beginning of the header file
+            f.write(f"#ifndef {self.header_constant}\n")
+            f.write(f"#define {self.header_constant}\n\n")
+            f.write("// This file was automatically generated with PCC\n\n")
+
+            # Inclusions
+            f.write("// * Inclusions\n")
+            for include in self.declarations["includes"]:
+                f.write(include)
+                f.write("\n")
+            f.write("\n")
+
+            # Constants
+            f.write("// * Constants\n")
+            for constant in self.declarations["constants"]:
+                f.write(constant)
+                f.write("\n")
+            f.write("\n")
+
+            # Global variables
+            f.write("// * Global variables\n")
+            for global_var in self.declarations["globals"]:
+                f.write(global_var)
+                f.write("\n")
+            f.write("\n")
+
+            # Typedefs
+            f.write("// * Typedefs\n")
+            for typedef in self.declarations["typedefs"]:
+                f.write("\n")
+                f.write(typedef)
+                f.write("\n")
+            f.write("\n")
+
+            # Structures
+            f.write("// * Structures\n")
+            for struct in self.declarations["structs"]:
+                f.write("\n")
+                f.write(struct)
+                f.write("\n")
+            f.write("\n")
+
+            # Unions
+            f.write("// * Unions\n")
+            for union in self.declarations["unions"]:
+                f.write("\n")
+                f.write(union)
+                f.write("\n")
+            f.write("\n")
+
+            # Enums
+            f.write("// * Enums\n")
+            for enum in self.declarations["enums"]:
+                f.write("\n")
+                f.write(enum)
+                f.write("\n")
+            f.write("\n")
+
+            # Functions and prototypes
+            f.write("// * Functions\n")
+            for function in self.declarations["functions"]:
+                f.write(function)
+                f.write(";\n")
+            f.write("\n")
+
+            # End of the file
+            f.write(f"#endif // {self.header_constant}\n")
+
+    def generate_header_file(self) -> None:
+        """Ensure that the program doesn't unintentionally overwrite an existing file
+        and proceed with the creation of the header file
+        """
+        if os.path.exists(self.header_file) and not self.force:
+            print(
+                f"The file {self.header_file} already exists. Do you want to overwrite it ?"
+            )
+            if get_ans():
+                self.write_file()
+            else:
+                print("Canceling operation")
+                sys.exit(0)
+        else:
+            self.write_file()
+
+
+class File:
+    def __init__(self, file: str) -> None:
+        self.file: str = file
+
+    @property
+    def declarations(self) -> dict[str, list[str]]:
+        decl: dict[str, list[str]] = {
+            # Contains the entire line
+            "includes": [],
+            "constants": [],
+            #
+            "globals": [],
+            "typedefs": [],
+            #
+            "enums": [],
+            "functions": [],
+            "structs": [],
+            "unions": [],
+        }
+
+        with open(self.file, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        comment, typedef, enum, struct, union, global_vars = (
+            False,
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
+
+        for line in content.splitlines():
+            sline = line.strip()
+            if comment:
+                if sline.endswith("*/"):
+                    comment = False
+                    continue
+            elif typedef:
+                decl["typedefs"][-1] += f"\n{line}"
+                if "};" in sline or "} ;" in sline:
+                    typedef = False
+                    continue
+            elif enum:
+                decl["enums"][-1] += f"\n{line}"
+                if "};" in sline or "} ;" in sline:
+                    enum = False
+                    continue
+            elif struct:
+                decl["structs"][-1] += f"\n{line}"
+                if "};" in sline or "} ;" in sline:
+                    struct = False
+                    continue
+            elif union:
+                decl["unions"][-1] += f"\n{line}"
+                if "};" in sline or "} ;" in sline:
+                    union = False
+                    continue
+            elif global_vars:
+                decl["globals"][-1] += f"\n{line}"
+                if "};" in sline or "} ;" in sline:
+                    global_vars = False
+                    continue
+            else:
+                if len(sline) != 0:
+                    # Comments
+                    if sline.startswith("//"):
+                        continue
+                    elif sline.startswith("/*"):
+                        comment = True
+                        continue
+                    # Libraries
+                    elif sline.startswith("#include "):
+                        decl["includes"].append(sline)
+                        continue
+                    # Constants
+                    elif sline.startswith("#define "):
+                        decl["constants"].append(sline)
+                        continue
+                    # Single line typedefs
+                    elif sline.startswith("typedef ") and sline.endswith(";"):
+                        decl["typedefs"].append(sline)
+                        continue
+                    # Single line enums
+                    elif sline.startswith("enum ") and sline.endswith(";"):
+                        decl["enums"].append(sline)
+                        continue
+                    # Single line structs
+                    elif sline.startswith("struct ") and sline.endswith(";"):
+                        decl["structs"].append(sline)
+                        continue
+                    # Single line unions
+                    elif sline.startswith("union ") and sline.endswith(";"):
+                        decl["unions"].append(sline)
+                        continue
+                    # Single line global variables
+                    elif sline.endswith(";") and not line[0].isspace():
+                        decl["globals"].append(sline)
+                        continue
+                    # Functions
+                    elif (
+                        (
+                            sline.endswith(")")
+                            or sline.endswith(");")
+                            or sline.endswith(") {")
+                            or sline.endswith("){")
+                            or sline.endswith(")  {")
+                        )
+                        and "(" in sline
+                        and not line[0].isspace()
+                    ):
+                        decl["functions"].append(sline)
+                        continue
+                    # Multiple lines typedefs
+                    elif sline.startswith("typedef "):
+                        decl["typedefs"].append(sline)
+                        typedef = True
+                        continue
+                    # Multiple lines enums
+                    elif sline.startswith("enum "):
+                        decl["enums"].append(sline)
+                        enum = True
+                        continue
+                    # Multiple lines structs
+                    elif sline.startswith("struct "):
+                        decl["structs"].append(sline)
+                        struct = True
+                        continue
+                    # Multiple lines unions
+                    elif sline.startswith("union "):
+                        decl["unions"].append(sline)
+                        union = True
+                        continue
+                    # Multiple lines global variables
+                    elif not line[0].isspace() and "=" in sline:
+                        decl["globals"].append(sline)
+                        global_vars = True
+                        continue
+        return decl
+
+
+############################################################# Reusable functions ############################################################
+
+
+def file_contains(file: str, expression: str) -> bool:
+    """Check if the given file contains the given expression
+
+    Args:
+        file (str): the file path
+        expression (str): the expression to search for
+
+    Returns:
+        bool: true if the expression was found, false otherwise
+    """
+    try:
+        with open(file, "r", encoding="utf-8") as f:
+            for ligne in f:
+                if (
+                    ligne.startswith("//")
+                    or ligne.startswith("/*")
+                    or ligne.endswith("*/")
+                ):
+                    continue
+                if expression in ligne:
+                    return True
+        return False
+
+    except FileNotFoundError:
+        print(f"Error : file not found : {file}")
+        sys.exit(1)
+        return False
+
+
+def check_files_exist(files: list[str]) -> None:
+    """Check if all given files exist, exits program if they don't
+
+    Args:
+        files (list[str]): The list of files to check
+    """
+    for file in files:
+        if not os.path.exists(file):
+            print(f"Error : file not found : {file}")
+            sys.exit(1)
+
+
+def get_conf() -> dict:
+    """Load and a return a dict conatining the configuration from the configuration file
+
+    Returns:
+        dict: PCC configuration
+    """
+    json_path = "/etc/pcc/conf.json"
+    with open(json_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_ans() -> bool:
+    """Ask [Y/n] to the user, handling unexpected answers and return the answer
+
+    Returns:
+        bool: True if answer is 'Y', False otherwise
+    """
+    ans = input("[Y/n] : ")
+    while ans != "Y" and ans != "n":
+        ans = input("[Y/n] : ")
+    return ans == "Y"
+
+
+######################################################### Simple compiling functions ########################################################
+
+
+def check_extensions(files: list[str]) -> None:
+    """Check if all given files have the correct file extension and if at least one C file is found, and if they don't, add the .c extension per default
+
+    Args:
+        files (list[str]): the list of files to check
+    """
+    c_found: bool = False
+
+    for i in range(len(files)):
+        if files[i].endswith(".c"):
+            c_found = True
+        elif not files[i].endswith(".o"):
+            files[i] = f"{files[i]}.c"
+            c_found = True
+
+    if not c_found:
+        print("Error : no C file was provided")
+        sys.exit(1)
+
+
+def check_inclusions(files: list[str], libraries: dict) -> list[str]:
+    """Returns a list containing the parameters needed for the compilation if library inclusions are found in the c files
+
+    Args:
+        files (list[str]): the list of files on which the function searches
+        libraries (dict): the list of libraries that require an option when compiling
+
+    Returns:
+        list[str]: the list of options to add when compiling
+    """
+    params = []
+    for file in files:
+        for library, option in libraries.items():
+            if file_contains(file, f"#include <{library}.h>") or file_contains(
+                file, f'#include "{library}.h"'
+            ):
+                if option not in params:
+                    params.append(option)
+    return params
+
+
+def find_main_file(files: list[str]) -> str | None:
+    """Check for main function in every file to determine the main program
+
+    Args:
+        files (list[str]): the list of files in which the function searches
+
+    Returns:
+        str | None: the name of the file without the extension or None if the main function is not found
+    """
+    for file in files:
+        if file_contains(file, "int main(") or file_contains(file, "int main ("):
+            return file[:-2]
+    return None
+
+
+############################################################## Library functions ############################################################
+
+
+def check_lib_extensions(files: list[str]) -> None:
+    """Check if the file extensions needed to create a library are present
+
+    Args:
+        files (list[str]): The list of files
+    """
+    if not (files[0].endswith(".h") and files[1].endswith(".a")) or (
+        files[0].endswith(".a") and files[1].endswith(".h")
+    ):
+        print("Error : missing .h or .a file")
+        sys.exit(1)
+
+
+def check_names_correspond(header: str, library: str) -> None:
+    """Check if the name of the static library file corresponds to the name of the header file
+
+    Args:
+        header (str): the header file
+        library (str): the static library file
+    """
+    if library != f"lib{header[:-2]}.a":
+        print("Error : file names not corresponding")
+        sys.exit(1)
+
+
+def add_library_conf(library: str) -> None:
+    """Add an entry in the configuration file for the new library and the corresponding compiling option
+
+    Args:
+        library (str): the new library
+    """
+    conf = get_conf()
+
+    # Add a new key-value pair
+    conf["libraries"][library] = f"-l{library}"
+
+    # Rewrite the file
+    json_path = "/etc/pcc/conf.json"
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(conf, f, indent=4, ensure_ascii=False)
+    except FileNotFoundError:
+        print("Error : configuration file not found.")
+        sys.exit(1)
+
+
+def remove_tmp_file(file_name: str):
+    """Remove the given object file from the /tmp directory
+
+    Args:
+        file_name (str): the object file without the extension
+    """
+    if not os.system(f"rm /tmp/{file_name}.o") == 0:
+        print(f"Error : the file /tmp/{file_name}.o was unsuccessfully removed.")
+        sys.exit(1)
+
+
+def compile_into_static_library(is_local: str, file_name: str) -> None:
+    """Compile an object file into a static library
+
+    Args:
+        is_local (str): if set to "local/", save the library in /usr/local/lib, else in /usr/lib
+        file_name (str): the name of the object file without the extension
+    """
+    if os.system(f"ar rcs /usr/{is_local}lib/lib{file_name}.a /tmp/{file_name}.o") == 0:
+        add_library_conf(file_name)
+        print("The library was successfully created")
+        remove_tmp_file(file_name)
+        sys.exit(0)
+    else:
+        print(
+            f"Error : the file /tmp/{file_name}.o was unsuccessfully compiled into /usr/{is_local}lib/lib{file_name}.a."
+        )
+        sys.exit(1)
+
+
+def copy_library(place1 : str, place2 : str, header_file: str, library_file: str, force: bool) -> None:
+    """Copy a library file into its destination and call copy_header()
+
+    Args:
+        place1 (str): The place for the library file
+        place2 (str): The place for the header file
+        header_file (str): The name of the header file
+        library_file (str): The name of the library file
+        force (bool): The option deciding whether or not to force installation
+    """
+    if os.system(f"sudo mv {library_file} {place1}") == 0:
+        if os.path.exists(f"{place2}{header_file}") and not force:
+            print(
+                f"The file {place2}{header_file} already exists. Do you want to overwrite it ?"
+            )
+            if get_ans():
+                copy_header(header_file, place2)
+            else:
+                print("Cancelling operations")
+                sys.exit(0)
+        else:
+            copy_header(header_file, place2)
+    else:
+        print(f"An error occured whilst copying {library_file} to {place1}")
+        sys.exit(1)
+
+
+def copy_header(header_file: str, place: str):
+    libname = header_file[:-2]
+    if os.system(f"sudo mv {header_file} {place}") == 0:
+        add_library_conf(libname)
+        print("The library was successfully created")
+        sys.exit(0)
+    else:
+        print(f"An error occured whilst copying {header_file} to {place}")
+        sys.exit(1)
+
+
+############################################################## Header functions #############################################################
+
+
+def check_header_extensions(files: list[str]) -> bool:
+    """Check if the given files have the correct extension
+
+    Args:
+        files (list[str]): The list of files
+
+    Returns:
+        bool: Exits the program with an error if some files don't have the correct extension and True if a name for the header file was given, False otherwise
+    """
+
+    for i in range(len(files) - 1):
+        if not files[i].endswith(".c"):
+            print("Error : .c file extension expected.")
+            sys.exit(1)
+
+    if files[-1].endswith(".h"):
+        return True
+    elif files[-1].endswith(".c"):
+        return False
+    else:
+        print("Error : .c file extension expected.")
+        sys.exit(1)
+        
+############################################################ Remove lib functions ###########################################################
+
+def check_1_header_extension(file : str) -> str :
+    if not file.endswith('.h') :
+        return f"{file}.h"
+    else :
+        return file
+
+def check_file_exists(file : str) -> tuple[str, str] :
+    file_path1 : str = f"/usr/include/{file}"
+    file_path2 : str = f"/usr/local/include/{file}"
+    if os.path.exists(file_path1) :
+        
+        lib_file : str = f"/usr/lib/lib{file[:-2]}.a"
+        if os.path.exists(lib_file) :
+            return (file_path1, lib_file)
+        else :
+            print(f"Error : the static library file {lib_file} doesn't exist.")
+            sys.exit(1)
+    elif os.path.exists(file_path2) :
+        
+        lib_file : str = f"/usr/local/lib/lib{file[:-2]}.a"
+        if os.path.exists(lib_file) :
+            return (file_path2, lib_file)
+        else :
+            print(f"Error : the static library file {lib_file} doesn't exist.")
+            sys.exit(1)
+    else :
+        print(f"Error : the header file {file} doesn't exit.")
+        sys.exit(1)
+        
+def remove_lib(files : tuple[str, str]) :
+    
+    if os.system(f"sudo rm {files[0]}") == 0 :
+        
+        if os.system(f"sudo rm {files[1]}") == 0 :
+            print("The library was successfully deleted.")
+            sys.exit(0)
+        else :
+            print(f"The file {files[1]} wasn't deleted.")
+            sys.exit(1)
+            
+    else :
+        print(f"The file {files[0]} wasn't deleted.")
+        sys.exit(1)
+        
+
+#############################################################################################################################################
+################################################################ Main options ###############################################################
+#############################################################################################################################################
+
+
+def add_lib(args: argparse.Namespace) -> None:
+    """Handle installing a library based on a header file and a static library if the -cd option is present
+
+    Args:
+        args (argparse.Namespace): arguments of the command
+    """
+    if len(args.files) != 2:
+        print(f"Error : expected 2 files. {len(args.files)} found.")
+        sys.exit(1)
+
+    check_lib_extensions(args.files)
+    check_files_exist(args.files)
+
+    # Load configuration
+    # conf = get_conf()
+
+    if args.files[0].endswith(".h"):
+        header_file = args.files[0]
+        library_file = args.files[1]
+    else:
+        header_file = args.files[1]
+        library_file = args.files[0]
+
+    check_names_correspond(header_file, library_file)
+
+    is_local = "local/" if args.local else ""
+    
+    place1 = f"/usr/{is_local}lib/"
+    place2 = f"/usr/{is_local}include/"
+
+    if os.path.exists(f"{place1}{library_file}") and not args.force:
+        print(f"The file {place1}{library_file} already exists. Do you want to overwrite it ?")
+        if get_ans():
+            # Call copy_library() which will copy the library file to the destination directory and call copy_header()
+            copy_library(place1, place2, header_file, library_file, args.force)
+        else:
+            print("Cancelling operations")
+            sys.exit(0)
+    else:
+        copy_library(place1, place2, header_file, library_file, args.force)
+
+
+def compile(args: argparse.Namespace) -> None:
+    """Compiles the given files using the given parameters
+
+    Args:
+        args (argparse.Namespace): all parameters
+    """
+    # A few verifications on the parameters
+    check_extensions(args.files)
+    check_files_exist(args.files)
+
+    # Load configuration
+    conf = get_conf()
+
+    libraries: list = check_inclusions(args.files, conf["libraries"])
+
+    executable = find_main_file(args.files)
+
+    if args.c:
+        command: str = f"gcc -Wall -Wextra -c {' '.join(args.files)} -o {args.files[0][:-2]}.o {' '.join(libraries)}"
+    else:
+        command: str = f"gcc -Wall -Wextra {' '.join(args.files)} -o {executable} {' '.join(libraries)}"
+
+        if args.keepbinary:
+            keep = 1
+        else:
+            keep = 0
+
+        final_command = f'/usr/lib/pcc/pcc-sh "{command}" {executable} {keep}'
+
+        # Set to false if you don't want the terminal to be cleared before running the command and displaying the result
+        if conf["clear_before_run"]:
+            os.system("clear")
+
+        # Execute the shell script shell which will compile and display the errors / warnings / notes
+        os.system(final_command)
+        sys.exit(0)
+
+
+def create_header_file(args: argparse.Namespace) -> None:
+    """Create a header file based on the given C file(s)
+
+    Args:
+        args (argparse.Namespace): The Namespace containing the files list
+    """
+    is_name_defined: bool = check_header_extensions(args.files)
+
+    if is_name_defined:
+        header_name: str = args.files.pop()
+    else:
+        # The name of the header file is the name of the first given file per default
+        header_name: str = f"{args.files[0][:-2]}.h"
+
+    analyser = Analyser(args.files, header_name, args.force)
+    analyser.analyse()
+    analyser.generate_header_file()
+
+    print(f"The header file was successfully generated under {header_name}.")
+    sys.exit(0)
+
+
+def create_lib(args: argparse.Namespace) -> None:
+    """Create a library entirely, only based on a C file
+
+    Args:
+        args (argparse.Namespace): The arguments passed into the command
+    """
+
+    is_name_defined: bool = check_header_extensions(args.files)
+
+    is_local = "local/" if args.local else ""
+
+    if is_name_defined:
+        file_name = args.files.pop()[:-2]
+    else:
+        # The name of the header file is the name of the first given file per default
+        file_name = args.files[0][:-2]
+
+    header_name: str = f"/usr/{is_local}include/{file_name}.h"
+
+    # Create a header file containing all functions etc...
+    a = Analyser(args.files, header_name, args.force)
+    a.analyse()
+    a.generate_header_file()
+    # Compile the original C file into an object
+    if os.system(f"gcc -c {' '.join(args.files)} -o /tmp/{file_name}.o") == 0:
+        # Then into a static library directly in the right directory
+
+        # If the file already exists, ask before overwriting it
+        if os.path.exists(f"/usr/{is_local}lib/lib{file_name}.a"):
+            print(
+                f"The file /usr/{is_local}lib/lib{file_name}.a already exists. Do you want to overwrite it ?"
+            )
+            if get_ans():
+                compile_into_static_library(is_local, file_name)
+            else:
+                remove_tmp_file(file_name)
+                print("Cancelling operations")
+                sys.exit(0)
+        else:
+            compile_into_static_library(is_local, file_name)
+    else:
+        print(
+            f"Error : the file(s) {' '.join(args.files)} were unsuccessfully compiled into /tmp/{file_name}.o."
+        )
+        sys.exit(1)
+
+def handle_remove_lib(args: argparse.Namespace) :
+    """Remove a library created by PCC by removing its header and library files
+
+    Args:
+        args (argparse.Namespace): The arguments passed into the command
+    """
+    if len(args.files != 1) :
+        print(f"Error : 1 file expected. {len(args.files)} found.")
+        
+    header_file = check_1_header_extension(args.files[0])
+    files = check_file_exists(header_file)
+    
+    remove_lib(files)
+
+#############################################################################################################################################
+############################################################### Main function ###############################################################
+#############################################################################################################################################
+
+
+def main() -> None:
+    # Arguments
+    parser = argparse.ArgumentParser(description="pcc - an easier C compiler")
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="PCC 1.1",
+        help="show PCC current version and exit",
+    )
+    parser.add_argument(
+        "-c", action="store_true", help="compile and assemble, but do not link"
+    )
+    # Positional argument(s)
+    parser.add_argument("files", nargs="+", help="The file(s) to be compiled")
+    # Options
+    parser.add_argument(
+        "-k",
+        "--keepbinary",
+        action="store_true",
+        help="keep the created binary instead of deleting it after execution",
+    )
+    parser.add_argument(
+        "-al",
+        "--addlib",
+        action="store_true",
+        help="create static library by putting the given files in the correct directory on the system",
+    )
+    parser.add_argument(
+        "-l",
+        "--local",
+        action="store_true",
+        help="paired with -cl or -al : store the created library in the /usr/local directory to create it only for the current user.",
+    )
+    parser.add_argument(
+        "-ch",
+        "--createheader",
+        action="store_true",
+        help="automatically create a header file based on the given C file(s).",
+    )
+    parser.add_argument(
+        "-cl",
+        "--createlib",
+        action="store_true",
+        help="create a library and install it based on the given C file(s)",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="force the creation of the library/header file even if it already exists",
+    )
+    parser.add_argument(
+        "-rl",
+        "--removelib",
+        action="store_true",
+        help="remove the library installed with pcc indicated by the header file. Deletes files permanently per default"
+    )
+    args : argparse.Namespace = parser.parse_args()
+
+    # TODO : faire que le générateur de fichier header ajoute aussi les docstrings des fonctions
+    # TODO : pouvoir créer une librairie dynamique en une commande
+    # TODO : script postinst qui demande à l'utilisateur s'il veut installer de nouvelles librairies C codées à l'occasion
+
+    if args.addlib:
+        add_lib(args)
+    elif args.createlib:
+        create_lib(args)
+    elif args.removelib :
+        handle_remove_lib(args)
+    elif args.createheader:
+        create_header_file(args)
+    else:
+        compile(args)
+
+
+if __name__ == "__main__":
+    main()

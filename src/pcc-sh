@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Verify arguments number
+if [ $# -ne 3 ]; then
+    echo "Error: one argument expected. $# found."
+    exit 1
+fi
+
+# *--- Variables ---* #
+width=$(tput cols)
+# Colours
+RED='\e[31m'
+YELLOW='\e[33m'
+RESET='\e[0m'
+
+output=$($1 -fdiagnostics-color=always 2>&1)
+compilation_exit_code=$?
+
+# Display warnings / errors
+if [ "$compilation_exit_code" -ne 0 ]; then
+    printf "${RED}%*s${RESET}\n" "$width" | tr ' ' '='
+    echo "$output"
+    printf "${RED}%*s${RESET}\n" "$width" | tr ' ' '='
+    echo "Compilation error: the executable wasn't generated."
+    exit 1
+elif [[ "$output" == *"warning:"* ]]; then
+    printf "${YELLOW}%*s${RESET}\n" "$width" | tr ' ' '='
+    echo "$output"
+    printf "${YELLOW}%*s${RESET}\n" "$width" | tr ' ' '='
+fi
+
+./"$2"
+if [ $3 -eq 0 ]; then
+    rm $2
+fi
