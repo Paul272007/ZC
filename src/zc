@@ -653,27 +653,25 @@ def compile(args: argparse.Namespace) -> None:
     executable = find_main_file(args.files)
 
     if args.c:
+        keep = -1
         command: str = f"gcc -Wall -Wextra -c {' '.join(args.files)} -o {args.files[0][:-2]}.o {' '.join(libraries)}"
     else:
         command: str = f"gcc -Wall -Wextra {' '.join(args.files)} -o {executable} {' '.join(libraries)}"
 
-        if args.keepbinary:
-            keep = 1
+        if not args.keepbinary:
+            keep = 0
         else:
-            if args.c :
-                keep = 1
-            else :
-                keep = 0
-
-        final_command = f'/usr/lib/zc/zcsh "{command}" {executable} {keep}'
-
+            keep = 1
+        
         # Set to false if you don't want the terminal to be cleared before running the command and displaying the result
         if conf["clear_before_run"]:
             os.system("clear")
 
-        # Execute the shell script shell which will compile and display the errors / warnings / notes
-        os.system(final_command)
-        sys.exit(0)
+    final_command = f'/usr/lib/zc/zcsh "{command}" {executable} {keep}'
+
+    # Execute the shell script shell which will compile and display the errors / warnings / notes
+    os.system(final_command)
+    sys.exit(0)
 
 
 def create_header_file(args: argparse.Namespace) -> None:
@@ -809,13 +807,12 @@ def main() -> None:
         "-r",
         "--removelibrary",
         action="store_true",
-        help="remove the library installed with zc indicated by the header file. Deletes files permanently per default"
+        help="remove the library installed with zc indicated by the header file. Deletes files permanently by default"
     )
     args : argparse.Namespace = parser.parse_args()
 
     # TODO : faire que le générateur de fichier header ajoute aussi les docstrings des fonctions
     # TODO : pouvoir créer une librairie dynamique en une commande
-    # TODO : script postinst qui demande à l'utilisateur s'il veut installer de nouvelles librairies C codées à l'occasion
 
     if args.addlibrary :
         add_lib(args)

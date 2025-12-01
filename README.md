@@ -2,6 +2,11 @@
 
 A utility to compile C easily and faster
 
+## Dependencies
+
+- GCC
+- Binutils
+
 ## Installation :
 
 - Clone the repository, go into ZC folder and run `./install.sh` with sudo privileges to install ZC

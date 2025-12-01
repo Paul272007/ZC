@@ -11,7 +11,7 @@ sudo cp src/zcsh /usr/lib/zc/zcsh
 
 sudo chmod +x /usr/local/bin/zc
 sudo chmod +x /usr/lib/zc/zcsh
-sudo chmod 644 $CONF
+sudo chmod 775 $CONF
 
 read -p "Do you want to install some extra C libraries ? [Y/n] " choice
 

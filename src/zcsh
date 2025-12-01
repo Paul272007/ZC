@@ -3,7 +3,7 @@
 # Args:
 # $1 : compiler command
 # $2 : output executable name
-# $3 : remove executable after running (0 = yes, 1 = no)
+# $3 : remove executable after running (0 = yes, 1 = no, -1 = no executable was created (object file))
 
 # Verify arguments number
 if [ $# -ne 3 ]; then
@@ -34,6 +34,10 @@ elif [[ "$output" == *"warning:"* ]]; then
     printf "${YELLOW}%*s${RESET}\n" "$width" | tr ' ' '='
 fi
 
+if [ "$3" -eq -1 ]; then
+    # No executable was created (compilation only)
+    exit 0
+fi
 # Execute the program: allow absolute paths, relative paths with directories,
 # and plain filenames (run from current directory).
 if [[ "$2" == /* ]] || [[ "$2" == *"/"* ]]; then
