@@ -2,15 +2,15 @@
 
 /**
  * @brief Upgraded input functions with error handling, returning the correct type.
- * @param msg The message to display to the user
+ * @param prompt The message to display to the user
  * @param error_msg The error message to display in case of invalid input
  * @return The input value of the correct type
  */
-int input_int(const char *msg, const char *error_msg)
+int input_int(const char *prompt, const char *error_msg)
 {
     int nb;
 
-    printf(msg);
+    printf(prompt);
 
     while (scanf("%d", &nb) != 1)
     {
@@ -31,15 +31,15 @@ int input_int(const char *msg, const char *error_msg)
 
 /**
  * @brief Upgraded input functions with error handling, returning the correct type.
- * @param msg The message to display to the user
+ * @param prompt The message to display to the user
  * @param error_msg The error message to display in case of invalid input
  * @return The input value of the correct type
  */
-double input_double(const char *msg, const char *error_msg)
+double input_double(const char *prompt, const char *error_msg)
 {
     double nb;
 
-    printf(msg);
+    printf(prompt);
 
     while (scanf("%lf", &nb) != 1)
     {
@@ -60,15 +60,15 @@ double input_double(const char *msg, const char *error_msg)
 
 /**
  * @brief Upgraded input functions with error handling, returning the correct type.
- * @param msg The message to display to the user
+ * @param prompt The message to display to the user
  * @param error_msg The error message to display in case of invalid input
  * @return The input value of the correct type
  */
-char input_char(const char *msg, const char *error_msg)
+char input_char(const char *prompt, const char *error_msg)
 {
     char res;
 
-    printf(msg);
+    printf(prompt);
 
     while (scanf("%c", &res) != 1)
     {
