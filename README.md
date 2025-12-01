@@ -6,6 +6,7 @@ A utility to compile C easily and faster
 
 - GCC
 - Binutils
+- Python 3
 
 ## Installation :
 
