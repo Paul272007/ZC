@@ -778,7 +778,10 @@ def handle_remove_lib(args: argparse.Namespace) :
 
 def main() -> None:
     # Arguments
-    parser = argparse.ArgumentParser(description="ZC - the easiest C compiler for Linux and soon Windows and macOS (using GCC under the hood)")
+    parser = argparse.ArgumentParser(
+        prog="zc",
+        description="ZC - the easiest C compiler for Linux and soon Windows and macOS (using GCC under the hood)",
+    )
     parser.add_argument(
         "-v",
         "--version",
@@ -820,7 +823,7 @@ def main() -> None:
         "-f",
         "--force",
         action="store_true",
-        help="force the creation of the library/header file even if it already exists",
+        help="force the creation of the library/header file even if it already exists (with -l, -a or -n)",
     )
     parser.add_argument(
         "-r",

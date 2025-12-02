@@ -10,7 +10,7 @@ sudo cp src/zc /usr/local/bin/zc
 sudo chmod +x /usr/local/bin/zc
 sudo chmod 775 $CONF
 
-# TODO : handle already existing configuration file
+# TODO : handle already existing configuration in the configuration file (don't overwrite user changes)
 
 read -p "Do you want to install some extra C libraries ? [Y/n] " choice
 
