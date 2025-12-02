@@ -299,7 +299,7 @@ def file_contains(file: str, expression: str) -> bool:
 
     except FileNotFoundError:
         print(f"Error : file not found : {file}")
-        sys.exit(1)
+        sys.exit(2)
         return False
 
 
@@ -312,7 +312,7 @@ def check_files_exist(files: list[str]) -> None:
     for file in files:
         if not os.path.exists(file):
             print(f"Error : file not found : {file}")
-            sys.exit(1)
+            sys.exit(2)
 
 
 def get_conf() -> dict:
@@ -358,7 +358,7 @@ def check_extensions(files: list[str]) -> None:
 
     if not c_found:
         print("Error : no C file was provided")
-        sys.exit(1)
+        sys.exit(3)
 
 
 def check_inclusions(files: list[str], libraries: dict) -> list[str]:
@@ -396,6 +396,30 @@ def find_main_file(files: list[str]) -> str | None:
             return file[:-2]
     return None
 
+def compile_and_exec(command : str, executable_name : str, keep : int) -> int :
+
+    result = os.popen(f"{command} -fdiagnostics-color=always 2>&1").read()
+    compilation = os.system(f"{command} >/dev/null 2>&1")
+    
+    if result and ("warning:" in result.lower() or "note:" in result.lower()):
+        print("==============================")
+        print(result)
+        print("==============================")
+    
+    if compilation != 0 :
+        print(f"Compilation failed with exit code {compilation}.")
+        return 1
+    else :
+        if keep == -1 :
+            return 0
+
+        os.system(f"{os.path.abspath(executable_name)}")
+        
+        if keep == 0 :
+            os.system(f"rm -f -- {executable_name}")
+        
+        return 0
+
 
 ############################################################## Library functions ############################################################
 
@@ -410,7 +434,7 @@ def check_lib_extensions(files: list[str]) -> None:
         files[0].endswith(".a") and files[1].endswith(".h")
     ):
         print("Error : missing .h or .a file")
-        sys.exit(1)
+        sys.exit(4)
 
 
 def check_names_correspond(header: str, library: str) -> None:
@@ -422,7 +446,7 @@ def check_names_correspond(header: str, library: str) -> None:
     """
     if library != f"lib{header[:-2]}.a":
         print("Error : file names not corresponding")
-        sys.exit(1)
+        sys.exit(5)
 
 
 def add_library_conf(library: str) -> None:
@@ -443,7 +467,7 @@ def add_library_conf(library: str) -> None:
             json.dump(conf, f, indent=4, ensure_ascii=False)
     except FileNotFoundError:
         print("Error : configuration file not found.")
-        sys.exit(1)
+        sys.exit(6)
 
 
 def remove_tmp_file(file_name: str):
@@ -454,7 +478,7 @@ def remove_tmp_file(file_name: str):
     """
     if not os.system(f"rm /tmp/{file_name}.o") == 0:
         print(f"Error : the file /tmp/{file_name}.o was unsuccessfully removed.")
-        sys.exit(1)
+        sys.exit(7)
 
 
 def compile_into_static_library(file_name: str) -> None:
@@ -472,7 +496,7 @@ def compile_into_static_library(file_name: str) -> None:
         print(
             f"Error : the file /tmp/{file_name}.o was unsuccessfully compiled into /usr/local/lib/lib{file_name}.a."
         )
-        sys.exit(1)
+        sys.exit(8)
 
 
 def copy_library(place1 : str, place2 : str, header_file: str, library_file: str, force: bool) -> None:
@@ -499,7 +523,7 @@ def copy_library(place1 : str, place2 : str, header_file: str, library_file: str
             copy_header(header_file, place2)
     else:
         print(f"An error occured whilst copying {library_file} to {place1}")
-        sys.exit(1)
+        sys.exit(9)
 
 
 def copy_header(header_file: str, place: str):
@@ -510,7 +534,7 @@ def copy_header(header_file: str, place: str):
         sys.exit(0)
     else:
         print(f"An error occured whilst copying {header_file} to {place}")
-        sys.exit(1)
+        sys.exit(10)
 
 
 ############################################################## Header functions #############################################################
@@ -537,7 +561,7 @@ def check_header_extensions(files: list[str]) -> bool:
         return False
     else:
         print("Error : .c file extension expected.")
-        sys.exit(1)
+        sys.exit(11)
         
 ############################################################ Remove lib functions ###########################################################
 
@@ -564,10 +588,10 @@ def check_file_exists(file : str) -> tuple[str, str] :
             return (file_path, lib_file)
         else :
             print(f"Error : the static library file {lib_file} doesn't exist.")
-            sys.exit(1)
+            sys.exit(12)
     else :
         print(f"Error : the header file {file} doesn't exit.")
-        sys.exit(1)
+        sys.exit(13)
         
 def remove_lib(files : tuple[str, str]) :
     """Remove the given files (two expected)
@@ -583,11 +607,11 @@ def remove_lib(files : tuple[str, str]) :
             sys.exit(0)
         else :
             print(f"The file {files[1]} wasn't deleted.")
-            sys.exit(1)
+            sys.exit(14)
             
     else :
         print(f"The file {files[0]} wasn't deleted.")
-        sys.exit(1)
+        sys.exit(14)
         
 
 #############################################################################################################################################
@@ -603,7 +627,7 @@ def add_lib(args: argparse.Namespace) -> None:
     """
     if len(args.files) != 2:
         print(f"Error : expected 2 files. {len(args.files)} found.")
-        sys.exit(1)
+        sys.exit(15)
 
     check_lib_extensions(args.files)
     check_files_exist(args.files)
@@ -658,7 +682,7 @@ def compile(args: argparse.Namespace) -> None:
     else:
         command: str = f"gcc -Wall -Wextra {' '.join(args.files)} -o {executable} {' '.join(libraries)}"
 
-        if not args.keepbinary:
+        if not args.keep:
             keep = 0
         else:
             keep = 1
@@ -667,12 +691,7 @@ def compile(args: argparse.Namespace) -> None:
         if conf["clear_before_run"]:
             os.system("clear")
 
-    final_command = f'/usr/lib/zc/zcsh "{command}" {executable} {keep}'
-
-    # Execute the shell script shell which will compile and display the errors / warnings / notes
-    os.system(final_command)
-    sys.exit(0)
-
+    sys.exit(compile_and_exec(command, executable, keep))
 
 def create_header_file(args: argparse.Namespace) -> None:
     """Create a header file based on the given C file(s)
@@ -736,7 +755,7 @@ def create_lib(args: argparse.Namespace) -> None:
             compile_into_static_library(file_name)
     else:
         print(f"Error : the file(s) {' '.join(args.files)} were unsuccessfully compiled into /tmp/{file_name}.o.")
-        sys.exit(1)
+        sys.exit(16)
 
 def handle_remove_lib(args: argparse.Namespace) :
     """Remove a library created by ZC by removing its header and library files
@@ -775,25 +794,25 @@ def main() -> None:
     # Options
     parser.add_argument(
         "-k",
-        "--keepbinary",
+        "--keep",
         action="store_true",
         help="keep the created binary instead of deleting it after execution",
     )
     parser.add_argument(
         "-a",
-        "--addlibrary",
+        "--addlib",
         action="store_true",
         help="create static library by putting the given files in the correct directory on the system",
     )
     parser.add_argument(
-        "-ch",
-        "--createheader",
+        "-n",
+        "--newheader",
         action="store_true",
         help="automatically create a header file based on the given C file(s).",
     )
     parser.add_argument(
         "-l",
-        "--createlibrary",
+        "--newlib",
         action="store_true",
         help="create a library and install it based on the given C file(s)",
     )
@@ -805,22 +824,25 @@ def main() -> None:
     )
     parser.add_argument(
         "-r",
-        "--removelibrary",
+        "--removelib",
         action="store_true",
         help="remove the library installed with zc indicated by the header file. Deletes files permanently by default"
     )
     args : argparse.Namespace = parser.parse_args()
 
-    # TODO : faire que le générateur de fichier header ajoute aussi les docstrings des fonctions
-    # TODO : pouvoir créer une librairie dynamique en une commande
+    # TODO : the header file creation could be improved by adding options to choose what to include (functions only, structs only, etc...) and comments !
+    # TODO : add an option to choose the output directory when keeping the binary
+    # TODO : add an option to choose the output directory when creating a library / header file
+    # TODO : add an option to create shared (dynamic) libraries (.so)
+    # TODO : add Windows and macOS support
 
-    if args.addlibrary :
+    if args.addlib:
         add_lib(args)
-    elif args.createlibrary :
+    elif args.newlib:
         create_lib(args)
-    elif args.removelibrary :
+    elif args.removelib:
         handle_remove_lib(args)
-    elif args.createheader:
+    elif args.newheader:
         create_header_file(args)
     else:
         compile(args)
