@@ -4,13 +4,14 @@ sudo mkdir -p /etc/zc
 
 CONF=/etc/zc
 
-sudo cp src/conf.json $CONF
 sudo cp src/zc /usr/local/bin/zc
 
 sudo chmod +x /usr/local/bin/zc
 sudo chmod 775 $CONF
 
-# TODO : handle already existing configuration in the configuration file (don't overwrite user changes)
+if [ ! -f "$CONF/conf.json" ]; then
+    sudo cp src/conf.json $CONF
+fi
 
 read -p "Do you want to install some extra C libraries ? [Y/n] " choice
 
@@ -18,6 +19,7 @@ if [[ "$choice" == "Y" || "$choice" == "y" || "$choice" == "" ]]; then
     echo "Installing extra C libraries..."
     sudo cp lib/arrays/arrays.h /usr/local/include/arrays.h
     sudo cp lib/utils/utils.h /usr/local/include/utils.h
+    sudo cp lib/colors/colors.h /usr/local/include/colors.h
 
     sudo cp lib/arrays/libarrays.a /usr/local/lib/libarrays.a
     sudo cp lib/utils/libutils.a /usr/local/lib/libutils.a
