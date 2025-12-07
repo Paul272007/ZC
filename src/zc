@@ -2,6 +2,8 @@
 
 import argparse
 import os
+import shlex
+import subprocess
 import sys
 import json
 
@@ -300,7 +302,6 @@ def file_contains(file: str, expression: str) -> bool:
     except FileNotFoundError:
         print(f"Error : file not found : {file}")
         sys.exit(2)
-        return False
 
 
 def check_files_exist(files: list[str]) -> None:
@@ -316,14 +317,21 @@ def check_files_exist(files: list[str]) -> None:
 
 
 def get_conf() -> dict:
-    """Load and a return a dict conatining the configuration from the configuration file
+    """Load and return a dict containing the configuration from the configuration file
 
     Returns:
         dict: ZC configuration
     """
     json_path = "/etc/zc/conf.json"
-    with open(json_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error : configuration file not found : {json_path}")
+        sys.exit(17)
+    except json.JSONDecodeError as e:
+        print(f"Error : invalid JSON in configuration file : {e}")
+        sys.exit(18)
 
 
 def get_ans() -> bool:
@@ -398,25 +406,44 @@ def find_main_file(files: list[str]) -> str | None:
 
 def compile_and_exec(command : str, executable_name : str, keep : int) -> int :
 
-    result = os.popen(f"{command} -fdiagnostics-color=always 2>&1").read()
-    compilation = os.system(f"{command} >/dev/null 2>&1")
+    # Split command and insert -fdiagnostics-color=always before source files
+    cmd_parts = shlex.split(command)
+    # Find where source files start (after -o option or after flags)
+    insert_pos = len(cmd_parts)
+    for i, part in enumerate(cmd_parts):
+        if part == "-o" and i + 1 < len(cmd_parts):
+            insert_pos = i + 2
+            break
+    cmd_with_color = cmd_parts[:insert_pos] + ["-fdiagnostics-color=always"] + cmd_parts[insert_pos:]
     
-    if result and ("warning:" in result.lower() or "note:" in result.lower()):
+    # Compile once and capture output for warnings/errors
+    compilation = subprocess.run(
+        cmd_with_color,
+        capture_output=True,
+        text=True
+    )
+    
+    # Display warnings and notes if present
+    output = compilation.stdout + compilation.stderr if compilation.stderr else compilation.stdout
+    if output and ("warning:" in output.lower() or "note:" in output.lower()):
         print("==============================")
-        print(result)
+        print(compilation.stdout)
+        if compilation.stderr:
+            print(compilation.stderr)
         print("==============================")
     
-    if compilation != 0 :
-        print(f"Compilation failed with exit code {compilation}.")
+    if compilation.returncode != 0 :
+        print(f"Compilation failed with exit code {compilation.returncode}.")
         return 1
     else :
         if keep == -1 :
             return 0
 
-        os.system(f"{os.path.abspath(executable_name)}")
+        subprocess.run([os.path.abspath(executable_name)])
+        print()
         
         if keep == 0 :
-            os.system(f"rm -f -- {executable_name}")
+            os.remove(executable_name)
         
         return 0
 
@@ -476,7 +503,7 @@ def remove_tmp_file(file_name: str):
     Args:
         file_name (str): the object file without the extension
     """
-    if not os.system(f"rm /tmp/{file_name}.o") == 0:
+    if subprocess.run(["rm", f"/tmp/{file_name}.o"]).returncode != 0:
         print(f"Error : the file /tmp/{file_name}.o was unsuccessfully removed.")
         sys.exit(7)
 
@@ -487,7 +514,7 @@ def compile_into_static_library(file_name: str) -> None:
     Args:
         file_name (str): the name of the object file without the extension
     """
-    if os.system(f"ar rcs /usr/local/lib/lib{file_name}.a /tmp/{file_name}.o") == 0:
+    if subprocess.run(["ar", "rcs", f"/usr/local/lib/lib{file_name}.a", f"/tmp/{file_name}.o"]).returncode == 0:
         add_library_conf(file_name)
         print("The library was successfully created")
         remove_tmp_file(file_name)
@@ -509,7 +536,7 @@ def copy_library(place1 : str, place2 : str, header_file: str, library_file: str
         library_file (str): The name of the library file
         force (bool): The option deciding whether or not to force installation
     """
-    if os.system(f"sudo mv {library_file} {place1}") == 0:
+    if subprocess.run(["sudo", "mv", library_file, place1]).returncode == 0:
         if os.path.exists(f"{place2}{header_file}") and not force:
             print(
                 f"The file {place2}{header_file} already exists. Do you want to overwrite it ?"
@@ -528,7 +555,7 @@ def copy_library(place1 : str, place2 : str, header_file: str, library_file: str
 
 def copy_header(header_file: str, place: str):
     libname = header_file[:-2]
-    if os.system(f"sudo mv {header_file} {place}") == 0:
+    if subprocess.run(["sudo", "mv", header_file, place]).returncode == 0:
         add_library_conf(libname)
         print("The library was successfully created")
         sys.exit(0)
@@ -590,7 +617,7 @@ def check_file_exists(file : str) -> tuple[str, str] :
             print(f"Error : the static library file {lib_file} doesn't exist.")
             sys.exit(12)
     else :
-        print(f"Error : the header file {file} doesn't exit.")
+        print(f"Error : the header file {file} doesn't exist.")
         sys.exit(13)
         
 def remove_lib(files : tuple[str, str]) :
@@ -600,9 +627,9 @@ def remove_lib(files : tuple[str, str]) :
         files (tuple[str, str]): the two files to be deleted
     """
     
-    if os.system(f"sudo rm {files[0]}") == 0 :
+    if subprocess.run(["sudo", "rm", files[0]]).returncode == 0 :
         
-        if os.system(f"sudo rm {files[1]}") == 0 :
+        if subprocess.run(["sudo", "rm", files[1]]).returncode == 0 :
             print("The library was successfully deleted.")
             sys.exit(0)
         else :
@@ -678,9 +705,16 @@ def compile(args: argparse.Namespace) -> None:
 
     if args.c:
         keep = -1
-        command: str = f"gcc -Wall -Wextra -c {' '.join(args.files)} -o {args.files[0][:-2]}.o {' '.join(libraries)}"
+        quoted_files = [shlex.quote(f) for f in args.files]
+        quoted_libs = [shlex.quote(lib) for lib in libraries]
+        command: str = f"gcc -Wall -Wextra -c {' '.join(quoted_files)} -o {shlex.quote(args.files[0][:-2] + '.o')} {' '.join(quoted_libs)}"
     else:
-        command: str = f"gcc -Wall -Wextra {' '.join(args.files)} -o {executable} {' '.join(libraries)}"
+        if executable is None:
+            print("Error : no main function found in the provided files.")
+            sys.exit(19)
+        quoted_files = [shlex.quote(f) for f in args.files]
+        quoted_libs = [shlex.quote(lib) for lib in libraries]
+        command: str = f"gcc -Wall -Wextra {' '.join(quoted_files)} -o {shlex.quote(executable)} {' '.join(quoted_libs)}"
 
         if not args.keep:
             keep = 0
@@ -689,7 +723,7 @@ def compile(args: argparse.Namespace) -> None:
         
         # Set to false if you don't want the terminal to be cleared before running the command and displaying the result
         if conf["clear_before_run"]:
-            os.system("clear")
+            subprocess.run("clear", shell=True)
 
     sys.exit(compile_and_exec(command, executable, keep))
 
@@ -737,7 +771,9 @@ def create_lib(args: argparse.Namespace) -> None:
     a.analyse()
     a.generate_header_file()
     # Compile the original C file into an object
-    if os.system(f"gcc -c {' '.join(args.files)} -o /tmp/{file_name}.o") == 0:
+    quoted_files = [shlex.quote(f) for f in args.files]
+    gcc_cmd = ["gcc", "-c"] + quoted_files + ["-o", f"/tmp/{file_name}.o"]
+    if subprocess.run(gcc_cmd).returncode == 0:
         # Then into a static library directly in the right directory
 
         # If the file already exists, ask before overwriting it
@@ -763,8 +799,9 @@ def handle_remove_lib(args: argparse.Namespace) :
     Args:
         args (argparse.Namespace): The arguments passed into the command
     """
-    if len(args.files != 1) :
+    if len(args.files) != 1 :
         print(f"Error : 1 file expected. {len(args.files)} found.")
+        sys.exit(15)
         
     header_file = check_1_header_extension(args.files[0])
     files = check_file_exists(header_file)

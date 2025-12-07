@@ -48,4 +48,4 @@ A utility to compile C easily and faster
 
 ## Uninstalling :
 
-- Simply run `./uninstall.sh` with sudo privileges to uninstall ZC and its configuration
+- Simply run `./uninstall.sh` in the repository folder with sudo privileges to uninstall ZC and its configuration
