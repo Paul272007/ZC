@@ -829,7 +829,7 @@ def main() -> None:
         "-v",
         "--version",
         action="version",
-        version="ZC v1.0.0 (stable)",
+        version="ZC v1.0.1 (stable)",
         help="show ZC current version and exit",
     )
     parser.add_argument(
