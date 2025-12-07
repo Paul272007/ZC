@@ -423,11 +423,15 @@ def compile_and_exec(command : str, executable_name : str, keep : int) -> int :
         text=True
     )
     
-    # Display warnings and notes if present
+    # Display output if compilation failed (errors) or if warnings/notes are present
     output = compilation.stdout + compilation.stderr if compilation.stderr else compilation.stdout
-    if output and ("warning:" in output.lower() or "note:" in output.lower()):
+    has_warnings = output and ("warning:" in output.lower() or "note:" in output.lower())
+    has_errors = compilation.returncode != 0
+    
+    if has_errors or has_warnings:
         print("==============================")
-        print(compilation.stdout)
+        if compilation.stdout:
+            print(compilation.stdout)
         if compilation.stderr:
             print(compilation.stderr)
         print("==============================")
