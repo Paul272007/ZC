@@ -404,17 +404,15 @@ def find_main_file(files: list[str]) -> str | None:
             return file[:-2]
     return None
 
-def compile_and_exec(command : str, executable_name : str, keep : int) -> int :
+def compile_and_exec(command : list[str], executable_name : str, keep : int) -> int :
 
-    # Split command and insert -fdiagnostics-color=always before source files
-    cmd_parts = shlex.split(command)
     # Find where source files start (after -o option or after flags)
-    insert_pos = len(cmd_parts)
-    for i, part in enumerate(cmd_parts):
-        if part == "-o" and i + 1 < len(cmd_parts):
+    insert_pos = len(command)
+    for i, part in enumerate(command):
+        if part == "-o" and i + 1 < len(command):
             insert_pos = i + 2
             break
-    cmd_with_color = cmd_parts[:insert_pos] + ["-fdiagnostics-color=always"] + cmd_parts[insert_pos:]
+    cmd_with_color = command[:insert_pos] + ["-fdiagnostics-color=always"] + command[insert_pos:]
     
     # Compile once and capture output for warnings/errors
     compilation = subprocess.run(
@@ -718,7 +716,11 @@ def compile(args: argparse.Namespace) -> None:
             sys.exit(19)
         quoted_files = [shlex.quote(f) for f in args.files]
         quoted_libs = [shlex.quote(lib) for lib in libraries]
-        command: str = f"gcc -Wall -Wextra {' '.join(quoted_files)} -o {shlex.quote(executable)} {' '.join(quoted_libs)}"
+        # command: list[str] = f"gcc -Wall -Wextra {' '.join(quoted_files)} -o {shlex.quote(executable)} {' '.join(quoted_libs)}"
+        command: list[str] = ["gcc", "-Wall", "-Wextra"]
+        command.extend(quoted_files)
+        command.extend(["-o", shlex.quote(executable)])
+        command.extend(quoted_libs)
 
         if not args.keep:
             keep = 0
