@@ -16,7 +16,7 @@ A utility to compile C easily and faster
 
 - #### Arguments :
   - one or more files (.c or .o)
-- Without options, the program just compiles the program and executes it without you having to add some options. It also deletes the created executable so your folder isn't filled with random execuatble files everywhere. If a filename is given without extension, the program will try to complete it with .c to compile it, and will raise an error if the file still isn't found.
+  - Without options, the program just compiles the program and executes it without you having to add some options. It also deletes the created executable so your folder isn't filled with random execuatble files everywhere. If a filename is given without extension, the program will try to complete it with .c to compile it, and will raise an error if the file still isn't found.
 - #### Options :
   - -h, --help : show help message.
   - -v, --version : show current version.
