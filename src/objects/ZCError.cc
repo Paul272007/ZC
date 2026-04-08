@@ -1,0 +1,26 @@
+#include <interface.hh>
+#include <objects/ZCError.hh>
+
+using namespace std;
+
+ZCError::ZCError(const ErrorCode code, const string &message)
+    : code_(code), message_(message)
+{
+}
+
+void ZCError::display(ostream &stream) const
+{
+  stream << RED << "[ERROR] " << COLOR_RESET << "(exit code: " << code_ << ") "
+         << message_;
+}
+
+ostream &operator<<(ostream &stream, const ZCError &error)
+{
+  error.display(stream);
+  return stream;
+}
+
+int ZCError::getCode_() const
+{
+  return (int)code_;
+}

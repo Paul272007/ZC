@@ -1,0 +1,12 @@
+{
+  "c_compiler": "clang",
+  "cpp_compiler": "clang++",
+  "c_std": "c17",
+  "cpp_std": "c++20",
+  "auto_add_std": false,
+  "flags": ["-Wall", "-Wextra"],
+  "editor": "nvim",
+  "clear_before_run": false,
+  "auto_keep": false,
+  "edit_on_init": true
+}
