@@ -31,9 +31,8 @@ public:
    * @param assemble Preprocess, compile and assemble only
    * @param quiet Enable quiet mode for output
    */
-  Run(const std::vector<std::string> &files,
-      const std::vector<std::string> &args, bool keep, bool plus,
-      bool preprocess, bool compile, bool assemble, bool quiet);
+  Run(const std::vector<std::string> &files, const std::vector<std::string> &args, bool keep, bool plus,
+      bool preprocess, bool compile, bool assemble, bool force, bool quiet);
 
   /**
    * @brief Execute command
@@ -85,8 +84,6 @@ private:
   bool keep_ = false;
 
   bool plus_ = false;
-
-  bool quiet_ = false;
 
   Mode mode_ = FULL;
 

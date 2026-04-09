@@ -1,3 +1,4 @@
+#include "commands/Command.hh"
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -13,8 +14,11 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-Create::Create(const vector<string> &files, const bool force, const vector<string> &input_files, const bool edit)
-    : force_(force), edit_(edit), settings_(Settings::getInstance())
+Create::Create(
+    const vector<string> &files, const bool force, const bool quiet, const vector<string> &input_files,
+    const bool edit
+)
+    : Command(force, quiet), edit_(edit), settings_(Settings::getInstance())
 {
   for (const auto &f : files)
     files_.emplace_back(f);
@@ -75,7 +79,7 @@ int Create::execute()
     }
     files_to_edit.push_back(f.getPath());
   }
-  if ((settings_.getEditOnInit() || edit_) && !files_to_edit.empty())
+  if ((settings_.getEditOnCreate() || edit_) && !files_to_edit.empty())
   {
     stringstream cmd;
     cmd << settings_.getEditor();

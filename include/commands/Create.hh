@@ -23,7 +23,7 @@ public:
    * @param edit Edit file after creating it
    */
   Create(
-      const std::vector<std::string> &files, bool force,
+      const std::vector<std::string> &files, bool force, bool quiet,
       const std::vector<std::string> &input_files, bool edit
   );
 
@@ -49,7 +49,6 @@ private:
    */
   void writeCDecls(const File &f) const;
 
-  bool force_;
   bool edit_;
   Settings &settings_;
   std::vector<File> files_;

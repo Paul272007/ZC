@@ -25,16 +25,12 @@ void Settings::load()
   json json_conf;
   if (!fs::exists(config_path_))
   {
-    throw ZCError(
-        ZC_CONFIG_NOT_FOUND,
-        "The configuration file was not found: " + config_path_.string()
-    );
+    throw ZCError(ZC_CONFIG_NOT_FOUND, "The configuration file was not found: " + config_path_.string());
   }
   ifstream input(config_path_);
   if (!input.is_open())
     throw ZCError(
-        ZC_CONFIG_READING_ERROR,
-        "The configuration file couldn't be read: " + config_path_.string()
+        ZC_CONFIG_READING_ERROR, "The configuration file couldn't be read: " + config_path_.string()
     );
   try
   {
@@ -43,8 +39,8 @@ void Settings::load()
   catch (const json::parse_error &e)
   {
     throw ZCError(
-        ZC_CONFIG_PARSING_ERROR, "The configuration file couldn't be parsed: " +
-                                     config_path_.string() + ": " + e.what()
+        ZC_CONFIG_PARSING_ERROR,
+        "The configuration file couldn't be parsed: " + config_path_.string() + ": " + e.what()
     );
   }
   // Compilers configuration
@@ -56,15 +52,14 @@ void Settings::load()
 
   auto_add_std_ = json_conf.value("auto_add_std", false);
 
-  flags_ = json_conf.value<vector<string>>(
-      "flags", vector<string>{"-Wall", "-Wextra"}
-  );
+  flags_ = json_conf.value<vector<string>>("flags", vector<string>{"-Wall", "-Wextra"});
 
   // User settings
   editor_ = json_conf.value("editor", "nvim");
   clear_before_run_ = json_conf.value<bool>("clear_before_run", false);
   auto_keep_ = json_conf.value<bool>("auto_keep", false);
   edit_on_init_ = json_conf.value<bool>("edit_on_init", false);
+  edit_on_create_ = json_conf.value<bool>("edit_on_create", false);
 }
 
 const fs::path &Settings::getConfigPath() const
@@ -106,6 +101,10 @@ bool Settings::getAutoKeep() const
 bool Settings::getEditOnInit() const
 {
   return edit_on_init_;
+}
+bool Settings::getEditOnCreate() const
+{
+  return edit_on_create_;
 }
 bool Settings::getAutoAddStd() const
 {

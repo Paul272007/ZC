@@ -1,3 +1,4 @@
+#include "commands/Command.hh"
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
@@ -16,14 +17,12 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Run::Run(
-    const std::vector<std::string> &files, const std::vector<std::string> &args,
-    const bool keep, const bool plus, const bool preprocess, const bool compile,
-    const bool assemble, const bool quiet
+    const std::vector<std::string> &files, const std::vector<std::string> &args, const bool keep,
+    const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
+    const bool quiet
 )
-    : keep_(keep), plus_(plus), quiet_(quiet),
-      mode_(getMode(preprocess, compile, assemble)),
-      settings_(Settings::getInstance()), registry_(Registry::getInstance()),
-      args_(args)
+    : keep_(keep), plus_(plus), Command(force, quiet), mode_(getMode(preprocess, compile, assemble)),
+      settings_(Settings::getInstance()), registry_(Registry::getInstance()), args_(args)
 {
   // 1. Fill files_
   for (const auto &f : files)
@@ -37,9 +36,7 @@ Run::Run(
     plus_ = isCppAndCheckExtensions(badFile);
 
   if (!badFile.empty())
-    throw ZCError(
-        ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + badFile
-    );
+    throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + badFile);
 }
 
 int Run::execute()
@@ -54,16 +51,13 @@ int Run::execute()
   switch (mode_)
   {
   case PREPROCESS:
-    output_name =
-        fs::path(files_[0].getPath()).replace_extension(".i").string();
+    output_name = fs::path(files_[0].getPath()).replace_extension(".i").string();
     break;
   case COMPILE:
-    output_name =
-        fs::path(files_[0].getPath()).replace_extension(".s").string();
+    output_name = fs::path(files_[0].getPath()).replace_extension(".s").string();
     break;
   case ASSEMBLE:
-    output_name =
-        fs::path(files_[0].getPath()).replace_extension(".o").string();
+    output_name = fs::path(files_[0].getPath()).replace_extension(".o").string();
     break;
   case FULL:
     // default:
@@ -133,9 +127,7 @@ int Run::execute()
   throw ZCError(ZC_EXECUTION_ERROR, msg.str());
 }
 
-Mode Run::getMode(
-    const bool preprocess, const bool compile, const bool assemble
-)
+Mode Run::getMode(const bool preprocess, const bool compile, const bool assemble)
 {
   int flags_found = 0;
   Mode mode(FULL);
@@ -259,8 +251,7 @@ vector<string> Run::getInclusions() const
 
   for (const auto &f : files_)
   {
-    for (vector<string> includes = f.getInclusions(registry_);
-         const auto &include : includes)
+    for (vector<string> includes = f.getInclusions(registry_); const auto &include : includes)
       if (ranges::find(flags, include) == flags.end())
         flags.push_back(include);
   }

@@ -126,3 +126,11 @@ void warning(const std::string &msg);
  * @return true if the user responded Y and false otherwise
  */
 bool ask(const std::string &question);
+
+/**
+ * @brief Ask the question to the user and get the answer
+ *
+ * @param question The question to be asked
+ * @return the user's answer
+ */
+std::string input(const std::string &question);

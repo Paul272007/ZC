@@ -8,5 +8,6 @@
   "editor": "nvim",
   "clear_before_run": false,
   "auto_keep": false,
-  "edit_on_init": true
+  "edit_on_create": true,
+  "edit_on_init": false
 }

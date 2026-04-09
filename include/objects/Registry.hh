@@ -64,8 +64,7 @@ public:
    * @param is_cpp Whether library is C++ or not
    */
   void savePackage(
-      Package &package, bool force,
-      const std::vector<std::filesystem::path> &headers,
+      Package &package, bool force, const std::vector<std::filesystem::path> &headers,
       std::vector<std::filesystem::path> &objects,
       const std::vector<std::filesystem::path> &sources, bool is_cpp
   );
@@ -152,10 +151,8 @@ private:
    * @param objects The objects to be compiled
    * @return whether it worked or not
    */
-  static bool createStaticLib(
-      const std::string &libPath,
-      const std::vector<std::filesystem::path> &objects
-  );
+  static bool
+  createStaticLib(const std::string &libPath, const std::vector<std::filesystem::path> &objects);
 
   /**
    * @brief Create a shared library
@@ -166,8 +163,7 @@ private:
    * @return whether it worked or not
    */
   static bool createSharedLib(
-      const std::string &libPath,
-      const std::vector<std::filesystem::path> &objects, bool is_cpp
+      const std::string &libPath, const std::vector<std::filesystem::path> &objects, bool is_cpp
   );
 
   std::vector<Package> packages_;

@@ -33,9 +33,7 @@ bool ask(const string &question)
   {
     // 1. If the line is empty, we consider it as 'yes'
     if (line.empty())
-    {
       return true;
-    }
 
     // 2. Otherwise, we check the first character
     char input = toupper(line[0]);
@@ -49,4 +47,21 @@ bool ask(const string &question)
   }
 
   return true; // Security if the input stream is closed
+}
+
+string input(const std::string &question)
+{
+  string line;
+  cout << question << "\n> " << flush;
+
+  if (!getline(cin, line))
+  {
+    if (cin.eof())
+      return "";
+
+    cin.clear();
+    return "";
+  }
+
+  return line;
 }

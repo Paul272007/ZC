@@ -27,7 +27,7 @@ public:
   /**
    * @brief Write the current configuration into the configuration file
    */
-  void write();
+  // void write();
 
   /* Getters */
   const std::filesystem::path &getConfigPath() const;
@@ -40,6 +40,7 @@ public:
   bool getClearBeforeRun() const;
   bool getAutoKeep() const;
   bool getEditOnInit() const;
+  bool getEditOnCreate() const;
   bool getAutoAddStd() const;
 
 private:
@@ -62,5 +63,6 @@ private:
   bool clear_before_run_ = false;
   bool auto_keep_ = false;
   bool edit_on_init_ = false;
+  bool edit_on_create_ = false;
   std::string editor_ = "nvim";
 };

@@ -53,13 +53,17 @@ endif()
 
 add_executable(zc
   src/commands/Create.cc
+  src/commands/Init.cc
   src/commands/Run.cc
 
-  src/objects/ZCError.cc
   src/objects/File.cc
+  src/objects/ProjectSettings.cc
+  src/objects/ProjectsRegistry.cc
   src/objects/Registry.cc
   src/objects/Settings.cc
   src/objects/Table.cc
+  src/objects/Version.cc
+  src/objects/ZCError.cc
 
   src/helpers.cc
   src/interface.cc

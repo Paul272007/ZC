@@ -16,4 +16,12 @@ public:
    * @return Exit code of the command
    */
   virtual int execute() = 0;
+
+protected:
+  Command(const bool force, const bool quiet) : force_(force), quiet_(quiet)
+  {
+  }
+
+  const bool force_;
+  const bool quiet_;
 };
