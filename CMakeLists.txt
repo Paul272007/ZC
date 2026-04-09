@@ -52,6 +52,7 @@ endif()
 # --- Build ---
 
 add_executable(zc
+  src/commands/Create.cc
   src/commands/Run.cc
 
   src/objects/ZCError.cc

@@ -5,7 +5,9 @@
 
 #include <CLI11.hpp>
 #include <commands/Command.hh>
+#include <commands/Create.hh>
 #include <commands/Run.hh>
+#include <interface.hh>
 #include <objects/ZCError.hh>
 
 using namespace std;
@@ -26,6 +28,7 @@ int main(const int argc, char *argv[])
   bool force = false;
   bool quiet = false;
   vector<string> input_files;
+  vector<string> output_files;
 
   // zc run
   bool run_keep = false;
@@ -35,12 +38,16 @@ int main(const int argc, char *argv[])
   bool run_E = false;
   vector<string> run_args;
 
+  // zc create
+  bool edit = false;
+
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
    * ========================================================= */
 
   // clang-format off
-  const auto run = app.add_subcommand("run", "Compile and execute C/C++ file(s)");
+  const auto run    = app.add_subcommand("run", "Compile and execute C/C++ file(s)");
+  const auto create = app.add_subcommand("create", "Create file based on template");
 
   // ========================== RUN ===============================
 
@@ -56,11 +63,21 @@ int main(const int argc, char *argv[])
 
   run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, quiet); });
 
-  // clang-format on
+  // ========================== CREATE ===============================
+  
+  create->add_option("files", output_files, "The files to be created")->required();
+  create->add_option("--input,-i", input_files, "Files to be used as basis to write the new files");
+
+  create->add_flag("--force,-f", force, "Force writing into the files even if they already exist");
+  create->add_flag("--edit,-e", edit, "Edit the files once created");
+
+  create->callback([&]() { command = make_unique<Create>(output_files, force, input_files, edit); });
+
   /* ========================================================= *
    *                          PARSING                          *
    * ========================================================= */
 
+  // clang-format on
   try
   {
     app.parse(argc, argv);
@@ -78,7 +95,7 @@ int main(const int argc, char *argv[])
   }
   catch (exception &e)
   {
-    cerr << "Unexpected error: " << e.what() << endl;
+    cerr << RED << "Unexpected error: " << COLOR_RESET << e.what() << endl;
     return -1;
   }
 }
