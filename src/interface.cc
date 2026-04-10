@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <interface.hh>
+#include <string>
 
 using namespace std;
 
@@ -63,5 +64,24 @@ string input(const std::string &question)
     return "";
   }
 
+  return line;
+}
+
+string input(const std::string &question, const std::string &default_answer)
+{
+  string line;
+  cout << question << "\n(" << default_answer << ")> " << flush;
+
+  if (!getline(cin, line))
+  {
+    if (cin.eof())
+      return default_answer;
+
+    cin.clear();
+    return default_answer;
+  }
+
+  if (line.empty())
+    return default_answer;
   return line;
 }

@@ -1,4 +1,3 @@
-#include "commands/Init.hh"
 #include <exception>
 #include <memory>
 #include <string>
@@ -8,6 +7,7 @@
 #include <commands/Command.hh>
 #include <commands/Create.hh>
 #include <commands/Init.hh>
+#include <commands/List.hh>
 #include <commands/Run.hh>
 #include <interface.hh>
 #include <objects/ZCError.hh>
@@ -55,9 +55,10 @@ int main(const int argc, char *argv[])
    * ========================================================= */
 
   // clang-format off
-  const auto run    = app.add_subcommand("run", "Compile and execute C/C++ file(s)");
+  const auto run    = app.add_subcommand("run",    "Compile and execute C/C++ file(s)");
   const auto create = app.add_subcommand("create", "Create file based on template");
-  const auto init   = app.add_subcommand("init", "Initialize empty project");
+  const auto init   = app.add_subcommand("init",   "Initialize empty project");
+  const auto list   = app.add_subcommand("list",   "List all created projects");
 
   // ========================== RUN ===============================
 
@@ -85,7 +86,7 @@ int main(const int argc, char *argv[])
 
   create->callback([&]() { command = make_unique<Create>(output_files, force, quiet, input_files, edit); });
 
-  // ========================== CREATE ===============================
+  // ========================== INIT ===============================
   
   init->add_option("--author,-a", author, "Specify the project's author");
   init->add_option("--template,-t", project_template, "Specify template to use");
@@ -99,6 +100,13 @@ int main(const int argc, char *argv[])
   init->add_flag("--git,-g", git, "Create empty git repository");
 
   init->callback([&]() { command = make_unique<Init>(author, project_template, name, src_folder, include_folder, force, quiet, edit, git); });
+
+  // ========================== INIT ===============================
+
+  // list->add_flag("--force,-f", force, "Force");
+  list->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  list->callback([&]() { command = make_unique<List>(force, quiet); });
 
   /* ========================================================= *
    *                          PARSING                          *

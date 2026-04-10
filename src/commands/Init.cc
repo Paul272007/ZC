@@ -30,14 +30,9 @@ Init::Init(
         ))
       exit(0);
 
-  // Ask if not precised
-  string default_name = fs::current_path().filename().string();
-
+  // Ask if not precised (default option for the package is the current directory)
   if (name.empty())
-    name_ = input("Package name (" + default_name + "): ");
-
-  if (name_.empty())
-    name_ = default_name;
+    name_ = input("Package name: ", fs::current_path().filename().string());
 
   if (!force_ && p_registry_.projectExists(name_))
     if (!ask("The project " + name_ + " already exists in registry. Do you want to override it ?"))

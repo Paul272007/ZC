@@ -134,3 +134,11 @@ bool ask(const std::string &question);
  * @return the user's answer
  */
 std::string input(const std::string &question);
+
+/**
+ * @brief Ask the question to the user and get the answer
+ *
+ * @param question The question to be asked
+ * @return the user's answer
+ */
+std::string input(const std::string &question, const std::string &default_answer);

@@ -5,7 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- Dependencies ---
+# --- DEPENDENCIES ---
 
 # 1. Fetch JSON (Nlohmann)
 include(FetchContent)
@@ -24,7 +24,6 @@ find_package(Clang REQUIRED)
 message(STATUS "LLVM found: ${LLVM_PACKAGE_VERSION}")
 
 include_directories(SYSTEM external)
-# Include system headers of LLVM/Clang
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${Clang_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -41,19 +40,19 @@ if(NOT CLANG_LIB)
 endif()
 message(STATUS "Found libclang: ${CLANG_LIB}")
 
-# Définir une option (activée par défaut)
-option(ENABLE_DEBUG "Activer le mode debug" ON)
+# --- BUILD ---
+
+# Option to build in debug mode (activated for dev mode)
+option(ENABLE_DEBUG "Activate debug mode" ON)
 
 if(ENABLE_DEBUG)
-    # Définit la macro DEBUG_MODE pour tout le projet
-    add_compile_definitions(DEBUG_MODE)
+  add_compile_definitions(DEBUG_MODE)
 endif()
-
-# --- Build ---
 
 add_executable(zc
   src/commands/Create.cc
   src/commands/Init.cc
+  src/commands/List.cc
   src/commands/Run.cc
 
   src/objects/File.cc
@@ -70,7 +69,7 @@ add_executable(zc
   src/main.cc
 )
 
-# Include directories for your project
+# Include directories for the project
 target_include_directories(zc PRIVATE include)
 
 # Link
@@ -83,7 +82,7 @@ target_link_libraries(zc PRIVATE
   tinfo
 )
 
-# --- Installation Rules (INDISPENSABLE pour install.sh) ---
+# --- INSTALLATION RULES (for install and uninstall scripts) ---
 
 # Installs binary in /usr/local/bin (by default)
 install(TARGETS zc DESTINATION bin)
