@@ -6,8 +6,8 @@ The package manager for C and C++!
 
 For the moment ZC is only available for Linux.
 
-- Clang + LLVM
-- Cmake
+- Clang and LLVM
+- Cmake and Make
 
 ## Installation
 

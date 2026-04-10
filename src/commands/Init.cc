@@ -41,6 +41,12 @@ Init::Init(
   if (author.empty())
     author_ = input("Project author: ");
 
+  // std::string type = input("Project type: (lib/bin)");
+  // if (type == "lib")
+  //   type_ = LIB;
+  // else if (type == "bin")
+  //   type_ = BIN;
+
   if (project_template.empty())
     template_ = input("Template to use to initialize project: ");
 
@@ -133,8 +139,8 @@ int Init::execute()
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
 
-  // Create configuration file
-  ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_);
+  // Create configuration file with empty shared lib, static lib, executable, type and dependencies
+  ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, UNDEF, {});
   settings.write();
 
   const Project p{name_, path_};

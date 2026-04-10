@@ -51,14 +51,21 @@ int Create::execute()
   {
     // Check if file already exists
     if (f.exists() && !force_)
-      if (!ask("The file " + f.getPath() + " already exists. Do you want to replace it ?"))
+      if (!ask("The file " + f.getPath().string() + " already exists. Do you want to replace it ?"))
         continue;
     // If file is a C header
     if (f.getLanguage() == H && !input_files_.empty())
     {
       for (const auto &i_f : input_files_)
-        if (!i_f.exists() || i_f.getLanguage() != C)
-          throw ZCError(ZC_NOT_FOUND, "Input file " + i_f.getPath() + " not found.");
+      {
+        if (!i_f.exists())
+          throw ZCError(ZC_NOT_FOUND, "Input file " + i_f.getPath().string() + " not found.");
+        if (i_f.getLanguage() != C && i_f.getLanguage() != CPP)
+          throw ZCError(
+              ZC_UNSUPPORTED_LANGUAGE,
+              "Input file " + i_f.getPath().string() + " has an unsupported file type."
+          );
+      }
       writeCDecls(f);
     }
     // Else use a template
@@ -75,7 +82,9 @@ int Create::execute()
         }
       }
       if (!found)
-        throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "No template is available for the file: " + f.getPath());
+        throw ZCError(
+            ZC_UNSUPPORTED_LANGUAGE, "No template is available for the file: " + f.getPath().string()
+        );
     }
     files_to_edit.push_back(f.getPath());
   }

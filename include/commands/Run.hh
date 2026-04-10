@@ -2,6 +2,7 @@
 
 #include "objects/Registry.hh"
 #include "objects/Settings.hh"
+#include <filesystem>
 #include <objects/File.hh>
 #include <string>
 #include <vector>
@@ -59,7 +60,7 @@ private:
    * @param badFile Fill this variable with the file that is faulty
    * @return Whether to compile as C++
    */
-  bool isCppAndCheckExtensions(std::string &badFile) const;
+  bool isCppAndCheckExtensions(std::filesystem::path &badFile) const;
 
   /**
    * @brief build the compiling command
@@ -74,7 +75,7 @@ private:
    * @param badFile Fill this variable with the file that is faulty
    * @return Whether all files exist
    */
-  bool filesExist(std::string &badFile) const;
+  bool filesExist(std::filesystem::path &badFile) const;
 
   /**
    * @brief Get library inclusions from file

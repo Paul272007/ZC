@@ -1,5 +1,6 @@
 #pragma once
 
+#include "objects/ProjectSettings.hh"
 #include <filesystem>
 #include <string>
 
@@ -53,6 +54,7 @@ private:
   std::string name_;
   std::string src_folder_ = "src/";
   std::string include_folder_ = "include/";
+  ProjectType type_;
   const bool edit_;
   const bool git_;
   Settings &settings_;

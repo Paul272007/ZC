@@ -101,7 +101,7 @@ public:
   /**
    * @brief Get file path
    */
-  std::string getPath() const;
+  std::filesystem::path getPath() const;
 
   /**
    * @brief Get the filename

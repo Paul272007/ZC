@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <CLI11.hpp>
+#include <commands/Build.hh>
 #include <commands/Command.hh>
 #include <commands/Create.hh>
 #include <commands/Init.hh>
@@ -50,6 +51,9 @@ int main(const int argc, char *argv[])
   string src_folder;
   string include_folder;
 
+  // zc build
+  bool release_mode = false;
+
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
    * ========================================================= */
@@ -59,11 +63,12 @@ int main(const int argc, char *argv[])
   const auto create = app.add_subcommand("create", "Create file based on template");
   const auto init   = app.add_subcommand("init",   "Initialize empty project");
   const auto list   = app.add_subcommand("list",   "List all created projects");
+  const auto build  = app.add_subcommand("build",  "Build project");
 
   // ========================== RUN ===============================
 
   run->add_option("files", input_files, "The files to be compiled (and executed)")->required();
-  run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executing");
+  run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
 
   run->add_flag("--keep,-k", run_keep, "Do not delete the executable after program ends");
   run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
@@ -107,6 +112,14 @@ int main(const int argc, char *argv[])
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   list->callback([&]() { command = make_unique<List>(force, quiet); });
+
+  // ========================== BUILD ===============================
+
+  build->add_flag("--force,-f", force, "Force regenerating CMakeLists.txt");
+  build->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  build->add_flag("--release,-r", release_mode, "Build in release mode");
+
+  build->callback([&]() { command = make_unique<Build>(force, quiet, release_mode); });
 
   /* ========================================================= *
    *                          PARSING                          *

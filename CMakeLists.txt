@@ -50,6 +50,7 @@ if(ENABLE_DEBUG)
 endif()
 
 add_executable(zc
+  src/commands/Build.cc
   src/commands/Create.cc
   src/commands/Init.cc
   src/commands/List.cc

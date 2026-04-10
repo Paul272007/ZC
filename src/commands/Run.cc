@@ -29,21 +29,21 @@ Run::Run(
     files_.emplace_back(f);
 
   // 2. Check if CPP was given and that files have correct extensions
-  string badFile;
+  fs::path badFile;
 
   // 3. Check if C++ was given
   if (!plus_)
     plus_ = isCppAndCheckExtensions(badFile);
 
   if (!badFile.empty())
-    throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + badFile);
+    throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + badFile.string());
 }
 
 int Run::execute()
 {
   // 1. Check that all files exist (file extensions were already checked before)
-  if (string badFile; !filesExist(badFile))
-    throw ZCError(ZC_NOT_FOUND, "File not found: " + badFile);
+  if (fs::path badFile; !filesExist(badFile))
+    throw ZCError(ZC_NOT_FOUND, "File not found: " + badFile.string());
 
   string output_name, build_cmd;
 
@@ -51,17 +51,17 @@ int Run::execute()
   switch (mode_)
   {
   case PREPROCESS:
-    output_name = fs::path(files_[0].getPath()).replace_extension(".i").string();
+    output_name = files_[0].getPath().replace_extension(".i").string();
     break;
   case COMPILE:
-    output_name = fs::path(files_[0].getPath()).replace_extension(".s").string();
+    output_name = files_[0].getPath().replace_extension(".s").string();
     break;
   case ASSEMBLE:
-    output_name = fs::path(files_[0].getPath()).replace_extension(".o").string();
+    output_name = files_[0].getPath().replace_extension(".o").string();
     break;
   case FULL:
     // default:
-    output_name = fs::path(files_[0].getPath()).replace_extension("").string();
+    output_name = files_[0].getPath().replace_extension("").string();
     break;
   }
 
@@ -151,7 +151,7 @@ Mode Run::getMode(const bool preprocess, const bool compile, const bool assemble
   return mode;
 }
 
-bool Run::isCppAndCheckExtensions(string &badFile) const
+bool Run::isCppAndCheckExtensions(std::filesystem::path &badFile) const
 {
   bool found = false;
   for (const auto &f : files_)
@@ -232,7 +232,7 @@ string Run::buildCommand(const string &output_name) const
   return cmd.str();
 }
 
-bool Run::filesExist(string &badFile) const
+bool Run::filesExist(fs::path &badFile) const
 {
   for (const auto &f : files_)
   {

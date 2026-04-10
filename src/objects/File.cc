@@ -45,9 +45,7 @@ pair<unsigned, unsigned> get_cursor_offsets(CXCursor cursor)
   CXSourceLocation end = clang_getRangeEnd(range);
 
   unsigned start_offset, end_offset;
-  clang_getInstantiationLocation(
-      start, nullptr, nullptr, nullptr, &start_offset
-  );
+  clang_getInstantiationLocation(start, nullptr, nullptr, nullptr, &start_offset);
   clang_getInstantiationLocation(end, nullptr, nullptr, nullptr, &end_offset);
 
   return {start_offset, end_offset};
@@ -66,9 +64,7 @@ string get_cursor_text(CXCursor cursor, const string &content)
 }
 
 // Vérifie si un curseur est inclus dans un typedef déjà vu
-bool is_inside_typedef(
-    CXCursor cursor, const vector<pair<unsigned, unsigned>> &ranges
-)
+bool is_inside_typedef(CXCursor cursor, const vector<pair<unsigned, unsigned>> &ranges)
 {
   auto [start, end] = get_cursor_offsets(cursor);
   for (const auto &range : ranges)
@@ -88,9 +84,7 @@ bool is_inside_typedef(
 // --- Visitors ---
 
 // PASSE 1 : Find typedefs
-CXChildVisitResult visitor_find_typedefs(
-    CXCursor cursor, CXCursor parent, CXClientData client_data
-)
+CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto *ctx = static_cast<VisitorContext *>(client_data);
   CXCursorKind kind = clang_getCursorKind(cursor);
@@ -109,8 +103,7 @@ CXChildVisitResult visitor_find_typedefs(
 }
 
 // PASSE 2 : Extraction
-CXChildVisitResult
-visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
+CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto *ctx = static_cast<VisitorContext *>(client_data);
   CXCursorKind kind = clang_getCursorKind(cursor);
@@ -124,8 +117,7 @@ visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
 
   // Si c'est une structure/enum/union, on vérifie si elle est "mangée" par un
   // typedef
-  if (kind == CXCursor_EnumDecl || kind == CXCursor_StructDecl ||
-      kind == CXCursor_UnionDecl)
+  if (kind == CXCursor_EnumDecl || kind == CXCursor_StructDecl || kind == CXCursor_UnionDecl)
   {
     if (is_inside_typedef(cursor, ctx->typedef_ranges))
     {
@@ -215,9 +207,7 @@ visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
   return CXChildVisit_Continue;
 }
 
-CXChildVisitResult visitor_find_includes(
-    CXCursor cursor, CXCursor parent, CXClientData client_data
-)
+CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto *includes_vec = static_cast<vector<string> *>(client_data);
 
@@ -268,7 +258,7 @@ File::File(const string &path) : path_(path)
     language_ = OTHER;
 }
 
-string File::getPath() const
+fs::path File::getPath() const
 {
   return path_;
 }
@@ -330,8 +320,7 @@ unique_ptr<Declarations> File::parse() const
   // 4. Parser le fichier
   CXTranslationUnit unit = clang_parseTranslationUnit(
       index, path_.c_str(), args, size(args), nullptr, 0,
-      CXTranslationUnit_DetailedPreprocessingRecord |
-          CXTranslationUnit_KeepGoing
+      CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_KeepGoing
   );
 
   if (unit == nullptr)
@@ -339,9 +328,7 @@ unique_ptr<Declarations> File::parse() const
     // Fallback ou erreur silencieuse, selon votre besoin.
     // Ici on lance l'erreur comme dans votre code original.
     clang_disposeIndex(index);
-    throw ZCError(
-        ZC_PARSING_ERROR, "Unable to parse translation unit: " + path_.string()
-    );
+    throw ZCError(ZC_PARSING_ERROR, "Unable to parse translation unit: " + path_.string());
   }
 
   // 5. Lancer le visiteur
@@ -507,9 +494,7 @@ vector<string> File::getInclusions(const Registry &reg) const
   unsigned options = CXTranslationUnit_DetailedPreprocessingRecord;
 
   const char *args[] = {"-x", "c"};
-  CXTranslationUnit unit = clang_parseTranslationUnit(
-      index, path_.c_str(), args, 2, nullptr, 0, options
-  );
+  CXTranslationUnit unit = clang_parseTranslationUnit(index, path_.c_str(), args, 2, nullptr, 0, options);
 
   if (unit)
   {
