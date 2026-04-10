@@ -101,7 +101,7 @@ int main(const int argc, char *argv[])
 
   init->callback([&]() { command = make_unique<Init>(author, project_template, name, src_folder, include_folder, force, quiet, edit, git); });
 
-  // ========================== INIT ===============================
+  // ========================== LIST ===============================
 
   // list->add_flag("--force,-f", force, "Force");
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
