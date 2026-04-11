@@ -1,11 +1,15 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 
 #include <commands/Command.hh>
+#include <helpers.hh>
 #include <objects/File.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/Settings.hh>
+
+#define ZC_MODULES "external"
 
 class Build : public Command
 {
@@ -19,6 +23,7 @@ private:
   void generateCMakeLists() const;
   void buildPackage() const;
 
+  const std::filesystem::path root_ = getProjectRoot();
   std::vector<File> sources_;
   bool release_mode_;
   ProjectSettings &project_settings_;

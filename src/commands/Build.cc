@@ -4,7 +4,6 @@
 
 #include <commands/Build.hh>
 #include <commands/Command.hh>
-#include <helpers.hh>
 #include <interface.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/Registry.hh>
@@ -45,11 +44,10 @@ int Build::execute()
       generateCMakeLists();
     }
 
-    string root = getProjectRoot().string();
     const string build_type = release_mode_ ? "Release" : "Debug";
-    const string config_cmd = "cmake " + root + " -B " + root + "/build -DCMAKE_BUILD_TYPE=" + build_type +
-                              (quiet_ ? " &>/dev/null" : "");
-    const string build_cmd = "cmake --build " + root + "/build" + (quiet_ ? " &>/dev/null" : "");
+    const string config_cmd = "cmake " + root_.string() + " -B " + root_.string() +
+                              "/build -DCMAKE_BUILD_TYPE=" + build_type + (quiet_ ? " &>/dev/null" : "");
+    const string build_cmd = "cmake --build " + root_.string() + "/build" + (quiet_ ? " &>/dev/null" : "");
 
     if (!quiet_)
       info("Configuring project...");
@@ -107,7 +105,7 @@ void Build::scanSources()
 
 void Build::generateCMakeLists() const
 {
-  ofstream cmake(getProjectRoot() / "CMakeLists.txt");
+  ofstream cmake(root_ / "CMakeLists.txt");
   if (!cmake.is_open())
     throw ZCError(ZC_WRITING_ERROR, "Could not write CMakeLists.txt");
 
@@ -120,8 +118,17 @@ void Build::generateCMakeLists() const
   cmake << "# --- Editing this file manually could break it.\n\n";
 
   // Boilerplate
-  cmake << "cmake_minimum_required(VERSION 3.12)\n";
-  cmake << "project(" << project_settings_.getName() << " C CXX)\n\n";
+  cmake << "cmake_minimum_required(VERSION 3.12)\n";                   // Version
+  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";                  // Compile commands for clangd
+  cmake << "project(" << project_settings_.getName() << " C CXX)\n\n"; // Project name
+
+  // Source dir for local and global libraries
+  cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << ZC_MODULES << "\")\n";
+  cmake << "if(WIN32)\n";
+  cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{USERPROFILE}/" << ROOT_DIR << "\")\n";
+  cmake << "else()\n";
+  cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{HOME}/" << ROOT_DIR << "\")\n";
+  cmake << "endif()\n\n";
 
   // Standards
   cmake << "set(CMAKE_CXX_STANDARD " << (settings_.getCppStd().substr(3)) << ")\n";
@@ -130,38 +137,45 @@ void Build::generateCMakeLists() const
   // Source code
   cmake << "add_executable(" << project_settings_.getExecutableName() << '\n';
   for (const auto &src : sources_)
-    cmake << "    " << src.getPath().string() << "\n";
+    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(src.getPath(), root_).string() << "\"\n";
   cmake << ")\n\n";
 
   // Includes
   cmake << "target_include_directories(" << project_settings_.getExecutableName() << " PRIVATE\n";
-  cmake << "    " << project_settings_.getIncludeFolder().string() << "\n";
-  cmake << "    " << registry_.getIncludeDir().string() << "\n";
+  cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";  // Local include folder
+  cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n"; // Global include folder
+  cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(project_settings_.getIncludeFolder(), root_).string()
+        << "\"\n"; // Project include folder
   cmake << ")\n\n";
 
   // Libraries
   cmake << "target_link_directories(" << project_settings_.getExecutableName() << " PRIVATE\n";
-  //  TODO : add local libraries paths
-  cmake << "    " << registry_.getLibDir().string() << "\n";
+  cmake << "  \"${ZC_GLOBAL_ROOT}/lib\"\n"; // Global library folder
+  cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";  // Local library folder
   cmake << ")\n\n";
 
-  // Linking
-  // if (!project_settings_.getDeps().empty())
-  // {
-  //   cmake << "target_link_libraries(" << project_name << " PRIVATE\n";
-  //   for (const auto &lib : libs)
-  //   {
-  //     cmake << "    " << lib << "\n";
-  //   }
-  //   cmake << ")\n";
-  // }
+  // Linking dependencies
+  if (!project_settings_.getDeps().empty())
+  {
+    cmake << "target_link_libraries(" << project_settings_.getExecutableName() << " PRIVATE\n";
+    for (const auto &lib : project_settings_.getDeps())
+      cmake << "  " << std::get<0>(lib) << "\n";
+    cmake << ")\n\n";
+  }
 
-  // Add de pthread/dl if Linux
-  // cmake << "if(UNIX)\n";
-  // cmake << "    target_link_libraries(" << project_name << " PRIVATE pthread
-  // dl)\n"; cmake << "endif()\n";
+  // Add pthread/dl if UNIX-based
+  cmake << "if(UNIX)\n";
+  cmake << "  target_link_libraries(" << project_settings_.getExecutableName() << " PRIVATE pthread dl)\n";
+  cmake << "endif()\n\n";
 
-  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";
+  // Activate RPATH
+  cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";
+  cmake << "set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)\n\n";
+  cmake << "if(APPLE)\n";
+  cmake << "  set(CMAKE_INSTALL_PATH \"@loader_path/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "else()\n";
+  cmake << "  set(CMAKE_INSTALL_PATH \"$ORIGIN/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "endif()\n";
 
   cmake.close();
 }
