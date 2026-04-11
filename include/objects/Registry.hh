@@ -16,10 +16,6 @@ struct Package
   std::string name_;
   std::string author_;
   std::string version_;
-
-  std::vector<std::string> headers_;
-  std::vector<std::string> binaries_;
-
   std::string flags_;
 };
 
@@ -49,25 +45,13 @@ public:
   void load();
 
   /**
-   * @brief Save a library based on its configuration and its files (headers /
-   * object files)
-   * 1. Create a subdirectory in the ZC include dir
-   * 2. Copy the header files into this directory
-   * 3. Compile the object files into a static and dynamic library
-   * 4. Put the binaries into the lib directory
+   * @brief install a library based on its root folder
    *
-   * @param package The package configuration
+   * @param project_root The root of the project
    * @param force Force installation even if the library already exists
-   * @param headers The library's header files
-   * @param objects The library's object files
-   * @param sources The library's source files
-   * @param is_cpp Whether library is C++ or not
+   * @param quiet Activate quiet mode
    */
-  void savePackage(
-      Package &package, bool force, const std::vector<std::filesystem::path> &headers,
-      std::vector<std::filesystem::path> &objects,
-      const std::vector<std::filesystem::path> &sources, bool is_cpp
-  );
+  void installPackage(std::filesystem::path &project_root, const bool force, const bool quiet);
 
   /**
    * @brief Uninstall package and remove it from index
@@ -79,24 +63,12 @@ public:
 
   [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
 
-  /**
-   * @brief Get all the packages of the registry
-   */
   [[nodiscard]] std::vector<Package> getPackages() const;
 
-  /**
-   * @brief Get all the packages of the registry
-   */
   [[nodiscard]] std::vector<StdPackage> getStdPackages() const;
 
-  /**
-   * @brief Get the include path
-   */
   [[nodiscard]] std::filesystem::path getIncludeDir() const;
 
-  /**
-   * @brief Get the binaries path
-   */
   [[nodiscard]] std::filesystem::path getLibDir() const;
 
   /**
@@ -130,41 +102,7 @@ private:
    *
    * @param pkg_name The name of the package to be unindexed
    */
-  std::vector<std::string> unindexPackage(const std::string &pkg_name);
-
-  /**
-   * @brief Compile source files to object files
-   *
-   * @param sources The source files to be compiled (.c, .i, .s)
-   * @param objects The vector that is going to contain the compiled objects
-   * @param is_cpp Whether it is C++
-   */
-  static void compileObjects(
-      const std::vector<std::filesystem::path> &sources,
-      std::vector<std::filesystem::path> &objects, bool is_cpp
-  );
-
-  /**
-   * @brief Create a static library
-   *
-   * @param libPath The path of the future binary
-   * @param objects The objects to be compiled
-   * @return whether it worked or not
-   */
-  static bool
-  createStaticLib(const std::string &libPath, const std::vector<std::filesystem::path> &objects);
-
-  /**
-   * @brief Create a shared library
-   *
-   * @param libPath The path of the future library
-   * @param objects The objects to be compiled
-   * @param is_cpp Whether the code is C++
-   * @return whether it worked or not
-   */
-  static bool createSharedLib(
-      const std::string &libPath, const std::vector<std::filesystem::path> &objects, bool is_cpp
-  );
+  void unindexPackage(const std::string &pkg_name);
 
   std::vector<Package> packages_;
   std::vector<StdPackage> std_packages_;

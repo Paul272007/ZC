@@ -22,8 +22,7 @@ std::filesystem::path getZCRootDir();
  * @param v The vector to be joined
  * @param separator The separator between each element
  */
-std::string
-join(const std::vector<std::string> &v, const std::string &separator);
+std::string join(const std::vector<std::string> &v, const std::string &separator);
 
 /**
  * @brief Convert string to uppercase
@@ -39,3 +38,11 @@ std::string upper(const std::string &s);
  * @throws ZCError if no .zc directory is found in the hierarchy.
  */
 std::filesystem::path getProjectRoot();
+
+/**
+ * @brief Finds the root directory of the ZC project by searching upwards.
+ * @param base the base of the search
+ * @return The path to the project root.
+ * @throws ZCError if no .zc directory is found in the hierarchy.
+ */
+std::filesystem::path getProjectRoot(const std::filesystem::path &base);

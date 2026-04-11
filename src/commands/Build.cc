@@ -21,6 +21,13 @@ Build::Build(const bool force, const bool quiet, const bool release_mode)
 {
 }
 
+Build::Build(const bool force, const bool quiet, const ProjectSettings &project_settings)
+    : Command(force, quiet), release_mode_(false), registry_(Registry::getInstance()),
+      settings_(Settings::getInstance()), project_settings_(project_settings),
+      root_(project_settings.getProjectRoot())
+{
+}
+
 int Build::execute()
 {
   if (!quiet_)
@@ -190,8 +197,9 @@ void Build::generateCMakeLists() const
 
     // Libraries
     cmake << "target_link_directories(" << output << " PRIVATE\n";
-    cmake << "  \"${ZC_GLOBAL_ROOT}/lib\"\n"; // Global library folder
-    cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";  // Local library folder
+    for (const auto &lib : project_settings_.getDeps())
+      cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << std::get<0>(lib) << "\"\n"; // Global library folders
+    cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";                               // Local library folder
     cmake << ")\n\n";
 
     // Linking dependencies
@@ -199,7 +207,28 @@ void Build::generateCMakeLists() const
     {
       cmake << "target_link_libraries(" << output << " PRIVATE\n";
       for (const auto &lib : project_settings_.getDeps())
-        cmake << "  " << std::get<0>(lib) << "\n";
+      {
+        std::string package_name = std::get<0>(lib);
+
+        fs::path package_lib_dir = getZCRootDir() / "lib" / package_name;
+
+        bool found_libs = false;
+        if (fs::exists(package_lib_dir))
+        {
+          for (const auto &entry : fs::directory_iterator(package_lib_dir))
+          {
+            std::string ext = entry.path().extension().string();
+            if (ext == ".so" || ext == ".a" || ext == ".dylib" || ext == ".lib")
+            {
+              cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << package_name << "/" << entry.path().filename().string()
+                    << "\"\n";
+              found_libs = true;
+            }
+          }
+        }
+        if (!found_libs) // Security fallback : just put the package's name
+          cmake << "  " << package_name << "\n";
+      }
       cmake << ")\n\n";
     }
 
@@ -213,9 +242,9 @@ void Build::generateCMakeLists() const
   cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";
   cmake << "set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)\n\n";
   cmake << "if(APPLE)\n";
-  cmake << "  set(CMAKE_INSTALL_PATH \"@loader_path/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "else()\n";
-  cmake << "  set(CMAKE_INSTALL_PATH \"$ORIGIN/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "endif()\n";
 
   cmake.close();

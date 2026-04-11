@@ -91,7 +91,22 @@ fs::path getProjectRoot()
 
     current = current.parent_path();
   }
-  throw ZCError(
-      ZC_NOT_A_ZC_PROJECT, "This directory is not inside a ZC project"
-  );
+  throw ZCError(ZC_NOT_A_ZC_PROJECT, "This directory is not inside a ZC project");
+}
+
+fs::path getProjectRoot(const std::filesystem::path &base)
+{
+  fs::path current(base);
+
+  while (true)
+  {
+    if (fs::exists(current / ZC_FILE))
+      return current;
+
+    if (current == current.root_path() || current == current.parent_path())
+      break;
+
+    current = current.parent_path();
+  }
+  throw ZCError(ZC_NOT_A_ZC_PROJECT, "This directory is not inside a ZC project");
 }

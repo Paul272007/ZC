@@ -50,7 +50,7 @@ public:
    * @brief Default constructor just to not get errors when throwing empty
    * errors
    */
-  ZCError() = default;
+  ZCError();
 
   /**
    * @brief Create ZCError instance

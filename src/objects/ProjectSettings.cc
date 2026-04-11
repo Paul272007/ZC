@@ -10,7 +10,14 @@ using json = nlohmann::json;
 using namespace std;
 namespace fs = std::filesystem;
 
-ProjectSettings::ProjectSettings() : config_file_(getProjectRoot() / ZC_FILE)
+ProjectSettings::ProjectSettings() : project_root_(getProjectRoot()), config_file_(project_root_ / ZC_FILE)
+{
+  // If the project already exists, search for its root to find the zc file
+  load();
+}
+
+ProjectSettings::ProjectSettings(const std::filesystem::path &project_root)
+    : project_root_(project_root), config_file_(project_root_ / ZC_FILE)
 {
   // If the project already exists, search for its root to find the zc file
   load();
@@ -64,8 +71,8 @@ void ProjectSettings::load()
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
   version_ = json_conf.value("version", "0.0.0");
-  src_folder_ = getProjectRoot() / json_conf.value("srcFolder", "src");
-  include_folder_ = getProjectRoot() / json_conf.value("includeFolder", "include");
+  src_folder_ = project_root_ / json_conf.value("srcFolder", "src");
+  include_folder_ = project_root_ / json_conf.value("includeFolder", "include");
 
   // Type and output
   string type_str = "";
@@ -182,4 +189,8 @@ const dependencies ProjectSettings::getDeps() const
 const ProjectType ProjectSettings::getType() const
 {
   return type_;
+}
+const fs::path &ProjectSettings::getProjectRoot() const
+{
+  return project_root_;
 }

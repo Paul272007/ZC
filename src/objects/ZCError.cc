@@ -3,6 +3,10 @@
 
 using namespace std;
 
+ZCError::ZCError() : code_(SUCCESS), message_("Feature not implemented yet!")
+{
+}
+
 ZCError::ZCError(const ErrorCode code, const string &message) : code_(code), message_(message)
 {
 }

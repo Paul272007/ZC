@@ -8,6 +8,7 @@
 #include <commands/Command.hh>
 #include <commands/Create.hh>
 #include <commands/Init.hh>
+#include <commands/Install.hh>
 #include <commands/List.hh>
 #include <commands/Run.hh>
 #include <interface.hh>
@@ -35,6 +36,7 @@ int main(const int argc, char *argv[])
   bool git = false;
   vector<string> input_files;
   vector<string> output_files;
+  vector<string> targets;
 
   // zc run
   bool run_keep = false;
@@ -58,16 +60,21 @@ int main(const int argc, char *argv[])
   // zc build
   bool release_mode = false;
 
+  // zc install
+  bool global = false;
+  string path;
+
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
    * ========================================================= */
 
   // clang-format off
-  const auto run    = app.add_subcommand("run",    "Compile and execute C/C++ file(s)");
-  const auto create = app.add_subcommand("create", "Create file based on template");
-  const auto init   = app.add_subcommand("init",   "Initialize empty project");
-  const auto list   = app.add_subcommand("list",   "List all globally installed libraries");
-  const auto build  = app.add_subcommand("build",  "Build project");
+  const auto run     = app.add_subcommand("run",     "Compile and execute C/C++ file(s)");
+  const auto create  = app.add_subcommand("create",  "Create file based on template");
+  const auto init    = app.add_subcommand("init",    "Initialize empty project");
+  const auto list    = app.add_subcommand("list",    "List all globally installed libraries");
+  const auto build   = app.add_subcommand("build",   "Build project");
+  const auto install = app.add_subcommand("install", "Install package");
 
   // ========================== RUN ===============================
 
@@ -117,7 +124,7 @@ int main(const int argc, char *argv[])
   list->add_flag("--std,-s", std, "Show standard libraries");
   list->add_flag("--all,-a", all, "Show all libraries");
 
-  list->callback([&]() { command = make_unique<List>(force, quiet, std, all); });
+  list->callback([&]() { command = make_unique<List>(false, quiet, std, all); });
 
   // ========================== BUILD ===============================
 
@@ -127,11 +134,22 @@ int main(const int argc, char *argv[])
 
   build->callback([&]() { command = make_unique<Build>(force, quiet, release_mode); });
 
+  // ========================== INSTALL ===============================
+
+  install->add_option("targets", targets, "The packages to be installed");
+  install->add_option("--path,-p", path, "Install from local path instead of remote");
+
+  install->add_flag("--global,-g", global, "Install the package globally");
+  install->add_flag("--force,-f", force, "Force installing the package even if already installed");
+  install->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  install->callback([&]() { command = make_unique<Install>(targets, path, global, force, quiet); });
+
+  // clang-format on
   /* ========================================================= *
    *                          PARSING                          *
    * ========================================================= */
 
-  // clang-format on
   try
   {
     app.parse(argc, argv);

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <objects/File.hh>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <commands/Command.hh>
@@ -60,14 +61,14 @@ private:
    * @param badFile Fill this variable with the file that is faulty
    * @return Whether to compile as C++
    */
-  bool isCppAndCheckExtensions(std::filesystem::path &badFile) const;
+  bool isCppAndCheckExtensions() const;
 
   /**
    * @brief build the compiling command
    *
    * @param output_name The name of the output of the command
    */
-  std::string buildCommand(const std::string &output_name) const;
+  void buildCommand();
 
   /**
    * @brief Check that all files exist
@@ -80,19 +81,15 @@ private:
   /**
    * @brief Get library inclusions from file
    */
-  std::vector<std::string> getInclusions() const;
+  std::vector<std::pair<std::string, std::string>> getInclusions() const;
 
   bool keep_ = false;
-
   bool plus_ = false;
-
+  std::string output_name_;
+  std::string build_cmd_;
   Mode mode_ = FULL;
-
   Settings &settings_;
-
   Registry &registry_;
-
   std::vector<File> files_;
-
   std::vector<std::string> args_;
 };

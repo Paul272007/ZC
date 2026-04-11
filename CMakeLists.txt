@@ -53,6 +53,7 @@ add_executable(zc
   src/commands/Build.cc
   src/commands/Create.cc
   src/commands/Init.cc
+  src/commands/Install.cc
   src/commands/List.cc
   src/commands/Run.cc
 
@@ -87,4 +88,4 @@ target_link_libraries(zc PRIVATE
 # Installs binary in /usr/local/bin (by default)
 install(TARGETS zc DESTINATION bin)
 
-# We don't install the configuration here because the script already handles the user config in ~/.zc
+# We don't install the configuration here because the script already does it

@@ -15,6 +15,7 @@ class Build : public Command
 {
 public:
   Build(const bool force, const bool quiet, bool release_mode);
+  Build(const bool force, const bool quiet, const ProjectSettings &project_settings);
 
   int execute() override;
 
@@ -32,7 +33,7 @@ private:
   const std::filesystem::path root_ = getProjectRoot();
   std::vector<File> sources_;
   bool release_mode_;
-  ProjectSettings &project_settings_;
+  const ProjectSettings &project_settings_;
   Registry &registry_;
   Settings &settings_;
 };

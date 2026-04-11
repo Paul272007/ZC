@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 class Registry;
@@ -94,9 +95,9 @@ public:
   std::unique_ptr<Declarations> parse() const;
 
   /**
-   * @brief Get inclusions from file and return associated compiling flags
+   * @brief Get inclusions from file and return associated required libraries
    */
-  std::vector<std::string> getInclusions(const Registry &reg) const;
+  std::vector<std::pair<std::string, std::string>> getInclusions(const Registry &reg) const;
 
   /**
    * @brief Get file path

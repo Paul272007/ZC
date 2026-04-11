@@ -1,11 +1,12 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <vector>
 
+#include <commands/Build.hh>
 #include <interface.hh>
 #include <nlohmann/json.hpp>
+#include <objects/ProjectSettings.hh>
 #include <objects/Registry.hh>
 #include <objects/ZCError.hh>
 
@@ -30,36 +31,32 @@ void from_json(const json &j, StdPackage &p)
     return;
   if (j.size() < 4)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Not enough values given.");
-  j.at(0).get_to(p.name_);     // Index 0: "math"
-  j.at(1).get_to(p.headers_);  // Index 1: ["math.h"]
-  j.at(2).get_to(p.binaries_); // Index 2: []
-  j.at(3).get_to(p.flags_);    // Index 3: "-lm"
+  j.at(0).get_to(p.name_);
+  j.at(1).get_to(p.headers_);
+  j.at(2).get_to(p.binaries_);
+  j.at(3).get_to(p.flags_);
 }
 
 void from_json(const json &j, Package &p)
 {
   if (!j.is_array())
     return;
-  if (j.size() < 6)
+  if (j.size() < 4)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Not enough values given.");
-  j.at(0).get_to(p.name_);     // Index 0: "math"
-  j.at(1).get_to(p.headers_);  // Index 1: ["math.h"]
-  j.at(2).get_to(p.binaries_); // Index 2: []
-  j.at(3).get_to(p.flags_);    // Index 3: "-lm"
-  j.at(4).get_to(p.version_);  // Index 4: "0.0.0"
-  j.at(5).get_to(p.author_);   // Index 5: "std"
+  j.at(0).get_to(p.name_);
+  j.at(1).get_to(p.version_);
+  j.at(2).get_to(p.author_);
+  j.at(3).get_to(p.flags_);
+}
+
+void to_json(json &j, const StdPackage &p)
+{
+  j = json::array({p.name_, p.headers_, p.binaries_, p.flags_});
 }
 
 void to_json(json &j, const Package &p)
 {
-  j = json::array({
-      p.name_,     // Index 0
-      p.headers_,  // Index 1
-      p.binaries_, // Index 2
-      p.flags_,    // Index 3
-      p.version_,  // Index 4
-      p.author_    // Index 5
-  });
+  j = json::array({p.name_, p.version_, p.author_, p.flags_});
 }
 
 void Registry::load()
@@ -67,16 +64,12 @@ void Registry::load()
   json json_registry;
   if (!fs::exists(registry_path_))
   {
-    throw ZCError(
-        ZC_CONFIG_NOT_FOUND,
-        "The configuration file was not found: " + registry_path_.string()
-    );
+    throw ZCError(ZC_CONFIG_NOT_FOUND, "The configuration file was not found: " + registry_path_.string());
   }
   ifstream input(registry_path_);
   if (!input.is_open())
     throw ZCError(
-        ZC_CONFIG_READING_ERROR,
-        "The configuration file couldn't be read: " + registry_path_.string()
+        ZC_CONFIG_READING_ERROR, "The configuration file couldn't be read: " + registry_path_.string()
     );
   try
   {
@@ -85,8 +78,8 @@ void Registry::load()
   catch (const json::parse_error &e)
   {
     throw ZCError(
-        ZC_CONFIG_PARSING_ERROR, "The configuration file couldn't be parsed: " +
-                                     registry_path_.string() + ": " + e.what()
+        ZC_CONFIG_PARSING_ERROR,
+        "The configuration file couldn't be parsed: " + registry_path_.string() + ": " + e.what()
     );
   }
   if (json_registry.contains("libraries"))
@@ -95,73 +88,62 @@ void Registry::load()
     std_packages_ = json_registry.at("std_libraries").get<vector<StdPackage>>();
 }
 
-void Registry::savePackage(
-    Package &package, bool force, const vector<fs::path> &headers,
-    vector<fs::path> &objects, const vector<fs::path> &sources, bool is_cpp
-)
+void Registry::installPackage(std::filesystem::path &project_root, const bool force, const bool quiet)
 {
-  // 1. Create package subdirectory for headers and check if it already exists
-  // (which means the library already exists)
-  fs::path package_dir = include_path_ / package.name_;
-  if (!force && (pkgExists(package.name_) || fs::exists(package_dir)))
-    if (!ask(
-            "The library " + (package.name_) +
-            " already exists. Do you want to replace it ?"
-        ))
-    {
-      throw ZCError(ZC_OPERATIONS_ABORTED, "Operations aborted.");
-    }
-  fs::create_directories(package_dir);
+  ProjectSettings p(project_root);
 
-  // 2. Install header files
-  vector<string> installed_headers;
-  for (const auto &h : headers)
-  {
-    fs::create_directories(package_dir);
-    fs::path dest = package_dir / h;
+  if (p.getType() != LIB)
+    throw ZCError();
 
-    fs::copy(h, dest, fs::copy_options::overwrite_existing);
-    package.headers_.push_back(h.string());
-  }
+  Build b(true, quiet, p);
+  b.execute();
 
-  // 3. Build library names (static + shared)
-  string lib_base = "lib" + package.name_;
-  fs::path static_path = lib_path_ / (lib_base + ".a");
-
-#if defined(_WIN32) || defined(_WIN64)
-  string shared_ext = ".dll";
-#elif defined(__APPLE__)
-  string shared_ext = ".dylib";
-#else
-  string shared_ext = ".so";
+#ifdef DEBUG_MODE
+  if (!quiet)
+    debug("Projet compiled");
 #endif
-  fs::path shared_path = lib_path_ / (lib_base + shared_ext);
 
-  // 4. Compile all source code into object files
-  vector<fs::path> created_objects;
-  compileObjects(sources, created_objects, is_cpp);
-  for (const auto &obj : created_objects)
-    objects.push_back(obj);
+  fs::path global_zc = getZCRootDir();
+  fs::path dest_include = global_zc / "include" / p.getName();
+  fs::path dest_lib = global_zc / "lib" / p.getName();
 
-  // 5. Compile all object files into libraries
-  if (!objects.empty())
+  if ((fs::exists(dest_include) || fs::exists(dest_lib) || pkgExists(p.getName())) && !force)
+    if (!ask("The library seems to be already installed on this machine. Do you want to overwrite it ?"))
+      return;
+
+  if (!quiet)
+    info("Installing headers...");
+
+  fs::create_directories(dest_include);
+  fs::copy(
+      p.getIncludeFolder(), dest_include, fs::copy_options::recursive | fs::copy_options::overwrite_existing
+  );
+
+  if (!quiet)
+    info("Installing libraries...");
+
+  fs::create_directories(dest_lib);
+  vector<string> lib_names = {p.getStaticLibName(), p.getSharedLibName()};
+
+  for (const string &name : lib_names)
   {
-    if (!createStaticLib(static_path.string(), objects))
-      return;
-    if (!createSharedLib(shared_path.string(), objects, is_cpp))
-      return;
+    if (name.empty())
+      continue;
 
-    for (const auto &obj : created_objects)
-      fs::remove(obj);
+    for (const auto &entry : fs::recursive_directory_iterator(project_root / "build"))
+    {
+      string filename = entry.path().filename().string();
+
+      if (filename.find(name) != string::npos &&
+          (entry.path().extension() == ".a" || entry.path().extension() == ".so" ||
+           entry.path().extension() == ".dylib" || entry.path().extension() == ".lib"))
+      {
+        fs::copy_file(entry.path(), dest_lib / filename, fs::copy_options::overwrite_existing);
+      }
+    }
   }
-
-  if (fs::exists(static_path))
-    package.binaries_.push_back(static_path);
-  if (fs::exists(shared_path))
-    package.binaries_.push_back(shared_path);
-
-  // 6. Index the library in the config file
-  indexPackage(package);
+  string flags = "-l" + (p.getSharedLibName().empty() ? p.getStaticLibName() : p.getSharedLibName());
+  indexPackage(Package{p.getName(), p.getAuthor(), p.getVersion().to_string(), flags});
 }
 
 void Registry::indexPackage(const Package &package)
@@ -169,43 +151,30 @@ void Registry::indexPackage(const Package &package)
   packages_.push_back(package);
   json root;
   root["libraries"] = packages_;
+  root["std_libraries"] = std_packages_;
   ofstream output(registry_path_);
   if (!output.is_open())
-    throw ZCError(
-        ZC_CONFIG_WRITING_ERROR,
-        "The registry couldn't be written: " + registry_path_.string()
-    );
+    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The registry couldn't be written: " + registry_path_.string());
   output << root.dump(4);
   output.close();
 }
 
 Table Registry::packagesTable() const
 {
-  vector<vector<string>> str_pkgs{
-      {"Package name", "Author", "Version", "Compiling flags", "Headers",
-       "Binaries"}
-  };
+  vector<vector<string>> str_pkgs{{"Package name", "Author", "Version", "Compiling flags"}};
 
-  for (const auto &[name_, author_, version_, headers_, binaries_, flags_] :
-       packages_)
-    str_pkgs.push_back(
-        {name_, author_, version_, flags_, join(headers_, ", "),
-         join(binaries_, ", ")}
-    );
+  for (const auto &[name_, author_, version_, flags_] : packages_)
+    str_pkgs.push_back({name_, author_, version_, flags_});
 
   return Table(str_pkgs.size(), N_ATTR_PACKAGE, false, true, str_pkgs);
 }
 
 Table Registry::stdPackagesTable() const
 {
-  vector<vector<string>> str_pkgs{
-      {"Package name", "Compiling flags", "Headers", "Binaries"}
-  };
+  vector<vector<string>> str_pkgs{{"Package name", "Compiling flags", "Headers", "Binaries"}};
 
   for (const auto &[name_, headers_, binaries_, flags_] : std_packages_)
-    str_pkgs.push_back(
-        {name_, flags_, join(headers_, ", "), join(binaries_, ", ")}
-    );
+    str_pkgs.push_back({name_, flags_, join(headers_, ", "), join(binaries_, ", ")});
 
   return Table(str_pkgs.size(), N_ATTR_STD_PACKAGE, false, true, str_pkgs);
 }
@@ -230,121 +199,48 @@ std::vector<StdPackage> Registry::getStdPackages() const
   return std_packages_;
 }
 
-void Registry::compileObjects(
-    const std::vector<std::filesystem::path> &sources,
-    std::vector<std::filesystem::path> &objects, const bool is_cpp
-)
+void Registry::unindexPackage(const std::string &pkg_name)
 {
-  // Compile each file separately
-  for (const auto &s : sources)
-  {
-    fs::path obj = s;
-    stringstream cmd;
-    cmd << (is_cpp ? "g++" : "gcc") << " -c -fPIC " << s.string() << " -o "
-        << obj.replace_extension(".o").string();
-    if (system(cmd.str().c_str()) != 0)
-      throw ZCError(
-          ZC_COMPILATION_ERROR, "An error occurred while compiling " +
-                                    s.string() + " to " + obj.string()
-      );
-    objects.push_back(obj);
-  }
-}
-
-bool Registry::createStaticLib(
-    const std::string &libPath,
-    const std::vector<std::filesystem::path> &objects
-)
-{
-  stringstream cmd;
-  cmd << "ar rcs " << libPath;
-  for (const auto &o : objects)
-    cmd << " " << o;
-  debug("Build command for static library: " + cmd.str());
-  return (system(cmd.str().c_str()) == 0);
-}
-
-bool Registry::createSharedLib(
-    const std::string &libPath, const std::vector<fs::path> &objects,
-    const bool is_cpp
-)
-{
-  stringstream cmd;
-  cmd << (is_cpp ? "g++" : "gcc");
-#ifdef __APPLE__
-  cmd << " -dynamiclib ";
-#else
-  cmd << " -shared ";
-#endif
-  for (const auto &o : objects)
-    cmd << o << " ";
-
-  cmd << "-o " << libPath;
-  debug("Build command for shared library: " + cmd.str());
-  return system(cmd.str().c_str()) == 0;
-}
-
-vector<string> Registry::unindexPackage(const std::string &pkg_name)
-{
-  vector<string> binaries;
   // 1. Find package
-  auto it = ranges::find_if(
-      packages_, [&](const Package &p) { return p.name_ == pkg_name; }
-  );
+  auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
 
   // 2. Check if package was found
   if (it != packages_.end())
   {
-    binaries = it->binaries_;
-
     // 3. Delete package
     packages_.erase(it);
   }
   else
   {
-    throw ZCError(
-        ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name
-    );
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name);
   }
 
   nlohmann::json root;
   root["libraries"] = packages_;
+  root["std_libraries"] = std_packages_;
 
   std::ofstream output(registry_path_);
   if (!output.is_open())
-    throw ZCError(
-        ZC_CONFIG_WRITING_ERROR,
-        "The registry couldn't be written: " + registry_path_.string()
-    );
+    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The registry couldn't be written: " + registry_path_.string());
 
   output << root.dump(4);
   output.close();
-
-  return binaries;
 }
 
 bool Registry::removePackage(const std::string &pkg_name)
 {
-  const vector<string> binaries = unindexPackage(pkg_name);
+  unindexPackage(pkg_name);
 
-  if (fs::exists(include_path_ / pkg_name))
-    fs::remove_all(include_path_ / pkg_name);
-  else
+  if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
     return false;
-  for (const auto &b : binaries)
-  {
-    if (fs::exists(lib_path_ / b))
-      fs::remove(b);
-    else
-      return false;
-  }
+
+  fs::remove_all(include_path_ / pkg_name);
+  fs::remove_all(lib_path_ / pkg_name);
   return true;
 }
 
 bool Registry::pkgExists(const std::string &pkg_name) const
 {
-  const auto it = ranges::find_if(
-      packages_, [&](const Package &p) { return p.name_ == pkg_name; }
-  );
+  const auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
   return it != packages_.end();
 }

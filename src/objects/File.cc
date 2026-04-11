@@ -2,6 +2,8 @@
 #include <clang-c/Index.h>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <utility>
 
 #include <helpers.hh>
 #include <interface.hh>
@@ -483,17 +485,17 @@ ostream &operator<<(ostream &stream, const File &file)
   return stream;
 }
 
-vector<string> File::getInclusions(const Registry &reg) const
+vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
 {
   vector<string> found_includes;
-  vector<string> flags;
+  vector<std::pair<string, string>> required_libs;
 
   CXIndex index = clang_createIndex(0, 0);
 
   // To see #includes
   unsigned options = CXTranslationUnit_DetailedPreprocessingRecord;
 
-  const char *args[] = {"-x", "c"};
+  const char *args[] = {"-x", "c++"};
   CXTranslationUnit unit = clang_parseTranslationUnit(index, path_.c_str(), args, 2, nullptr, 0, options);
 
   if (unit)
@@ -508,22 +510,38 @@ vector<string> File::getInclusions(const Registry &reg) const
     {
       for (const auto &package : reg.getPackages())
       {
-        if (inc.find(package.name_) != string::npos)
+        if (inc.find(package.name_ + "/") == 0 || inc == package.name_ + ".h" ||
+            inc == package.name_ + ".hh" || inc == package.name_ + ".hpp")
         {
-          // TODO : Registry::getFlagsForHeader(inclusions) ?
-          flags.push_back(package.flags_);
+          bool already_present = std::any_of(
+              required_libs.begin(), required_libs.end(),
+              [&](const auto &p) { return p.first == package.name_; }
+          );
+
+          if (!already_present)
+            required_libs.push_back({package.name_, package.flags_});
         }
       }
       for (const auto &std_package : reg.getStdPackages())
+      {
         if (inc.find(std_package.name_) != string::npos)
-          flags.push_back(std_package.flags_);
+        {
+          bool already_present = std::any_of(
+              required_libs.begin(), required_libs.end(),
+              [&](const auto &p) { return p.first == std_package.name_; }
+          );
+
+          if (!already_present)
+            required_libs.push_back({std_package.name_, std_package.flags_});
+        }
+      }
     }
 
     clang_disposeTranslationUnit(unit);
   }
 
   clang_disposeIndex(index);
-  return flags;
+  return required_libs;
 }
 
 void File::copy(const File &file) const

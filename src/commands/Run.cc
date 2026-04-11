@@ -1,10 +1,10 @@
-#include "commands/Command.hh"
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
 
+#include <commands/Command.hh>
 #include <commands/Run.hh>
 #include <helpers.hh>
 #include <interface.hh>
@@ -12,6 +12,7 @@
 #include <objects/Registry.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
+#include <utility>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -24,65 +25,55 @@ Run::Run(
     : keep_(keep), plus_(plus), Command(force, quiet), mode_(getMode(preprocess, compile, assemble)),
       settings_(Settings::getInstance()), registry_(Registry::getInstance()), args_(args)
 {
-  // 1. Fill files_
+  // Fill files_
   for (const auto &f : files)
     files_.emplace_back(f);
 
-  // 2. Check if CPP was given and that files have correct extensions
-  fs::path badFile;
-
-  // 3. Check if C++ was given
+  // Check if C++ was given
   if (!plus_)
-    plus_ = isCppAndCheckExtensions(badFile);
-
-  if (!badFile.empty())
-    throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + badFile.string());
+    plus_ = isCppAndCheckExtensions();
 }
 
 int Run::execute()
 {
   // 1. Check that all files exist (file extensions were already checked before)
-  if (fs::path badFile; !filesExist(badFile))
-    throw ZCError(ZC_NOT_FOUND, "File not found: " + badFile.string());
-
-  string output_name, build_cmd;
+  for (const auto &f : files_)
+    if (!f.exists())
+      throw ZCError(ZC_NOT_FOUND, "File not found: " + escape_shell_arg(f.getPath().string()));
 
   // 2. Build the compiling command following the given options
   switch (mode_)
   {
   case PREPROCESS:
-    output_name = files_[0].getPath().replace_extension(".i").string();
+    output_name_ = files_[0].getPath().replace_extension(".i").string();
     break;
   case COMPILE:
-    output_name = files_[0].getPath().replace_extension(".s").string();
+    output_name_ = files_[0].getPath().replace_extension(".s").string();
     break;
   case ASSEMBLE:
-    output_name = files_[0].getPath().replace_extension(".o").string();
+    output_name_ = files_[0].getPath().replace_extension(".o").string();
     break;
   case FULL:
-    // default:
-    output_name = files_[0].getPath().replace_extension("").string();
+    output_name_ = files_[0].getPath().replace_extension().string();
     break;
   }
 
-  if (fs::exists(output_name) && !force_)
-    if (!ask("The file '" + output_name + "' already exists. Do you want to overwrite it ?"))
+  if (fs::exists(output_name_) && !force_)
+    if (!ask("The file '" + output_name_ + "' already exists. Do you want to overwrite it ?"))
       return 0;
 
-  build_cmd = buildCommand(output_name);
+  buildCommand();
 
 #ifdef DEBUG_MODE
   if (!quiet_)
-    debug("Build command: " + build_cmd);
+    debug("Build command: " + build_cmd_);
 #endif
 
   cout << flush;
-  // TODO : get command output in a variable instead of stdout for better
-  // display
+  // TODO : get command output in a variable instead of stdout for better interface
 
   // 3. Compile program
-
-  if (const int compile_res = system(build_cmd.c_str()); compile_res != 0)
+  if (const int compile_res = system(build_cmd_.c_str()); compile_res != 0)
     throw ZCError(ZC_COMPILATION_ERROR, "Compilation failed");
 
   if (!quiet_)
@@ -91,7 +82,7 @@ int Run::execute()
   if (mode_ != FULL)
   {
     if (!quiet_)
-      success("File created: " + output_name);
+      success("File created: " + output_name_);
     return 0;
   }
 
@@ -104,21 +95,21 @@ int Run::execute()
 
   if (!quiet_)
     info("Executing program...");
-  string exec_cmd = fs::absolute(output_name).string();
+  string exec_cmd = fs::absolute(output_name_).string();
 
   for (const auto &arg : args_)
     exec_cmd += " " + escape_shell_arg(arg);
 
   const int run_res = system(exec_cmd.c_str());
 
-  if (!settings_.getAutoKeep() && !keep_ && fs::exists(output_name))
+  if (!settings_.getAutoKeep() && !keep_ && fs::exists(output_name_))
   {
-    fs::remove(output_name);
+    fs::remove(output_name_);
 #ifdef DEBUG_MODE
     if (!quiet_)
     {
       cout << endl;
-      debug("Temporary file removed: " + output_name);
+      debug("Temporary file removed: " + output_name_);
     }
 #endif
   }
@@ -155,7 +146,7 @@ Mode Run::getMode(const bool preprocess, const bool compile, const bool assemble
   return mode;
 }
 
-bool Run::isCppAndCheckExtensions(std::filesystem::path &badFile) const
+bool Run::isCppAndCheckExtensions() const
 {
   bool found = false;
   for (const auto &f : files_)
@@ -170,13 +161,12 @@ bool Run::isCppAndCheckExtensions(std::filesystem::path &badFile) const
     case INSTANCE:
       break;
     default:
-      badFile = f.getPath();
-      return false;
+      throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + f.getPath().string());
     }
   return found;
 }
 
-string Run::buildCommand(const string &output_name) const
+void Run::buildCommand()
 {
   stringstream cmd;
   // Compiler and standard
@@ -197,20 +187,12 @@ string Run::buildCommand(const string &output_name) const
   for (const auto &f : settings_.getFlags())
     cmd << escape_shell_arg(f) << " ";
 
-  // On build mode : use map header -> lib provided by the registry
-  if (mode_ == FULL)
-  {
-    cmd << "-I" << escape_shell_arg(registry_.getIncludeDir()) << " ";
-    cmd << "-L" << escape_shell_arg(registry_.getLibDir()) << " ";
-    cmd << "-Wl,-rpath," << escape_shell_arg(registry_.getLibDir()) << " ";
-  }
-
   // Source files
   for (const auto &file : files_)
     cmd << file << " ";
 
   // Output
-  cmd << "-o " << escape_shell_arg(output_name) << " ";
+  cmd << "-o " << escape_shell_arg(output_name_) << " ";
 
   // Mode and libraries for normal mode
   switch (mode_)
@@ -225,39 +207,43 @@ string Run::buildCommand(const string &output_name) const
     cmd << "-c ";
     break;
   default:
-    const vector<string> includes = getInclusions();
-    for (const auto &include : includes)
-      cmd << escape_shell_arg(include) << " ";
+    cmd << "-I" << escape_shell_arg(registry_.getIncludeDir()) << " "; // Path to headers
+
+    const vector<pair<string, string>> libs = getInclusions();
+    for (const auto &[name, flags] : libs)
+    {
+      string lib_dir = (registry_.getLibDir() / name).string(); // Path to libraries
+      cmd << "-L" << lib_dir << " ";
+
+      cmd << "-Wl,-rpath," << lib_dir << " ";
+
+      cmd << flags << " ";
+    }
     break;
   }
 
   // Color flags
   cmd << "-fdiagnostics-color=always";
-  return cmd.str();
+  build_cmd_ = cmd.str();
 }
 
-bool Run::filesExist(fs::path &badFile) const
+vector<pair<string, string>> Run::getInclusions() const
 {
+  vector<pair<string, string>> libs_to_link;
+
   for (const auto &f : files_)
   {
-    if (!f.exists())
+    vector<pair<string, string>> includes = f.getInclusions(registry_);
+
+    for (const auto &include : includes)
     {
-      badFile = f.getPath();
-      return false;
+      bool already_present = std::any_of(
+          libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p.first == include.first; }
+      );
+
+      if (!already_present)
+        libs_to_link.push_back(include);
     }
   }
-  return true;
-}
-
-vector<string> Run::getInclusions() const
-{
-  vector<string> flags;
-
-  for (const auto &f : files_)
-  {
-    for (vector<string> includes = f.getInclusions(registry_); const auto &include : includes)
-      if (ranges::find(flags, include) == flags.end())
-        flags.push_back(include);
-  }
-  return flags;
+  return libs_to_link;
 }

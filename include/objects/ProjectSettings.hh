@@ -28,6 +28,7 @@ public:
       const std::string &staticLib, const std::string &version, const std::string &src,
       const std::string &include, const ProjectType &type, const dependencies &deps
   );
+  ProjectSettings(const std::filesystem::path &project_root);
   void write() const;
   void load();
 
@@ -43,10 +44,12 @@ public:
   Version getVersion() const;
   const std::filesystem::path &getSrcFolder() const;
   const std::filesystem::path &getIncludeFolder() const;
+  const std::filesystem::path &getProjectRoot() const;
 
 private:
   ProjectSettings();
 
+  const std::filesystem::path project_root_;
   const std::filesystem::path config_file_;
   dependencies deps_;
   ProjectType type_;
