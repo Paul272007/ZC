@@ -34,7 +34,7 @@ public:
 
   /* Getters */
   const std::filesystem::path getConfigFile() const;
-  const dependencies getDeps() const;
+  const dependencies &getDeps() const;
   const ProjectType getType() const;
   const std::string &getName() const;
   const std::string &getAuthor() const;

@@ -28,11 +28,11 @@ public:
   int execute() override;
 
 private:
-  void installFromPath() const;
+  void installFromPath();
 
   const std::vector<std::string> targets_;
   const std::filesystem::path path_;
   const bool global_;
 
-  Registry &registry_;
+  Registry *registry_ = nullptr;
 };

@@ -104,6 +104,11 @@ private:
    */
   void unindexPackage(const std::string &pkg_name);
 
+  /**
+   * @brief Write to ~/.zc/registry.json
+   */
+  void write() const;
+
   std::vector<Package> packages_;
   std::vector<StdPackage> std_packages_;
 

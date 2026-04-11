@@ -55,6 +55,7 @@ add_executable(zc
   src/commands/Init.cc
   src/commands/Install.cc
   src/commands/List.cc
+  src/commands/Remove.cc
   src/commands/Run.cc
 
   src/objects/File.cc

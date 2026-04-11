@@ -10,6 +10,7 @@
 #include <commands/Init.hh>
 #include <commands/Install.hh>
 #include <commands/List.hh>
+#include <commands/Remove.hh>
 #include <commands/Run.hh>
 #include <interface.hh>
 #include <objects/ZCError.hh>
@@ -34,6 +35,7 @@ int main(const int argc, char *argv[])
   bool quiet = false;
   bool edit = false;
   bool git = false;
+  bool global = false;
   vector<string> input_files;
   vector<string> output_files;
   vector<string> targets;
@@ -62,7 +64,6 @@ int main(const int argc, char *argv[])
   bool release_mode = false;
 
   // zc install
-  bool global = false;
   string path;
 
   /* ========================================================= *
@@ -76,6 +77,7 @@ int main(const int argc, char *argv[])
   const auto list    = app.add_subcommand("list",    "List all globally installed libraries");
   const auto build   = app.add_subcommand("build",   "Build project");
   const auto install = app.add_subcommand("install", "Install package");
+  const auto remove  = app.add_subcommand("remove",  "Remove package");
 
   // ========================== RUN ===============================
 
@@ -84,12 +86,12 @@ int main(const int argc, char *argv[])
 
   run->add_flag("--keep,-k", run_keep, "Do not delete the executable after program ends");
   run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
-  run->add_flag("-E", run_E, "Preprocess only");
-  run->add_flag("-S", run_S, "Compile, but do not assemble or link");
-  run->add_flag("-c", run_c, "Compile and assemble, but do not link");
   run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
   run->add_flag("--std,-s", std, "Add C/C++ standard from config file");
+  run->add_flag("-E", run_E, "Preprocess only");
+  run->add_flag("-S", run_S, "Compile, but do not assemble or link");
+  run->add_flag("-c", run_c, "Compile and assemble, but do not link");
 
   run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet, std); });
 
@@ -146,6 +148,16 @@ int main(const int argc, char *argv[])
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   install->callback([&]() { command = make_unique<Install>(targets, path, global, force, quiet); });
+
+  // ========================== REMOVE ===============================
+
+  remove->add_option("targets", targets, "The packages to be removed")->required();
+  
+  // remove->add_flag("--force,-f", force, "Force removing packages");
+  remove->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  remove->add_flag("--global,-g", global, "Remove globally installed package");
+
+  remove->callback([&]() { command = make_unique<Remove>(targets, false, quiet, global); });
 
   // clang-format on
   /* ========================================================= *

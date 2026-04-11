@@ -13,8 +13,7 @@ Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
     const bool quiet
 )
-    : targets_(targets), path_(path), global_(global), Command(force, quiet),
-      registry_(Registry::getInstance())
+    : targets_(targets), path_(path), global_(global), Command(force, quiet)
 {
 }
 
@@ -30,16 +29,17 @@ int Install::execute()
     throw ZCError(); // Only path is empty : install targets from server
 
   if (targets_.empty())
-    installFromPath(); // Only targets is empty : install from path
+    installFromPath(); // Only targets is empty : install globally from path
 
   return 0;
 }
 
-void Install::installFromPath() const
+void Install::installFromPath()
 {
+  registry_ = &Registry::getInstance();
   if (!fs::exists(path_))
     throw ZCError(ZC_NOT_FOUND, "The directory " + path_.string() + " does not exist");
 
   fs::path project_root = getProjectRoot(path_);
-  registry_.installPackage(project_root, force_, quiet_);
+  registry_->installPackage(project_root, force_, quiet_);
 }

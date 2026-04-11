@@ -1,9 +1,9 @@
 #include <filesystem>
 
-#include "helpers.hh"
-#include "objects/ZCError.hh"
 #include <fstream>
+#include <helpers.hh>
 #include <objects/ProjectSettings.hh>
+#include <objects/ZCError.hh>
 #include <string>
 
 using json = nlohmann::json;
@@ -182,7 +182,7 @@ const std::filesystem::path ProjectSettings::getConfigFile() const
 {
   return config_file_;
 }
-const dependencies ProjectSettings::getDeps() const
+const dependencies &ProjectSettings::getDeps() const
 {
   return deps_;
 }

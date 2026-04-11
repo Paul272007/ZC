@@ -144,11 +144,47 @@ void Registry::installPackage(std::filesystem::path &project_root, const bool fo
   }
   string flags = "-l" + (p.getSharedLibName().empty() ? p.getStaticLibName() : p.getSharedLibName());
   indexPackage(Package{p.getName(), p.getAuthor(), p.getVersion().to_string(), flags});
+  success("Package " + p.getName() + " installed successfully.");
+}
+
+bool Registry::removePackage(const std::string &pkg_name)
+{
+  unindexPackage(pkg_name);
+
+  if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
+    return false;
+
+  fs::remove_all(include_path_ / pkg_name);
+  fs::remove_all(lib_path_ / pkg_name);
+  return true;
+}
+
+bool Registry::pkgExists(const std::string &pkg_name) const
+{
+  const auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
+  return it != packages_.end();
 }
 
 void Registry::indexPackage(const Package &package)
 {
   packages_.push_back(package);
+  write();
+}
+
+void Registry::unindexPackage(const std::string &pkg_name)
+{
+  auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
+
+  if (it != packages_.end())
+    packages_.erase(it);
+  else
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name);
+
+  write();
+}
+
+void Registry::write() const
+{
   json root;
   root["libraries"] = packages_;
   root["std_libraries"] = std_packages_;
@@ -197,50 +233,4 @@ std::vector<Package> Registry::getPackages() const
 std::vector<StdPackage> Registry::getStdPackages() const
 {
   return std_packages_;
-}
-
-void Registry::unindexPackage(const std::string &pkg_name)
-{
-  // 1. Find package
-  auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
-
-  // 2. Check if package was found
-  if (it != packages_.end())
-  {
-    // 3. Delete package
-    packages_.erase(it);
-  }
-  else
-  {
-    throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name);
-  }
-
-  nlohmann::json root;
-  root["libraries"] = packages_;
-  root["std_libraries"] = std_packages_;
-
-  std::ofstream output(registry_path_);
-  if (!output.is_open())
-    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The registry couldn't be written: " + registry_path_.string());
-
-  output << root.dump(4);
-  output.close();
-}
-
-bool Registry::removePackage(const std::string &pkg_name)
-{
-  unindexPackage(pkg_name);
-
-  if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
-    return false;
-
-  fs::remove_all(include_path_ / pkg_name);
-  fs::remove_all(lib_path_ / pkg_name);
-  return true;
-}
-
-bool Registry::pkgExists(const std::string &pkg_name) const
-{
-  const auto it = ranges::find_if(packages_, [&](const Package &p) { return p.name_ == pkg_name; });
-  return it != packages_.end();
 }
