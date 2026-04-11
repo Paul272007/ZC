@@ -20,10 +20,10 @@ namespace fs = std::filesystem;
 Run::Run(
     const std::vector<std::string> &files, const std::vector<std::string> &args, const bool keep,
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
-    const bool quiet
+    const bool quiet, const bool add_std
 )
     : keep_(keep), plus_(plus), Command(force, quiet), mode_(getMode(preprocess, compile, assemble)),
-      settings_(Settings::getInstance()), registry_(Registry::getInstance()), args_(args)
+      settings_(Settings::getInstance()), registry_(Registry::getInstance()), args_(args), add_std_(add_std)
 {
   // Fill files_
   for (const auto &f : files)
@@ -173,13 +173,13 @@ void Run::buildCommand()
   if (plus_)
   {
     cmd << settings_.getCppCompiler() << " ";
-    if (settings_.getAutoAddStd())
+    if (settings_.getAutoAddStd() || add_std_)
       cmd << "'-std=" << settings_.getCppStd() << "' ";
   }
   else
   {
     cmd << settings_.getCCompiler() << " ";
-    if (settings_.getAutoAddStd())
+    if (settings_.getAutoAddStd() || add_std_)
       cmd << "'-std=" << settings_.getCStd() << "' ";
   }
 

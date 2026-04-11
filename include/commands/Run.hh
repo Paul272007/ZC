@@ -1,9 +1,9 @@
 #pragma once
 
-#include "objects/Registry.hh"
-#include "objects/Settings.hh"
 #include <filesystem>
 #include <objects/File.hh>
+#include <objects/Registry.hh>
+#include <objects/Settings.hh>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,7 +34,7 @@ public:
    * @param quiet Enable quiet mode for output
    */
   Run(const std::vector<std::string> &files, const std::vector<std::string> &args, bool keep, bool plus,
-      bool preprocess, bool compile, bool assemble, bool force, bool quiet);
+      bool preprocess, bool compile, bool assemble, bool force, bool quiet, bool add_std);
 
   /**
    * @brief Execute command
@@ -83,7 +83,8 @@ private:
    */
   std::vector<std::pair<std::string, std::string>> getInclusions() const;
 
-  bool keep_ = false;
+  const bool add_std_;
+  const bool keep_ = false;
   bool plus_ = false;
   std::string output_name_;
   std::string build_cmd_;

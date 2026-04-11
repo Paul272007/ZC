@@ -41,6 +41,7 @@ int main(const int argc, char *argv[])
   // zc run
   bool run_keep = false;
   bool run_plus = false;
+  bool run_std = false;
   bool run_c = false;
   bool run_S = false;
   bool run_E = false;
@@ -88,8 +89,9 @@ int main(const int argc, char *argv[])
   run->add_flag("-c", run_c, "Compile and assemble, but do not link");
   run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
+  run->add_flag("--std,-s", std, "Add C/C++ standard from config file");
 
-  run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet); });
+  run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet, std); });
 
   // ========================== CREATE ===============================
   
