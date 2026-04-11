@@ -1,26 +1,41 @@
-#include "commands/Command.hh"
+#include <commands/Command.hh>
 #include <iostream>
 
 #include <commands/List.hh>
 
 using namespace std;
 
-List::List(const bool force, const bool quiet)
-    : p_registry_(ProjectsRegistry::getInstance()), Command(force, quiet)
+List::List(const bool force, const bool quiet, const bool std, const bool all)
+    : std_(std), all_(all), registry_(Registry::getInstance()), Command(force, quiet)
 {
 }
 
 int List::execute()
 {
-  Table projects = p_registry_.projectsTable();
-
-  if (projects.getSize() < 2)
+  if (std_ || all_)
   {
-    if (!quiet_)
-      cout << "No projects to show." << endl;
-    return 0;
+    Table std_lib = registry_.stdPackagesTable();
+
+    if (std_lib.getSize() < 2)
+    {
+      if (!quiet_)
+        cout << "No standard libraries to show." << endl;
+    }
+    else
+      std_lib.draw();
+  }
+  if (!std_ || all_)
+  {
+    Table lib = registry_.packagesTable();
+
+    if (lib.getSize() < 2)
+    {
+      if (!quiet_)
+        cout << "No user libraries to show." << endl;
+    }
+    else
+      lib.draw();
   }
 
-  projects.draw();
   return 0;
 }

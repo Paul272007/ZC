@@ -9,6 +9,8 @@
 #include <objects/Registry.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
+#include <sstream>
+#include <vector>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -25,49 +27,48 @@ int Build::execute()
     info("Scanning sources...");
 
   scanSources();
+  // Verifications
   if (sources_.empty())
     throw ZCError(ZC_NO_SOURCE_FILES, "No source files were detected");
 
   if (project_settings_.getType() == UNDEF)
-    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "The property 'type' is missing");
+    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'type' is missing");
 
-  if (project_settings_.getType() == BIN)
+  if (project_settings_.getType() == BIN && project_settings_.getExecutableName().empty())
+    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'executable' is missing");
+
+  if (project_settings_.getType() == LIB && project_settings_.getSharedLibName().empty() &&
+      project_settings_.getStaticLibName().empty())
+    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'shared' or 'static' is missing");
+
+  // CMake configuration
+  if (!fs::exists("CMakeLists.txt") || force_)
   {
-    if (project_settings_.getExecutableName().empty())
-      throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "The property 'executable' is missing");
+    if (!quiet_)
+      info("Generating build configuration...");
 
-    if (!fs::exists("CMakeLists.txt") || force_)
-    {
-      if (!quiet_)
-        info("Generating build configuration...");
-
-      generateCMakeLists();
-    }
+    generateCMakeLists();
 
     const string build_type = release_mode_ ? "Release" : "Debug";
     const string config_cmd = "cmake " + root_.string() + " -B " + root_.string() +
                               "/build -DCMAKE_BUILD_TYPE=" + build_type + (quiet_ ? " &>/dev/null" : "");
-    const string build_cmd = "cmake --build " + root_.string() + "/build" + (quiet_ ? " &>/dev/null" : "");
-
     if (!quiet_)
       info("Configuring project...");
     if (system(config_cmd.c_str()) != 0)
       throw ZCError(ZC_CMAKE_ERROR, "CMake configuration failed");
-
-    if (!quiet_)
-      info("Building project...");
-    if (system(build_cmd.c_str()) != 0)
-      throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
-
-    if (!quiet_)
-      success("Project was built successfully in build/");
-    return 0;
   }
-  else
-  {
-    // TODO : implement library compiling
-    throw ZCError();
-  }
+
+  // Build
+  const string build_cmd = "cmake --build " + root_.string() + "/build" + (quiet_ ? " &>/dev/null" : "");
+
+  if (!quiet_)
+    info("Building project...");
+  if (system(build_cmd.c_str()) != 0)
+    throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
+
+  if (!quiet_)
+    success("Project was built successfully in build/");
+  return 0;
 }
 
 void Build::scanSources()
@@ -122,7 +123,7 @@ void Build::generateCMakeLists() const
   cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";                  // Compile commands for clangd
   cmake << "project(" << project_settings_.getName() << " C CXX)\n\n"; // Project name
 
-  // Source dir for local and global libraries
+  // Variables for local and global ZC directories
   cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << ZC_MODULES << "\")\n";
   cmake << "if(WIN32)\n";
   cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{USERPROFILE}/" << ROOT_DIR << "\")\n";
@@ -135,38 +136,78 @@ void Build::generateCMakeLists() const
   cmake << "set(CMAKE_C_STANDARD " << (settings_.getCStd().substr(1)) << ")\n\n";
 
   // Source code
-  cmake << "add_executable(" << project_settings_.getExecutableName() << '\n';
+  stringstream sources_list_stream;
   for (const auto &src : sources_)
-    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(src.getPath(), root_).string() << "\"\n";
-  cmake << ")\n\n";
+    sources_list_stream << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(src.getPath(), root_).string()
+                        << "\"\n";
 
-  // Includes
-  cmake << "target_include_directories(" << project_settings_.getExecutableName() << " PRIVATE\n";
-  cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";  // Local include folder
-  cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n"; // Global include folder
-  cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(project_settings_.getIncludeFolder(), root_).string()
-        << "\"\n"; // Project include folder
-  cmake << ")\n\n";
+  const string sources_list = sources_list_stream.str();
+  vector<string> outputs;
 
-  // Libraries
-  cmake << "target_link_directories(" << project_settings_.getExecutableName() << " PRIVATE\n";
-  cmake << "  \"${ZC_GLOBAL_ROOT}/lib\"\n"; // Global library folder
-  cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";  // Local library folder
-  cmake << ")\n\n";
-
-  // Linking dependencies
-  if (!project_settings_.getDeps().empty())
+  if (project_settings_.getType() == BIN)
   {
-    cmake << "target_link_libraries(" << project_settings_.getExecutableName() << " PRIVATE\n";
-    for (const auto &lib : project_settings_.getDeps())
-      cmake << "  " << std::get<0>(lib) << "\n";
+    cmake << "add_executable(" << project_settings_.getExecutableName() << '\n';
+    cmake << sources_list;
     cmake << ")\n\n";
+    outputs.push_back(project_settings_.getExecutableName());
+  }
+  else if (project_settings_.getType() == LIB)
+  {
+    const string static_name = project_settings_.getStaticLibName();
+    const string shared_name = project_settings_.getSharedLibName();
+
+    if (!static_name.empty())
+    {
+      const string static_target = static_name + "_static_target";
+      cmake << "add_library(" << static_target << " STATIC\n";
+      cmake << sources_list;
+      cmake << ")\n\n";
+      cmake << "set_target_properties(" << static_target << " PROPERTIES OUTPUT_NAME \"" << static_name
+            << "\")\n\n";
+      outputs.push_back(static_target);
+    }
+    if (!shared_name.empty())
+    {
+      string shared_target = shared_name + "_shared_target";
+      cmake << "add_library(" << shared_target << " SHARED\n";
+      cmake << sources_list;
+      cmake << ")\n\n";
+      cmake << "set_target_properties(" << shared_target << " PROPERTIES OUTPUT_NAME \"" << shared_name
+            << "\")\n\n";
+      outputs.push_back(shared_target);
+    }
   }
 
-  // Add pthread/dl if UNIX-based
-  cmake << "if(UNIX)\n";
-  cmake << "  target_link_libraries(" << project_settings_.getExecutableName() << " PRIVATE pthread dl)\n";
-  cmake << "endif()\n\n";
+  for (const string &output : outputs)
+  {
+    // Includes
+    cmake << "target_include_directories(" << output << " PRIVATE\n";
+    cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";  // Local include folder
+    cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n"; // Global include folder
+    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(project_settings_.getIncludeFolder(), root_).string()
+          << "\"\n"; // Project include folder
+    cmake << ")\n\n";
+
+    // Libraries
+    cmake << "target_link_directories(" << output << " PRIVATE\n";
+    cmake << "  \"${ZC_GLOBAL_ROOT}/lib\"\n"; // Global library folder
+    cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";  // Local library folder
+    cmake << ")\n\n";
+
+    // Linking dependencies
+    if (!project_settings_.getDeps().empty())
+    {
+      cmake << "target_link_libraries(" << output << " PRIVATE\n";
+      for (const auto &lib : project_settings_.getDeps())
+        cmake << "  " << std::get<0>(lib) << "\n";
+      cmake << ")\n\n";
+    }
+
+    // Add pthread/dl if UNIX-based
+    cmake << "if(UNIX)\n";
+    cmake << "  target_link_libraries(" << output << " PRIVATE pthread dl)\n";
+    cmake << "endif()\n\n";
+  }
 
   // Activate RPATH
   cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";

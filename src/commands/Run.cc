@@ -65,6 +65,10 @@ int Run::execute()
     break;
   }
 
+  if (fs::exists(output_name) && !force_)
+    if (!ask("The file '" + output_name + "' already exists. Do you want to overwrite it ?"))
+      return 0;
+
   build_cmd = buildCommand(output_name);
 
 #ifdef DEBUG_MODE

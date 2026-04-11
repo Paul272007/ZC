@@ -58,7 +58,6 @@ add_executable(zc
 
   src/objects/File.cc
   src/objects/ProjectSettings.cc
-  src/objects/ProjectsRegistry.cc
   src/objects/Registry.cc
   src/objects/Settings.cc
   src/objects/Table.cc

@@ -19,9 +19,15 @@ public:
   int execute() override;
 
 private:
+  /**
+   * @brief Scan the source folder and get all C or C++ files found
+   */
   void scanSources();
+
+  /**
+   * @brief Generate CMakeLists.txt based on the sources and the dependencies
+   */
   void generateCMakeLists() const;
-  void buildPackage() const;
 
   const std::filesystem::path root_ = getProjectRoot();
   std::vector<File> sources_;

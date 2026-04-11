@@ -1,12 +1,11 @@
 #pragma once
 
-#include "objects/ProjectSettings.hh"
 #include <filesystem>
 #include <string>
 
 #include <commands/Command.hh>
 #include <helpers.hh>
-#include <objects/ProjectsRegistry.hh>
+#include <objects/ProjectSettings.hh>
 #include <objects/Settings.hh>
 #include <vector>
 
@@ -58,6 +57,5 @@ private:
   const bool edit_;
   const bool git_;
   Settings &settings_;
-  ProjectsRegistry &p_registry_;
   std::filesystem::path project_templates_path_ = getZCRootDir() / PROJECT_TEMPLATES;
 };

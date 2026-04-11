@@ -51,6 +51,10 @@ int main(const int argc, char *argv[])
   string src_folder;
   string include_folder;
 
+  // zc list
+  bool std = false;
+  bool all = false;
+
   // zc build
   bool release_mode = false;
 
@@ -62,7 +66,7 @@ int main(const int argc, char *argv[])
   const auto run    = app.add_subcommand("run",    "Compile and execute C/C++ file(s)");
   const auto create = app.add_subcommand("create", "Create file based on template");
   const auto init   = app.add_subcommand("init",   "Initialize empty project");
-  const auto list   = app.add_subcommand("list",   "List all created projects");
+  const auto list   = app.add_subcommand("list",   "List all globally installed libraries");
   const auto build  = app.add_subcommand("build",  "Build project");
 
   // ========================== RUN ===============================
@@ -110,8 +114,10 @@ int main(const int argc, char *argv[])
 
   // list->add_flag("--force,-f", force, "Force");
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  list->add_flag("--std,-s", std, "Show standard libraries");
+  list->add_flag("--all,-a", all, "Show all libraries");
 
-  list->callback([&]() { command = make_unique<List>(force, quiet); });
+  list->callback([&]() { command = make_unique<List>(force, quiet, std, all); });
 
   // ========================== BUILD ===============================
 

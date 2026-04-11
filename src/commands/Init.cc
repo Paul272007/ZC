@@ -1,6 +1,3 @@
-#include "commands/Command.hh"
-#include "objects/ProjectSettings.hh"
-#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -8,7 +5,7 @@
 #include <commands/Init.hh>
 #include <helpers.hh>
 #include <interface.hh>
-#include <objects/ProjectsRegistry.hh>
+#include <objects/ProjectSettings.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
 
@@ -21,7 +18,7 @@ Init::Init(
     const bool edit, const bool git
 )
     : Command(force, quiet), edit_(edit), git_(git), settings_(Settings::getInstance()),
-      p_registry_(ProjectsRegistry::getInstance()), path_(fs::current_path())
+      path_(fs::current_path())
 {
   if (!force_ && fs::exists(ZC_FILE))
     if (!ask(
@@ -33,10 +30,6 @@ Init::Init(
   // Ask if not precised (default option for the package is the current directory)
   if (name.empty())
     name_ = input("Package name: ", fs::current_path().filename().string());
-
-  if (!force_ && p_registry_.projectExists(name_))
-    if (!ask("The project " + name_ + " already exists in registry. Do you want to override it ?"))
-      exit(0);
 
   if (author.empty())
     author_ = input("Project author: ");
@@ -142,9 +135,6 @@ int Init::execute()
   // Create configuration file with empty shared lib, static lib, executable, type and dependencies
   ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, UNDEF, {});
   settings.write();
-
-  const Project p{name_, path_};
-  p_registry_.saveProject(p);
 
   if (settings_.getEditOnInit() || edit_)
     return system(string(settings_.getEditor() + " " + path_.string()).c_str());
