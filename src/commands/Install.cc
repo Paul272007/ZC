@@ -1,3 +1,4 @@
+#include "objects/ProjectSettings.hh"
 #include <filesystem>
 
 #include <commands/Install.hh>
@@ -19,6 +20,11 @@ Install::Install(
 
 int Install::execute()
 {
+  if (global_)
+    registry_ = &Registry::getInstance();
+  else
+    p_settings_ = &ProjectSettings::getInstance();
+
   if (!targets_.empty() && !path_.empty())
     throw ZCError(ZC_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local path at the same time");
 
@@ -29,17 +35,24 @@ int Install::execute()
     throw ZCError(); // Only path is empty : install targets from server
 
   if (targets_.empty())
-    installFromPath(); // Only targets is empty : install globally from path
+    installFromPath(); // Only targets is empty : install from path
 
   return 0;
 }
 
+void Install::installFromJson()
+{
+}
+
 void Install::installFromPath()
 {
-  registry_ = &Registry::getInstance();
   if (!fs::exists(path_))
     throw ZCError(ZC_NOT_FOUND, "The directory " + path_.string() + " does not exist");
 
   fs::path project_root = getProjectRoot(path_);
-  registry_->installPackage(project_root, force_, quiet_);
+
+  if (global_)
+    registry_->installPackage(project_root, force_, quiet_);
+  else
+    p_settings_->installPackage(project_root, force_, quiet_);
 }

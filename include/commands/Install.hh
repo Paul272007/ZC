@@ -4,6 +4,7 @@
 #include <string>
 
 #include <commands/Command.hh>
+#include <objects/ProjectSettings.hh>
 #include <objects/Registry.hh>
 #include <vector>
 
@@ -29,10 +30,12 @@ public:
 
 private:
   void installFromPath();
+  void installFromJson();
 
   const std::vector<std::string> targets_;
   const std::filesystem::path path_;
   const bool global_;
 
   Registry *registry_ = nullptr;
+  ProjectSettings *p_settings_ = nullptr;
 };

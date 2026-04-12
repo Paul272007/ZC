@@ -1,10 +1,13 @@
 #include <filesystem>
+#include <interface.hh>
 
+#include <commands/Build.hh>
 #include <fstream>
 #include <helpers.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/ZCError.hh>
 #include <string>
+#include <tuple>
 
 using json = nlohmann::json;
 using namespace std;
@@ -70,7 +73,7 @@ void ProjectSettings::load()
   }
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
-  version_ = json_conf.value("version", "0.0.0");
+  version_ = Version(json_conf.value("version", "0.0.0"));
   src_folder_ = project_root_ / json_conf.value("srcFolder", "src");
   include_folder_ = project_root_ / json_conf.value("includeFolder", "include");
 
@@ -142,8 +145,108 @@ void ProjectSettings::write() const
         ZC_CONFIG_WRITING_ERROR, "The project configuration couldn't be written: " + config_file_.string()
     );
   }
-  output << root.dump(4);
+  output << root.dump(2);
   output.close();
+}
+
+void ProjectSettings::installPackage(std::filesystem::path &project_root, const bool force, const bool quiet)
+{
+  // Project settings of the package to install
+  ProjectSettings p(project_root);
+
+  if (p.getType() != LIB)
+    throw ZCError();
+
+  Build b(true, quiet, p);
+  b.execute();
+
+#ifdef DEBUG_MODE
+  if (!quiet)
+    debug("Projet compiled");
+#endif
+
+  fs::path local_zc = project_root_ / ZC_MODULES;
+  fs::path dest_include = local_zc / "include" / p.getName();
+  fs::path dest_lib = local_zc / "lib" / p.getName();
+
+  if ((fs::exists(dest_include) || fs::exists(dest_lib) || pkgExists(p.getName())) && !force)
+    if (!ask(
+            "The library '" + p.getName() +
+            "' seems to be already installed on this project. Do you want to reinstall it ?"
+        ))
+      return;
+
+  if (!quiet)
+    info("Installing headers...");
+
+  fs::create_directories(dest_include);
+  fs::copy(
+      p.getIncludeFolder(), dest_include, fs::copy_options::recursive | fs::copy_options::overwrite_existing
+  );
+
+  if (!quiet)
+    info("Installing libraries...");
+
+  fs::create_directories(dest_lib);
+  vector<string> lib_names = {p.getStaticLibName(), p.getSharedLibName()};
+
+  for (const string &name : lib_names)
+  {
+    if (name.empty())
+      continue;
+
+    for (const auto &entry : fs::recursive_directory_iterator(project_root / "build"))
+    {
+      string filename = entry.path().filename().string();
+
+      if (filename.find(name) != string::npos &&
+          (entry.path().extension() == ".a" || entry.path().extension() == ".so" ||
+           entry.path().extension() == ".dylib" || entry.path().extension() == ".lib"))
+      {
+        fs::copy_file(entry.path(), dest_lib / filename, fs::copy_options::overwrite_existing);
+      }
+    }
+  }
+  indexPackage(p.getName(), p.getVersion());
+  success("Package " + p.getName() + " installed successfully.");
+}
+
+bool ProjectSettings::removePackage(const std::string &pkg_name)
+{
+  unindexPackage(pkg_name);
+  fs::path include = project_root_ / ZC_MODULES / "include" / pkg_name;
+  fs::path lib = project_root_ / ZC_MODULES / "lib" / pkg_name;
+
+  if (!fs::exists(include) || !fs::exists(lib))
+    return false;
+
+  fs::remove_all(include);
+  fs::remove_all(lib);
+  return true;
+}
+
+bool ProjectSettings::pkgExists(const std::string &pkg_name) const
+{
+  const auto it = ranges::find_if(deps_, [&](const auto &d) { return std::get<0>(d) == pkg_name; });
+  return it != deps_.end();
+}
+
+void ProjectSettings::indexPackage(const std::string &name, const Version &version)
+{
+  deps_.push_back(dependency(name, version));
+  write();
+}
+
+void ProjectSettings::unindexPackage(const std::string &pkg_name)
+{
+  const auto it = ranges::find_if(deps_, [&](const auto &d) { return std::get<0>(d) == pkg_name; });
+
+  if (it != deps_.end())
+    deps_.erase(it);
+  else
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name);
+
+  write();
 }
 
 const std::string &ProjectSettings::getName() const

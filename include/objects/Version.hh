@@ -8,7 +8,7 @@ class Version
 public:
   // TODO add semver flags such as -alpha etc
   Version(int major, int minor, int patch);
-  Version(const std::string &v);
+  explicit Version(const std::string &v);
 
   std::tuple<int, int, int> to_tuple() const;
   std::string to_string() const;

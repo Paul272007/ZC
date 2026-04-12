@@ -8,7 +8,7 @@
 #include <objects/Table.hh>
 
 #define REGISTRY "registry.json"
-#define N_ATTR_PACKAGE 6
+#define N_ATTR_PACKAGE 4
 #define N_ATTR_STD_PACKAGE 4
 
 struct Package

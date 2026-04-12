@@ -29,7 +29,7 @@ void from_json(const json &j, StdPackage &p)
 {
   if (!j.is_array())
     return;
-  if (j.size() < 4)
+  if (j.size() < N_ATTR_STD_PACKAGE)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Not enough values given.");
   j.at(0).get_to(p.name_);
   j.at(1).get_to(p.headers_);
@@ -41,7 +41,7 @@ void from_json(const json &j, Package &p)
 {
   if (!j.is_array())
     return;
-  if (j.size() < 4)
+  if (j.size() < N_ATTR_PACKAGE)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Not enough values given.");
   j.at(0).get_to(p.name_);
   j.at(1).get_to(p.version_);
@@ -191,7 +191,7 @@ void Registry::write() const
   ofstream output(registry_path_);
   if (!output.is_open())
     throw ZCError(ZC_CONFIG_WRITING_ERROR, "The registry couldn't be written: " + registry_path_.string());
-  output << root.dump(4);
+  output << root.dump(2);
   output.close();
 }
 

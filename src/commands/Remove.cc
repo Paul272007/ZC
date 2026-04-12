@@ -18,10 +18,16 @@ int Remove::execute()
     registry_ = &Registry::getInstance();
     for (const auto &pkg : targets_)
     {
-      if (!registry_->removePackage(pkg) && !quiet_)
-        warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
+      if (!registry_->removePackage(pkg))
+      {
+        if (!quiet_)
+          warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
+      }
       else
-        success("Package " + pkg + " removed successfully.");
+      {
+        if (!quiet_)
+          success("Package " + pkg + " removed successfully.");
+      }
     }
   }
   else
@@ -29,6 +35,16 @@ int Remove::execute()
     p_settings_ = &ProjectSettings::getInstance();
     for (const auto pkg : targets_)
     {
+      if (!p_settings_->removePackage(pkg))
+      {
+        if (!quiet_)
+          warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
+      }
+      else
+      {
+        if (!quiet_)
+          success("Package " + pkg + " removed successfully.");
+      }
     }
   }
   return 0;
