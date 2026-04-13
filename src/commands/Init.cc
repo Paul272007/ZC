@@ -17,8 +17,8 @@ Init::Init(
     const std::string &src_folder, const std::string &include_folder, const bool force, const bool quiet,
     const bool edit, const bool git
 )
-    : Command(force, quiet), path_(fs::current_path()), type_(), edit_(edit),
-      git_(git), settings_(Settings::getInstance())
+    : Command(force, quiet), path_(fs::current_path()), type_(), edit_(edit), git_(git),
+      settings_(Settings::getInstance())
 {
   if (!force_ && fs::exists(ZC_FILE))
     if (!ask(
@@ -127,7 +127,8 @@ int Init::execute()
 
   if (git_)
   {
-    info("Initializing git repo...");
+    if (!quiet_)
+      info("Initializing git repo...");
     if (system("git init") != 0)
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }

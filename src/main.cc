@@ -114,7 +114,7 @@ int main(const int argc, char *argv[])
   init->add_option("--src-folder,-s", src_folder, "Specify source folder");
   init->add_option("--include-folder,-i", include_folder, "Specify include folder");
 
-  init->add_flag("--force,-f", force, "Force creating project even the name is already in the projects registry");
+  init->add_flag("--force,-f", force, "Force creating project even if one was already created in selected directory");
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--git,-g", git, "Create empty git repository");

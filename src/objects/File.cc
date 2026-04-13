@@ -300,7 +300,6 @@ void File::write(const string &content) const
   {
     throw ZCError(ZC_WRITING_ERROR, "Error writing to file: " + path_.string());
   }
-  success("File written: " + path_.string());
 }
 
 unique_ptr<Declarations> File::parse() const
@@ -519,7 +518,9 @@ vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
           );
 
           if (!already_present)
-            required_libs.emplace_back(package.name_, "-l" + (package.shared_.empty() ? package.static_ : package.shared_));
+            required_libs.emplace_back(
+                package.name_, "-l" + (package.shared_.empty() ? package.static_ : package.shared_)
+            );
         }
       }
       for (const auto &std_package : reg.getStdPackages())
