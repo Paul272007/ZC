@@ -6,48 +6,27 @@
 #include <commands/Command.hh>
 #include <interface.hh>
 #include <objects/ProjectSettings.hh>
-#include <objects/Registry.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
-#include <sstream>
 #include <vector>
 
 using namespace std;
 namespace fs = std::filesystem;
 
 Build::Build(const bool force, const bool quiet, const bool release_mode)
-    : Command(force, quiet), release_mode_(release_mode), registry_(Registry::getInstance()),
-      settings_(Settings::getInstance()), project_settings_(ProjectSettings::getInstance())
+    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(getProjectRoot())),
+      registry_(Registry(true, false)), root_(getProjectRoot()), release_mode_(release_mode)
 {
 }
 
-Build::Build(const bool force, const bool quiet, const ProjectSettings &project_settings)
-    : Command(force, quiet), release_mode_(false), registry_(Registry::getInstance()),
-      settings_(Settings::getInstance()), project_settings_(project_settings),
-      root_(project_settings.getProjectRoot())
+Build::Build(const bool force, const bool quiet, const fs::path &project_root)
+    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(project_root)),
+      registry_(Registry(true, false)), root_(project_root), release_mode_(false)
 {
 }
 
 int Build::execute()
 {
-  if (!quiet_)
-    info("Scanning sources...");
-
-  scanSources();
-  // Verifications
-  if (sources_.empty())
-    throw ZCError(ZC_NO_SOURCE_FILES, "No source files were detected");
-
-  if (project_settings_.getType() == UNDEF)
-    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'type' is missing");
-
-  if (project_settings_.getType() == BIN && project_settings_.getExecutableName().empty())
-    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'executable' is missing");
-
-  if (project_settings_.getType() == LIB && project_settings_.getSharedLibName().empty() &&
-      project_settings_.getStaticLibName().empty())
-    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Property 'shared' or 'static' is missing");
-
   // CMake configuration
   if (!fs::exists("CMakeLists.txt") || force_)
   {
@@ -55,60 +34,38 @@ int Build::execute()
       info("Generating build configuration...");
 
     generateCMakeLists();
-
     const string build_type = release_mode_ ? "Release" : "Debug";
     const string config_cmd = "cmake " + root_.string() + " -B " + root_.string() +
                               "/build -DCMAKE_BUILD_TYPE=" + build_type + (quiet_ ? " &>/dev/null" : "");
+
+#ifdef DEBUG_MODE
+    if (!quiet_)
+      debug(config_cmd);
+#else
     if (!quiet_)
       info("Configuring project...");
+#endif
+
     if (system(config_cmd.c_str()) != 0)
       throw ZCError(ZC_CMAKE_ERROR, "CMake configuration failed");
   }
-
   // Build
   const string build_cmd = "cmake --build " + root_.string() + "/build" + (quiet_ ? " &>/dev/null" : "");
 
+#ifdef DEBUG_MODE
+  if (!quiet_)
+    debug(build_cmd);
+#else
   if (!quiet_)
     info("Building project...");
+#endif
+
   if (system(build_cmd.c_str()) != 0)
     throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
 
   if (!quiet_)
     success("Project was built successfully in build/");
   return 0;
-}
-
-void Build::scanSources()
-{
-  if (!fs::exists(project_settings_.getSrcFolder()))
-    throw ZCError(
-        ZC_NOT_FOUND, "The directory " + project_settings_.getSrcFolder().string() + " was not found"
-    );
-  if (!fs::exists(project_settings_.getIncludeFolder()))
-    throw ZCError(
-        ZC_NOT_FOUND, "The directory " + project_settings_.getIncludeFolder().string() + " was not found"
-    );
-  for (const auto &entry : fs::recursive_directory_iterator(project_settings_.getSrcFolder()))
-  {
-    const auto &path = entry.path();
-
-    bool is_hidden = false;
-    for (const auto &part : path)
-    {
-      if (part.string().front() == '.' && part.string() != "." && part.string() != "..")
-      {
-        is_hidden = true;
-        break;
-      }
-    }
-
-    if (is_hidden)
-      continue;
-
-    File f(path.string());
-    if (f.getLanguage() == C || f.getLanguage() == CPP)
-      sources_.push_back(f);
-  }
 }
 
 void Build::generateCMakeLists() const
@@ -128,10 +85,10 @@ void Build::generateCMakeLists() const
   // Boilerplate
   cmake << "cmake_minimum_required(VERSION 3.12)\n";                   // Version
   cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";                  // Compile commands for clangd
-  cmake << "project(" << project_settings_.getName() << " C CXX)\n\n"; // Project name
+  cmake << "project(" << p_settings_.name_ << " LANGUAGES C CXX)\n\n"; // Project name
 
   // Variables for local and global ZC directories
-  cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << ZC_MODULES << "\")\n";
+  cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << EXTERNAL << "\")\n";
   cmake << "if(WIN32)\n";
   cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{USERPROFILE}/" << ROOT_DIR << "\")\n";
   cmake << "else()\n";
@@ -139,35 +96,45 @@ void Build::generateCMakeLists() const
   cmake << "endif()\n\n";
 
   // Standards
-  cmake << "set(CMAKE_CXX_STANDARD " << (settings_.getCppStd().substr(3)) << ")\n";
-  cmake << "set(CMAKE_C_STANDARD " << (settings_.getCStd().substr(1)) << ")\n\n";
+  // cmake << "set(CMAKE_CXX_STANDARD " << (settings_.cpp_std_.substr(3)) << ")\n";
+  // cmake << "set(CMAKE_C_STANDARD " << (settings_.c_std_.substr(1)) << ")\n\n";
+
+  // Sources
+  vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
+  vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
+
+  string src = fs::relative(p_settings_.src_folder_, root_);
+  string include = fs::relative(p_settings_.include_folder_, root_);
+  for (auto &ext : c_extensions)
+    ext = " \"" + src + "/*." + ext + '"';
+  for (auto &ext : h_extensions)
+    ext = " \"" + include + "/*." + ext + '"';
+
+  cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
+  cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
 
   // Source code
-  stringstream sources_list_stream;
-  for (const auto &src : sources_)
-    sources_list_stream << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(src.getPath(), root_).string()
-                        << "\"\n";
-
-  const string sources_list = sources_list_stream.str();
   vector<string> outputs;
 
-  if (project_settings_.getType() == BIN)
+  if (p_settings_.type_ == BIN)
   {
-    cmake << "add_executable(" << project_settings_.getExecutableName() << '\n';
-    cmake << sources_list;
+    cmake << "add_executable(" << p_settings_.executable_name_ << '\n';
+    cmake << "  ${SOURCES}\n";
+    cmake << "  ${HEADERS}\n";
     cmake << ")\n\n";
-    outputs.push_back(project_settings_.getExecutableName());
+    outputs.push_back(p_settings_.executable_name_);
   }
-  else if (project_settings_.getType() == LIB)
+  else if (p_settings_.type_ == LIB)
   {
-    const string static_name = project_settings_.getStaticLibName();
-    const string shared_name = project_settings_.getSharedLibName();
+    const string static_name = p_settings_.static_lib_name_;
+    const string shared_name = p_settings_.shared_lib_name_;
 
     if (!static_name.empty())
     {
       const string static_target = static_name + "_static_target";
       cmake << "add_library(" << static_target << " STATIC\n";
-      cmake << sources_list;
+      cmake << "  ${SOURCES}\n";
+      cmake << "  ${HEADERS}\n";
       cmake << ")\n\n";
       cmake << "set_target_properties(" << static_target << " PROPERTIES OUTPUT_NAME \"" << static_name
             << "\")\n\n";
@@ -177,7 +144,8 @@ void Build::generateCMakeLists() const
     {
       string shared_target = shared_name + "_shared_target";
       cmake << "add_library(" << shared_target << " SHARED\n";
-      cmake << sources_list;
+      cmake << "  ${SOURCES}\n";
+      cmake << "  ${HEADERS}\n";
       cmake << ")\n\n";
       cmake << "set_target_properties(" << shared_target << " PROPERTIES OUTPUT_NAME \"" << shared_name
             << "\")\n\n";
@@ -191,44 +159,39 @@ void Build::generateCMakeLists() const
     cmake << "target_include_directories(" << output << " PRIVATE\n";
     cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";  // Local include folder
     cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n"; // Global include folder
-    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(project_settings_.getIncludeFolder(), root_).string()
+    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(p_settings_.include_folder_, root_).string()
           << "\"\n"; // Project include folder
     cmake << ")\n\n";
 
     // Libraries
-    cmake << "target_link_directories(" << output << " PRIVATE\n";
-    for (const auto &lib : project_settings_.getDeps())
-      cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << std::get<0>(lib) << "\"\n"; // Global library folders
-    cmake << "  \"${ZC_LOCAL_ROOT}/lib\"\n";                               // Local library folder
-    cmake << ")\n\n";
-
-    // Linking dependencies
-    if (!project_settings_.getDeps().empty())
+    if (!registry_.getPackages().empty())
     {
-      cmake << "target_link_libraries(" << output << " PRIVATE\n";
-      for (const auto &lib : project_settings_.getDeps())
+      vector<Package> local_deps;
+      vector<Package> global_deps;
+      fs::path global_lib_path = getZCRootDir() / LIB_DIR;
+      for (const auto pkg : registry_.getPackages())
       {
-        std::string package_name = std::get<0>(lib);
-
-        fs::path package_lib_dir = getZCRootDir() / "lib" / package_name;
-
-        bool found_libs = false;
-        if (fs::exists(package_lib_dir))
-        {
-          for (const auto &entry : fs::directory_iterator(package_lib_dir))
-          {
-            std::string ext = entry.path().extension().string();
-            if (ext == ".so" || ext == ".a" || ext == ".dylib" || ext == ".lib")
-            {
-              cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << package_name << "/" << entry.path().filename().string()
-                    << "\"\n";
-              found_libs = true;
-            }
-          }
-        }
-        if (!found_libs) // Security fallback : just put the package's name
-          cmake << "  " << package_name << "\n";
+        if (fs::exists(registry_.getLibPath() / pkg.name_))
+          local_deps.push_back(pkg);
+        else if (fs::exists(global_lib_path / pkg.name_))
+          global_deps.push_back(pkg);
+        else
+          throw ZCError(ZC_NOT_FOUND, "Library " + pkg.name_ + " was not found");
       }
+
+      cmake << "target_link_directories(" << output << " PRIVATE\n";
+      for (const auto dep : global_deps)
+        cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << dep.name_ << "\"\n"; // Global library folders
+      for (const auto dep : local_deps)
+        cmake << "  \"${ZC_LOCAL_ROOT}/lib/" << dep.name_ << "\"\n"; // Local library folder
+      cmake << ")\n\n";
+
+      // Linking dependencies
+      cmake << "target_link_libraries(" << output << " PRIVATE\n";
+      for (const auto dep : registry_.getPackages())
+        cmake << "  " << (dep.shared_.empty() ? dep.static_ : dep.shared_) << "\n";
+      for (const auto dep : registry_.getStdPackages())
+        cmake << "  " << (dep.name_) << "\n";
       cmake << ")\n\n";
     }
 
@@ -242,9 +205,9 @@ void Build::generateCMakeLists() const
   cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";
   cmake << "set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)\n\n";
   cmake << "if(APPLE)\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" << EXTERNAL << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "else()\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" << ZC_MODULES << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" << EXTERNAL << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "endif()\n";
 
   cmake.close();

@@ -1,9 +1,7 @@
-#include "objects/ProjectSettings.hh"
 #include <filesystem>
 
 #include <commands/Install.hh>
 #include <helpers.hh>
-#include <interface.hh>
 #include <objects/Registry.hh>
 #include <objects/ZCError.hh>
 
@@ -14,17 +12,14 @@ Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
     const bool quiet
 )
-    : targets_(targets), path_(path), global_(global), Command(force, quiet)
+    : Command(force, quiet), targets_(targets), path_(path), registry_(Registry(false, global))
 {
+  if (!global && getProjectRoot(path_) == getProjectRoot())
+    throw ZCError(ZC_BAD_COMMAND, "Cannot install library as its own dependency");
 }
 
 int Install::execute()
 {
-  if (global_)
-    registry_ = &Registry::getInstance();
-  else
-    p_settings_ = &ProjectSettings::getInstance();
-
   if (!targets_.empty() && !path_.empty())
     throw ZCError(ZC_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local path at the same time");
 
@@ -37,10 +32,11 @@ int Install::execute()
   if (targets_.empty())
     installFromPath(); // Only targets is empty : install from path
 
+  registry_.write();
   return 0;
 }
 
-void Install::installFromJson()
+void Install::installFromJson() const
 {
 }
 
@@ -49,10 +45,5 @@ void Install::installFromPath()
   if (!fs::exists(path_))
     throw ZCError(ZC_NOT_FOUND, "The directory " + path_.string() + " does not exist");
 
-  fs::path project_root = getProjectRoot(path_);
-
-  if (global_)
-    registry_->installPackage(project_root, force_, quiet_);
-  else
-    p_settings_->installPackage(project_root, force_, quiet_);
+  registry_.installPackage(getProjectRoot(path_), force_, quiet_);
 }

@@ -4,36 +4,27 @@
 #include <vector>
 
 #include <commands/Command.hh>
-#include <helpers.hh>
 #include <objects/File.hh>
 #include <objects/ProjectSettings.hh>
-#include <objects/Settings.hh>
-
-#define ZC_MODULES "external"
+#include <objects/Registry.hh>
 
 class Build : public Command
 {
 public:
-  Build(const bool force, const bool quiet, bool release_mode);
-  Build(const bool force, const bool quiet, const ProjectSettings &project_settings);
+  Build(bool force, bool quiet, bool release_mode);
+  Build(bool force, bool quiet, const std::filesystem::path &project_root);
 
   int execute() override;
+  const ProjectSettings &p_settings_;
+  const Registry registry_;
 
 private:
-  /**
-   * @brief Scan the source folder and get all C or C++ files found
-   */
-  void scanSources();
-
   /**
    * @brief Generate CMakeLists.txt based on the sources and the dependencies
    */
   void generateCMakeLists() const;
 
-  const std::filesystem::path root_ = getProjectRoot();
-  std::vector<File> sources_;
+  const std::filesystem::path root_;
   bool release_mode_;
-  const ProjectSettings &project_settings_;
-  Registry &registry_;
-  Settings &settings_;
+  std::vector<File> sources_;
 };

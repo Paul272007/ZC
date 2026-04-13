@@ -10,18 +10,50 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-fs::path getZCRootDir()
+namespace
+{
+fs::path calculateProjectRoot(const fs::path &base)
+{
+  fs::path current = base;
+
+  while (true)
+  {
+    if (fs::exists(current / ZC_FILE))
+      return current;
+
+    if (current == current.root_path() || current == current.parent_path())
+      break;
+
+    current = current.parent_path();
+  }
+  throw ZCError(ZC_NOT_A_ZC_PROJECT, "The given directory is not inside a ZC project");
+}
+}
+
+const fs::path &getProjectRoot()
+{
+  static fs::path path = calculateProjectRoot(fs::current_path());
+  return path;
+}
+
+const fs::path &getProjectRoot(const std::filesystem::path &base)
+{
+  // Function is always called for 1 path max.
+  static fs::path path = calculateProjectRoot(base);
+  return path;
+}
+
+const fs::path &getZCRootDir()
 {
 #if defined(_WIN32) || defined(_WIN64)
-  const char *home = getenv("USERPROFILE");
+  static const char *home = getenv("USERPROFILE");
 #else
-  const char *home = getenv("HOME");
+  static const char *home = getenv("HOME");
 #endif
 
-  if (!home)
-    return fs::current_path() / ROOT_DIR;
+  static fs::path zc_root = (home) ? fs::path(home) / ROOT_DIR : fs::current_path() / ROOT_DIR;
 
-  return fs::path(home) / ROOT_DIR;
+  return zc_root;
 }
 
 string escape_shell_arg(const string &arg)
@@ -75,38 +107,4 @@ std::string upper(const std::string &s)
     output += static_cast<char>(toupper(static_cast<unsigned char>(c)));
   }
   return output;
-}
-
-fs::path getProjectRoot()
-{
-  fs::path current = fs::current_path();
-
-  while (true)
-  {
-    if (fs::exists(current / ZC_FILE))
-      return current;
-
-    if (current == current.root_path() || current == current.parent_path())
-      break;
-
-    current = current.parent_path();
-  }
-  throw ZCError(ZC_NOT_A_ZC_PROJECT, "This directory is not inside a ZC project");
-}
-
-fs::path getProjectRoot(const std::filesystem::path &base)
-{
-  fs::path current(base);
-
-  while (true)
-  {
-    if (fs::exists(current / ZC_FILE))
-      return current;
-
-    if (current == current.root_path() || current == current.parent_path())
-      break;
-
-    current = current.parent_path();
-  }
-  throw ZCError(ZC_NOT_A_ZC_PROJECT, "This directory is not inside a ZC project");
 }

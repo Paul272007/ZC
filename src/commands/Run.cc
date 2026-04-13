@@ -9,7 +9,6 @@
 #include <helpers.hh>
 #include <interface.hh>
 #include <objects/File.hh>
-#include <objects/Registry.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
 #include <utility>
@@ -22,8 +21,8 @@ Run::Run(
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
     const bool quiet, const bool add_std
 )
-    : keep_(keep), plus_(plus), Command(force, quiet), mode_(getMode(preprocess, compile, assemble)),
-      settings_(Settings::getInstance()), registry_(Registry::getInstance()), args_(args), add_std_(add_std)
+    : Command(force, quiet), settings_(Settings::getInstance()), registry_(Registry(true, true)),
+      add_std_(add_std), keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args)
 {
   // Fill files_
   for (const auto &f : files)
@@ -66,7 +65,7 @@ int Run::execute()
 
 #ifdef DEBUG_MODE
   if (!quiet_)
-    debug("Build command: " + build_cmd_);
+    debug(build_cmd_);
 #endif
 
   cout << flush;
@@ -87,7 +86,7 @@ int Run::execute()
   }
 
   // 4. Execute program
-  if (settings_.getClearBeforeRun())
+  if (settings_.clear_before_run_)
   {
     if (const int clear_res = system("clear"); clear_res != 0)
       throw ZCError(ZC_INTERNAL_ERROR, "Unexpected terminal clearing error");
@@ -102,7 +101,7 @@ int Run::execute()
 
   const int run_res = system(exec_cmd.c_str());
 
-  if (!settings_.getAutoKeep() && !keep_ && fs::exists(output_name_))
+  if (!settings_.auto_keep_ && !keep_ && fs::exists(output_name_))
   {
     fs::remove(output_name_);
 #ifdef DEBUG_MODE
@@ -172,19 +171,19 @@ void Run::buildCommand()
   // Compiler and standard
   if (plus_)
   {
-    cmd << settings_.getCppCompiler() << " ";
-    if (settings_.getAutoAddStd() || add_std_)
-      cmd << "'-std=" << settings_.getCppStd() << "' ";
+    cmd << settings_.cpp_compiler_ << " ";
+    if (settings_.auto_add_std_ || add_std_)
+      cmd << "'-std=" << settings_.cpp_std_ << "' ";
   }
   else
   {
-    cmd << settings_.getCCompiler() << " ";
-    if (settings_.getAutoAddStd() || add_std_)
-      cmd << "'-std=" << settings_.getCStd() << "' ";
+    cmd << settings_.c_compiler_ << " ";
+    if (settings_.auto_add_std_ || add_std_)
+      cmd << "'-std=" << settings_.c_std_ << "' ";
   }
 
   // User flags
-  for (const auto &f : settings_.getFlags())
+  for (const auto &f : settings_.flags_)
     cmd << escape_shell_arg(f) << " ";
 
   // Source files
@@ -207,16 +206,15 @@ void Run::buildCommand()
     cmd << "-c ";
     break;
   default:
-    cmd << "-I" << escape_shell_arg(registry_.getIncludeDir()) << " "; // Path to headers
-
-    const vector<pair<string, string>> libs = getInclusions();
-    for (const auto &[name, flags] : libs)
+    cmd << "-I" << registry_.getIncludePath().string() << " "; // Path to headers
+    for (const vector<pair<string, string>> libs = getInclusions(); const auto &[name, flags] : libs)
     {
-      string lib_dir = (registry_.getLibDir() / name).string(); // Path to libraries
-      cmd << "-L" << lib_dir << " ";
-
-      cmd << "-Wl,-rpath," << lib_dir << " ";
-
+      if (!name.empty())
+      {
+        string lib_dir = (registry_.getLibPath() / name).string();
+        cmd << "-L" << escape_shell_arg(lib_dir) << " "; // Path to libraries
+        cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir) << " ";
+      }
       cmd << flags << " ";
     }
     break;
@@ -233,11 +231,9 @@ vector<pair<string, string>> Run::getInclusions() const
 
   for (const auto &f : files_)
   {
-    vector<pair<string, string>> includes = f.getInclusions(registry_);
-
-    for (const auto &include : includes)
+    for (vector<pair<string, string>> includes = f.getInclusions(registry_); const auto &include : includes)
     {
-      bool already_present = std::any_of(
+      const bool already_present = std::any_of(
           libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p.first == include.first; }
       );
 

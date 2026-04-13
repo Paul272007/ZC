@@ -1,75 +1,52 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
-#include <vector>
 
-#include <helpers.hh>
 #include <objects/Table.hh>
 
+#define N_ATTR_PKG 4
+#define N_ATTR_STD_PKG 3
 #define REGISTRY "registry.json"
-#define N_ATTR_PACKAGE 4
-#define N_ATTR_STD_PACKAGE 4
+#define EXTERNAL "external"
+#define INCLUDE_DIR "include"
+#define LIB_DIR "lib"
 
 struct Package
 {
   std::string name_;
-  std::string author_;
   std::string version_;
-  std::string flags_;
+  std::string shared_;
+  std::string static_;
 };
 
 struct StdPackage
 {
   std::string name_;
   std::vector<std::string> headers_;
-  std::vector<std::string> binaries_;
   std::string flags_;
 };
 
 class Registry
 {
 public:
+  Registry(bool readonly, bool is_global);
+  void write() const;
   /**
-   * @brief Get an instance
+   * @brief Install a library based on its root folder
    *
-   * There can't be more than one instance at a time
-   *
-   * @return A Registry instance
-   */
-  static Registry &getInstance();
-
-  /**
-   * @brief Load the Registry's content
-   */
-  void load();
-
-  /**
-   * @brief install a library based on its root folder
-   *
-   * @param project_root The root of the project
+   * @param project_root The root of the project to install
    * @param force Force installation even if the library already exists
    * @param quiet Activate quiet mode
    */
-  void installPackage(std::filesystem::path &project_root, const bool force, const bool quiet);
+  void installPackage(const std::filesystem::path &project_root, bool force, bool quiet);
 
   /**
    * @brief Uninstall package and remove it from index
    *
    * @param pkg_name The target package
-   * @return Whether it was successful
+   * @return Whether all files were successfully deleted or not
    */
   bool removePackage(const std::string &pkg_name);
-
-  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
-
-  [[nodiscard]] std::vector<Package> getPackages() const;
-
-  [[nodiscard]] std::vector<StdPackage> getStdPackages() const;
-
-  [[nodiscard]] std::filesystem::path getIncludeDir() const;
-
-  [[nodiscard]] std::filesystem::path getLibDir() const;
 
   /**
    * @brief Create a Table containing all the packages, ready to be displayed
@@ -77,43 +54,28 @@ public:
    * @return The Table
    */
   [[nodiscard]] Table packagesTable() const;
-
-  /**
-   * @brief Create a Table containing all the standard packages, ready to be
-   * displayed
-   *
-   * @return The Table
-   */
   [[nodiscard]] Table stdPackagesTable() const;
+  [[nodiscard]] const std::vector<Package> &getPackages() const;
+  [[nodiscard]] const std::vector<StdPackage> &getStdPackages() const;
+  [[nodiscard]] const std::filesystem::path &getIncludePath() const;
+  [[nodiscard]] const std::filesystem::path &getLibPath() const;
 
 private:
-  /**
-   * @brief Default constructor
-   */
-  Registry();
+  void load();
 
   /**
-   * @brief Index the Package in the configuration file
+   * @param pkg_name The name of the package to check
+   * @return Whether the package was found or not
    */
+  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
+
   void indexPackage(const Package &package);
-
-  /**
-   * @brief Unindex package from registry
-   *
-   * @param pkg_name The name of the package to be unindexed
-   */
   void unindexPackage(const std::string &pkg_name);
 
-  /**
-   * @brief Write to ~/.zc/registry.json
-   */
-  void write() const;
-
-  std::vector<Package> packages_;
-  std::vector<StdPackage> std_packages_;
-
-  std::filesystem::path registry_path_ = getZCRootDir() / REGISTRY;
-
-  std::filesystem::path include_path_ = getZCRootDir() / "include";
-  std::filesystem::path lib_path_ = getZCRootDir() / "lib";
+  std::filesystem::path registry_path_;
+  std::filesystem::path include_path_;
+  std::filesystem::path lib_path_;
+  std::vector<Package> pkgs_;
+  std::vector<StdPackage> std_pkgs_;
+  const bool read_only_;
 };

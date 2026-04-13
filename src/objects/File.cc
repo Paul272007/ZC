@@ -519,7 +519,7 @@ vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
           );
 
           if (!already_present)
-            required_libs.push_back({package.name_, package.flags_});
+            required_libs.emplace_back(package.name_, "-l" + (package.shared_.empty() ? package.static_ : package.shared_));
         }
       }
       for (const auto &std_package : reg.getStdPackages())
@@ -532,7 +532,7 @@ vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
           );
 
           if (!already_present)
-            required_libs.push_back({std_package.name_, std_package.flags_});
+            required_libs.emplace_back("", std_package.flags_);
         }
       }
     }

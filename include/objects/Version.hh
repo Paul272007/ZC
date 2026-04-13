@@ -11,7 +11,7 @@ public:
   explicit Version(const std::string &v);
 
   std::tuple<int, int, int> to_tuple() const;
-  std::string to_string() const;
+  std::string string() const;
 
   bool operator==(const Version &other) const;
   bool operator!=(const Version &other) const;

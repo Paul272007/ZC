@@ -58,7 +58,7 @@ public:
   /**
    * @brief Get file content
    */
-  std::string read() const;
+  [[nodiscard]] std::string read() const;
 
   /**
    * @brief Copy file's content into the instance calling the method
@@ -73,7 +73,7 @@ public:
    *
    * @return true if the file exists, false otherwise
    */
-  bool exists() const;
+  [[nodiscard]] bool exists() const;
 
   /**
    * @brief Delete the file
@@ -92,34 +92,34 @@ public:
   /**
    * @brief Parse the file and extract all declarations (works for C only)
    */
-  std::unique_ptr<Declarations> parse() const;
+  [[nodiscard]] std::unique_ptr<Declarations> parse() const;
 
   /**
    * @brief Get inclusions from file and return associated required libraries
    */
-  std::vector<std::pair<std::string, std::string>> getInclusions(const Registry &reg) const;
+  [[nodiscard]] std::vector<std::pair<std::string, std::string>> getInclusions(const Registry &reg) const;
 
   /**
    * @brief Get file path
    */
-  std::filesystem::path getPath() const;
+  [[nodiscard]] std::filesystem::path getPath() const;
 
   /**
    * @brief Get the filename
    */
-  std::string getFilename() const;
+  [[nodiscard]] std::string getFilename() const;
 
   /**
    * @brief Get the file extension
    */
-  std::string getExt() const;
+  [[nodiscard]] std::string getExt() const;
 
   /**
    * @brief Get the language of the file
    *
    * @return A value of the enum Language
    */
-  Language getLanguage() const;
+  [[nodiscard]] Language getLanguage() const;
 
 private:
   std::filesystem::path path_;

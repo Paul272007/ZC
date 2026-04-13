@@ -19,6 +19,7 @@ public:
    *
    * @param files The files to be initialized
    * @param force Force creation even if the files already exist
+   * @param quiet Enable quiet mode
    * @param input_files Files to be used as basis to create the new ones
    * @param edit Edit file after creating it
    */

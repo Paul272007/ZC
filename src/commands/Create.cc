@@ -1,10 +1,10 @@
-#include "commands/Command.hh"
 #include <filesystem>
 #include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
+#include <commands/Command.hh>
 #include <commands/Create.hh>
 #include <interface.hh>
 #include <objects/File.hh>
@@ -88,10 +88,10 @@ int Create::execute()
     }
     files_to_edit.push_back(f.getPath());
   }
-  if ((settings_.getEditOnCreate() || edit_) && !files_to_edit.empty())
+  if ((settings_.edit_on_create_ || edit_) && !files_to_edit.empty())
   {
     stringstream cmd;
-    cmd << settings_.getEditor();
+    cmd << settings_.editor_;
     for (const auto &f : files_to_edit)
       cmd << " " << f;
     return system(cmd.str().c_str());

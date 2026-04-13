@@ -17,8 +17,8 @@ Init::Init(
     const std::string &src_folder, const std::string &include_folder, const bool force, const bool quiet,
     const bool edit, const bool git
 )
-    : Command(force, quiet), edit_(edit), git_(git), settings_(Settings::getInstance()),
-      path_(fs::current_path())
+    : Command(force, quiet), path_(fs::current_path()), type_(), edit_(edit),
+      git_(git), settings_(Settings::getInstance())
 {
   if (!force_ && fs::exists(ZC_FILE))
     if (!ask(
@@ -133,11 +133,11 @@ int Init::execute()
   }
 
   // Create configuration file with empty shared lib, static lib, executable, type and dependencies
-  ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, UNDEF, {});
+  const ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, UNDEF);
   settings.write();
 
-  if (settings_.getEditOnInit() || edit_)
-    return system(string(settings_.getEditor() + " " + path_.string()).c_str());
+  if (settings_.edit_on_init_ || edit_)
+    return system(string(settings_.editor_ + " " + path_.string()).c_str());
 
   return 0;
 }

@@ -29,26 +29,6 @@ public:
    */
   // void write();
 
-  /* Getters */
-  const std::filesystem::path &getConfigPath() const;
-  const std::string &getCCompiler() const;
-  const std::string &getCppCompiler() const;
-  const std::string &getCStd() const;
-  const std::string &getCppStd() const;
-  const std::vector<std::string> &getFlags() const;
-  const std::string &getEditor() const;
-  bool getClearBeforeRun() const;
-  bool getAutoKeep() const;
-  bool getEditOnInit() const;
-  bool getEditOnCreate() const;
-  bool getAutoAddStd() const;
-
-private:
-  /**
-   * @brief Default constructor
-   */
-  Settings();
-
   std::filesystem::path config_path_ = getZCRootDir() / CONFIG;
 
   /* Compiling settings */
@@ -65,4 +45,10 @@ private:
   bool edit_on_init_ = false;
   bool edit_on_create_ = false;
   std::string editor_ = "nvim";
+
+private:
+  /**
+   * @brief Default constructor
+   */
+  Settings();
 };

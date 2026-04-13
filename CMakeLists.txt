@@ -49,27 +49,10 @@ if(ENABLE_DEBUG)
   add_compile_definitions(DEBUG_MODE)
 endif()
 
-add_executable(zc
-  src/commands/Build.cc
-  src/commands/Create.cc
-  src/commands/Init.cc
-  src/commands/Install.cc
-  src/commands/List.cc
-  src/commands/Remove.cc
-  src/commands/Run.cc
+file(GLOB_RECURSE SOURCES "src/*.cc")
+file(GLOB_RECURSE HEADERS "include/*.hh")
 
-  src/objects/File.cc
-  src/objects/ProjectSettings.cc
-  src/objects/Registry.cc
-  src/objects/Settings.cc
-  src/objects/Table.cc
-  src/objects/Version.cc
-  src/objects/ZCError.cc
-
-  src/helpers.cc
-  src/interface.cc
-  src/main.cc
-)
+add_executable(zc ${SOURCES} ${HEADERS})
 
 # Include directories for the project
 target_include_directories(zc PRIVATE include)

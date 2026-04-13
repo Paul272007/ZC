@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <objects/File.hh>
 #include <objects/Registry.hh>
 #include <objects/Settings.hh>
@@ -58,39 +57,28 @@ private:
   /**
    * @brief Check if we must compile as C++ and check file extensions
    *
-   * @param badFile Fill this variable with the file that is faulty
    * @return Whether to compile as C++
    */
   bool isCppAndCheckExtensions() const;
 
   /**
    * @brief build the compiling command
-   *
-   * @param output_name The name of the output of the command
    */
   void buildCommand();
-
-  /**
-   * @brief Check that all files exist
-   *
-   * @param badFile Fill this variable with the file that is faulty
-   * @return Whether all files exist
-   */
-  bool filesExist(std::filesystem::path &badFile) const;
 
   /**
    * @brief Get library inclusions from file
    */
   std::vector<std::pair<std::string, std::string>> getInclusions() const;
 
+  const Settings &settings_;
+  const Registry registry_;
   const bool add_std_;
   const bool keep_ = false;
   bool plus_ = false;
   std::string output_name_;
   std::string build_cmd_;
   Mode mode_ = FULL;
-  Settings &settings_;
-  Registry &registry_;
   std::vector<File> files_;
   std::vector<std::string> args_;
 };

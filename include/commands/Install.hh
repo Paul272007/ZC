@@ -4,7 +4,6 @@
 #include <string>
 
 #include <commands/Command.hh>
-#include <objects/ProjectSettings.hh>
 #include <objects/Registry.hh>
 #include <vector>
 
@@ -15,10 +14,13 @@ public:
    * @brief Install a library from server or local zc project
    *
    * @param targets The names of the packages to be installed
+   * @param path
+   * @param global
+   * @param force
+   * @param quiet
    */
   Install(
-      const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
-      const bool quiet
+      const std::vector<std::string> &targets, const std::string &path, bool global, bool force, bool quiet
   );
 
   /**
@@ -30,12 +32,10 @@ public:
 
 private:
   void installFromPath();
-  void installFromJson();
+  void installFromJson() const;
 
   const std::vector<std::string> targets_;
   const std::filesystem::path path_;
-  const bool global_;
 
-  Registry *registry_ = nullptr;
-  ProjectSettings *p_settings_ = nullptr;
+  Registry registry_;
 };

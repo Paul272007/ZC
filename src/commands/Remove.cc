@@ -1,4 +1,3 @@
-#include "objects/ProjectSettings.hh"
 #include <string>
 #include <vector>
 
@@ -7,45 +6,25 @@
 #include <objects/Registry.hh>
 
 Remove::Remove(const std::vector<std::string> &targets, const bool force, const bool quiet, const bool global)
-    : targets_(targets), Command(force, quiet), global_(global)
+    : Command(force, quiet), registry_(Registry(true, global)), targets_(targets)
 {
 }
 
 int Remove::execute()
 {
-  if (global_)
+  for (const auto &pkg : targets_)
   {
-    registry_ = &Registry::getInstance();
-    for (const auto &pkg : targets_)
+    if (!registry_.removePackage(pkg))
     {
-      if (!registry_->removePackage(pkg))
-      {
-        if (!quiet_)
-          warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
-      }
-      else
-      {
-        if (!quiet_)
-          success("Package " + pkg + " removed successfully.");
-      }
+      if (!quiet_)
+        warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
+    }
+    else
+    {
+      if (!quiet_)
+        success("Package " + pkg + " removed successfully.");
     }
   }
-  else
-  {
-    p_settings_ = &ProjectSettings::getInstance();
-    for (const auto pkg : targets_)
-    {
-      if (!p_settings_->removePackage(pkg))
-      {
-        if (!quiet_)
-          warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
-      }
-      else
-      {
-        if (!quiet_)
-          success("Package " + pkg + " removed successfully.");
-      }
-    }
-  }
+  registry_.write();
   return 0;
 }

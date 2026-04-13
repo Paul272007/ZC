@@ -33,7 +33,7 @@ std::tuple<int, int, int> Version::to_tuple() const
   return std::tie(major_, minor_, patch_);
 }
 
-std::string Version::to_string() const
+std::string Version::string() const
 {
   std::stringstream s;
   s << major_ << "." << minor_ << "." << patch_;
