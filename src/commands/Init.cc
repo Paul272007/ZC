@@ -68,7 +68,7 @@ vector<fs::path> Init::getProjectTemplates() const
   return templates_list;
 }
 
-int Init::execute()
+int Init::operator()()
 {
   if (!template_.empty())
   {

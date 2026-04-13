@@ -14,7 +14,7 @@ public:
   Build(bool force, bool quiet, bool release_mode);
   Build(bool force, bool quiet, const std::filesystem::path &project_root);
 
-  int execute() override;
+  int operator()() override;
   const ProjectSettings &p_settings_;
   const Registry registry_;
 

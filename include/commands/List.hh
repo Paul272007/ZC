@@ -8,7 +8,7 @@ class List : public Command
 public:
   List(bool force, bool quiet, bool std, bool all);
 
-  int execute() override;
+  int operator()() override;
 
 private:
   const bool std_;

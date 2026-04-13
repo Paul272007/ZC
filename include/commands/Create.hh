@@ -34,7 +34,7 @@ public:
    * @return return code depending on whether the function ended
    * successfully
    */
-  int execute() override;
+  int operator()() override;
 
 private:
   /**

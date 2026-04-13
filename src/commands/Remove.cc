@@ -6,11 +6,11 @@
 #include <objects/Registry.hh>
 
 Remove::Remove(const std::vector<std::string> &targets, const bool force, const bool quiet, const bool global)
-    : Command(force, quiet), registry_(Registry(true, global)), targets_(targets)
+    : Command(force, quiet), registry_(Registry(global)), targets_(targets)
 {
 }
 
-int Remove::execute()
+int Remove::operator()()
 {
   for (const auto &pkg : targets_)
   {

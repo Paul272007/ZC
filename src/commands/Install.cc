@@ -12,13 +12,13 @@ Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
     const bool quiet
 )
-    : Command(force, quiet), targets_(targets), path_(path), registry_(Registry(false, global))
+    : Command(force, quiet), targets_(targets), path_(path), registry_(Registry(global))
 {
   if (!global && getProjectRoot(path_) == getProjectRoot())
     throw ZCError(ZC_BAD_COMMAND, "Cannot install library as its own dependency");
 }
 
-int Install::execute()
+int Install::operator()()
 {
   if (!targets_.empty() && !path_.empty())
     throw ZCError(ZC_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local path at the same time");

@@ -6,11 +6,11 @@
 using namespace std;
 // TODO add --global flag instead of true by default
 List::List(const bool force, const bool quiet, const bool std, const bool all)
-    : Command(force, quiet), std_(std), all_(all), registry_(Registry(true, true))
+    : Command(force, quiet), std_(std), all_(all), registry_(Registry(true))
 {
 }
 
-int List::execute()
+int List::operator()()
 {
   if (std_ || all_)
   {

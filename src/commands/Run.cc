@@ -21,8 +21,8 @@ Run::Run(
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
     const bool quiet, const bool add_std
 )
-    : Command(force, quiet), settings_(Settings::getInstance()), registry_(Registry(true, true)),
-      add_std_(add_std), keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args)
+    : Command(force, quiet), settings_(Settings::getInstance()), registry_(Registry(true)), add_std_(add_std),
+      keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args)
 {
   // Fill files_
   for (const auto &f : files)
@@ -33,7 +33,7 @@ Run::Run(
     plus_ = isCppAndCheckExtensions();
 }
 
-int Run::execute()
+int Run::operator()()
 {
   // 1. Check that all files exist (file extensions were already checked before)
   for (const auto &f : files_)

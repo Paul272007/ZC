@@ -1,31 +1,31 @@
-#include <vector>
-#include <string>
 #include <fstream>
+#include <string>
+#include <vector>
 
 #include <commands/Build.hh>
-#include <objects/Registry.hh>
-#include <objects/ProjectSettings.hh>
-#include <objects/ZCError.hh>
 #include <helpers.hh>
-#include <nlohmann/json.hpp>
 #include <interface.hh>
+#include <nlohmann/json.hpp>
+#include <objects/ProjectSettings.hh>
+#include <objects/Registry.hh>
+#include <objects/ZCError.hh>
 
 using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-Registry::Registry(const bool readonly, const bool is_global) : read_only_(readonly)
+Registry::Registry(const bool is_global)
 {
   if (is_global)
   {
-    const fs::path& root(getZCRootDir());
+    const fs::path &root(getZCRootDir());
     registry_path_ = root / REGISTRY;
     include_path_ = root / INCLUDE_DIR;
     lib_path_ = root / LIB_DIR;
   }
   else
   {
-    const fs::path& root(getProjectRoot());
+    const fs::path &root(getProjectRoot());
     registry_path_ = root / REGISTRY;
     include_path_ = root / EXTERNAL / INCLUDE_DIR;
     lib_path_ = root / EXTERNAL / LIB_DIR;
@@ -71,7 +71,7 @@ void Registry::load()
   json json_registry;
   if (!fs::exists(registry_path_))
     return; // = no installed libraries / dependencies
-    // throw ZCError(ZC_CONFIG_NOT_FOUND, "The configuration file was not found: " + registry_path_.string());
+  // throw ZCError(ZC_CONFIG_NOT_FOUND, "The configuration file was not found: " + registry_path_.string());
 
   ifstream input(registry_path_);
   if (!input.is_open())
@@ -115,13 +115,6 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
   if (b.p_settings_.type_ != LIB)
     throw ZCError();
 
-  b.execute();
-
-#ifdef DEBUG_MODE
-  if (!quiet)
-    debug("Project compiled");
-#endif
-
   const fs::path dest_include = include_path_ / b.p_settings_.name_;
   const fs::path dest_lib = lib_path_ / b.p_settings_.name_;
 
@@ -129,18 +122,29 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
     if (!ask("The library seems to be already installed. Do you want to reinstall it ?"))
       return;
 
+  b();
+
+#ifdef DEBUG_MODE
+  if (!quiet)
+    debug("Project compiled");
+#endif
+
   if (!quiet)
     info("Installing headers...");
 
   fs::create_directories(dest_include);
-  fs::copy(b.p_settings_.include_folder_, dest_include, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+  fs::copy(
+      b.p_settings_.include_folder_, dest_include,
+      fs::copy_options::recursive | fs::copy_options::overwrite_existing
+  );
 
   if (!quiet)
     info("Installing libraries...");
 
   fs::create_directories(dest_lib);
 
-  for (const vector lib_names = {b.p_settings_.static_lib_name_, b.p_settings_.shared_lib_name_}; const string &name : lib_names)
+  for (const vector lib_names = {b.p_settings_.static_lib_name_, b.p_settings_.shared_lib_name_};
+       const string &name : lib_names)
   {
     if (name.empty())
       continue;
@@ -156,7 +160,12 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
       }
     }
   }
-  indexPackage(Package{b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.shared_lib_name_, b.p_settings_.static_lib_name_});
+  indexPackage(
+      Package{
+          b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.shared_lib_name_,
+          b.p_settings_.static_lib_name_
+      }
+  );
   success("Package " + b.p_settings_.name_ + " installed successfully.");
 }
 
@@ -174,7 +183,11 @@ bool Registry::removePackage(const std::string &pkg_name)
 
 void Registry::indexPackage(const Package &package)
 {
-  pkgs_.push_back(package);
+  if (const auto it = ranges::find_if(pkgs_, [&](const Package &p) { return p.name_ == package.name_; });
+      it != pkgs_.end())
+    *it = package;
+  else
+    pkgs_.push_back(package);
 }
 
 void Registry::unindexPackage(const std::string &pkg_name)
@@ -210,6 +223,15 @@ Table Registry::stdPackagesTable() const
     str_pkgs.push_back({name_, flags_, join(headers_, ", ")});
 
   return {static_cast<int>(str_pkgs.size()), N_ATTR_STD_PKG, false, true, str_pkgs};
+}
+
+const Package &Registry::getPackage(const std::string &pkg_name) const
+{
+  const auto it = ranges::find_if(pkgs_, [&](const Package &p) { return p.name_ == pkg_name; });
+  if (it == pkgs_.end())
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package " + pkg_name + " was not found");
+
+  return *it;
 }
 
 const std::vector<Package> &Registry::getPackages() const

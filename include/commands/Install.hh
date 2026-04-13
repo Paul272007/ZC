@@ -28,7 +28,7 @@ public:
    *
    * @return Exit code
    */
-  int execute() override;
+  int operator()() override;
 
 private:
   void installFromPath();

@@ -15,17 +15,17 @@ namespace fs = std::filesystem;
 
 Build::Build(const bool force, const bool quiet, const bool release_mode)
     : Command(force, quiet), p_settings_(ProjectSettings::getInstance(getProjectRoot())),
-      registry_(Registry(true, false)), root_(getProjectRoot()), release_mode_(release_mode)
+      registry_(Registry(false)), root_(getProjectRoot()), release_mode_(release_mode)
 {
 }
 
 Build::Build(const bool force, const bool quiet, const fs::path &project_root)
     : Command(force, quiet), p_settings_(ProjectSettings::getInstance(project_root)),
-      registry_(Registry(true, false)), root_(project_root), release_mode_(false)
+      registry_(Registry(false)), root_(project_root), release_mode_(false)
 {
 }
 
-int Build::execute()
+int Build::operator()()
 {
   // CMake configuration
   if (!fs::exists("CMakeLists.txt") || force_)

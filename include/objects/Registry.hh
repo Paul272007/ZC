@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include <objects/Table.hh>
+#include <string>
 
 #define N_ATTR_PKG 4
 #define N_ATTR_STD_PKG 3
@@ -29,7 +30,7 @@ struct StdPackage
 class Registry
 {
 public:
-  Registry(bool readonly, bool is_global);
+  explicit Registry(bool is_global);
   void write() const;
   /**
    * @brief Install a library based on its root folder
@@ -48,6 +49,16 @@ public:
    */
   bool removePackage(const std::string &pkg_name);
 
+  const Package &getPackage(const std::string &pkg_name) const;
+
+  /**
+   * @param pkg_name The name of the package to check
+   * @return Whether the package was found or not
+   */
+  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
+
+  void indexPackage(const Package &package);
+
   /**
    * @brief Create a Table containing all the packages, ready to be displayed
    *
@@ -63,13 +74,6 @@ public:
 private:
   void load();
 
-  /**
-   * @param pkg_name The name of the package to check
-   * @return Whether the package was found or not
-   */
-  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
-
-  void indexPackage(const Package &package);
   void unindexPackage(const std::string &pkg_name);
 
   std::filesystem::path registry_path_;
@@ -77,5 +81,4 @@ private:
   std::filesystem::path lib_path_;
   std::vector<Package> pkgs_;
   std::vector<StdPackage> std_pkgs_;
-  const bool read_only_;
 };

@@ -43,7 +43,7 @@ std::vector<File> Create::getTemplates() const
   return file_list;
 }
 
-int Create::execute()
+int Create::operator()()
 {
   const vector<File> templates = getTemplates();
   vector<string> files_to_edit;
