@@ -56,6 +56,7 @@ int main(const int argc, char *argv[])
   string name;
   string src_folder;
   string include_folder;
+  string type;
 
   // zc list
   bool std = false;
@@ -109,19 +110,20 @@ int main(const int argc, char *argv[])
   create->callback([&]() { command = make_unique<Create>(output_files, force, quiet, input_files, edit); });
 
   // ========================== INIT ===============================
-  
+
   init->add_option("--author,-a", author, "Specify the project's author");
-  init->add_option("--template,-t", project_template, "Specify template to use");
+  init->add_option("--basis,-b", project_template, "Specify template to use as basis");
   init->add_option("--name,-n", name, "Specify package name");
   init->add_option("--src-folder,-s", src_folder, "Specify source folder");
   init->add_option("--include-folder,-i", include_folder, "Specify include folder");
+  init->add_option("--type,-t", type, "Specify package type");
 
   init->add_flag("--force,-f", force, "Force creating project even if one was already created in selected directory");
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--git,-g", git, "Create empty git repository");
 
-  init->callback([&]() { command = make_unique<Init>(author, project_template, name, src_folder, include_folder, force, quiet, edit, git); });
+  init->callback([&]() { command = make_unique<Init>(author, project_template, name, src_folder, include_folder, force, quiet, edit, git, type); });
 
   // ========================== LIST ===============================
 

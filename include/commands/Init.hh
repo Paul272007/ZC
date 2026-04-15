@@ -30,7 +30,7 @@ public:
   Init(
       const std::string &author, const std::string &project_template, const std::string &name,
       const std::string &src_folder, const std::string &include_folder, bool force, bool quiet, bool edit,
-      bool git
+      bool git, const std::string &type
   );
 
   /**

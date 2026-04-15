@@ -15,9 +15,9 @@ namespace fs = std::filesystem;
 Init::Init(
     const std::string &author, const std::string &project_template, const std::string &name,
     const std::string &src_folder, const std::string &include_folder, const bool force, const bool quiet,
-    const bool edit, const bool git
+    const bool edit, const bool git, const std::string &type
 )
-    : Command(force, quiet), path_(fs::current_path()), type_(), edit_(edit), git_(git),
+    : Command(force, quiet), path_(fs::current_path()), type_(UNDEF), edit_(edit), git_(git),
       settings_(Settings::getInstance())
 {
   if (!force_ && fs::exists(ZC_FILE))
@@ -35,10 +35,12 @@ Init::Init(
     author_ = input("Project author: ");
 
   // std::string type = input("Project type: (lib/bin)");
-  // if (type == "lib")
-  //   type_ = LIB;
-  // else if (type == "bin")
-  //   type_ = BIN;
+  std::string type2 = upper(type);
+  if (type2 == "LIB")
+    type_ = LIB;
+  else if (type2 == "BIN")
+    type_ = BIN;
+  // else it stays UNDEF
 
   if (project_template.empty())
     template_ = input("Template to use to initialize project: ");
@@ -133,8 +135,8 @@ int Init::operator()()
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
 
-  // Create configuration file with empty shared lib, static lib, executable, type and dependencies
-  const ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, UNDEF);
+  // Create configuration file with empty shared lib, static lib, executable
+  const ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, type_);
   settings.write();
 
   if (settings_.edit_on_init_ || edit_)

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -202,7 +203,11 @@ void Registry::unindexPackage(const std::string &pkg_name)
 bool Registry::pkgExists(const std::string &pkg_name) const
 {
   const auto it = ranges::find_if(pkgs_, [&](const Package &p) { return p.name_ == pkg_name; });
-  return it != pkgs_.end();
+  if (it != pkgs_.end())
+    return true;
+
+  const auto it2 = ranges::find_if(std_pkgs_, [&](const StdPackage &sp) { return sp.name_ == pkg_name; });
+  return it2 == std_pkgs_.end();
 }
 
 Table Registry::packagesTable() const
