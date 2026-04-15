@@ -37,8 +37,12 @@ ZC_DIR="$HOME/.zc"
 if [ ! -d "$ZC_DIR" ]; then
   mkdir -p "$ZC_DIR/lib"
   mkdir -p "$ZC_DIR/include"
+  mkdir -p "$ZC_DIR/completions"
   cp -r etc/* "$ZC_DIR"
 fi
+
+# Always force updating completions
+cp -r etc/completions "$ZC_DIR/completions"
 
 # Build and copy source files, and clean up build artifacts
 echo -e "${BLUE}[2/5] Cleaning existing installation...${NC}"
