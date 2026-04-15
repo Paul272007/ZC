@@ -37,6 +37,7 @@ int main(const int argc, char *argv[])
   bool edit = false;
   bool git = false;
   bool global = false;
+  string path;
   vector<string> input_files;
   vector<string> output_files;
   vector<string> targets;
@@ -61,9 +62,6 @@ int main(const int argc, char *argv[])
 
   // zc build
   bool release_mode = false;
-
-  // zc install
-  string path;
 
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
@@ -131,11 +129,12 @@ int main(const int argc, char *argv[])
 
   // ========================== BUILD ===============================
 
+  build->add_option("path", path, "Path to project to build");
+
   build->add_flag("--force,-f", force, "Force regenerating CMakeLists.txt");
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  build->add_flag("--release,-r", release_mode, "Build in release mode");
 
-  build->callback([&]() { command = make_unique<Build>(force, quiet, release_mode); });
+  build->callback([&]() { command = make_unique<Build>(force, quiet, path); });
 
   // ========================== INSTALL ===============================
 

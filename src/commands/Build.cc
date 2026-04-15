@@ -4,6 +4,7 @@
 
 #include <commands/Build.hh>
 #include <commands/Command.hh>
+#include <helpers.hh>
 #include <interface.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/Settings.hh>
@@ -13,15 +14,9 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-Build::Build(const bool force, const bool quiet, const bool release_mode)
-    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(getProjectRoot())),
-      registry_(Registry(false)), root_(getProjectRoot()), release_mode_(release_mode)
-{
-}
-
 Build::Build(const bool force, const bool quiet, const fs::path &project_root)
-    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(project_root)),
-      registry_(Registry(false)), root_(project_root), release_mode_(false)
+    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(root_)), registry_(Registry(false)),
+      root_(project_root.empty() ? getProjectRoot() : project_root)
 {
 }
 
@@ -34,9 +29,8 @@ int Build::operator()()
       info("Generating build configuration...");
 
     generateCMakeLists();
-    const string build_type = release_mode_ ? "Release" : "Debug";
     const string config_cmd = "cmake " + root_.string() + " -B " + root_.string() +
-                              "/build -DCMAKE_BUILD_TYPE=" + build_type + (quiet_ ? " &>/dev/null" : "");
+                              "/" BUILD_DIR " -DCMAKE_BUILD_TYPE=Debug" + (quiet_ ? " &>/dev/null" : "");
 
 #ifdef DEBUG_MODE
     if (!quiet_)
@@ -50,7 +44,7 @@ int Build::operator()()
       throw ZCError(ZC_CMAKE_ERROR, "CMake configuration failed");
   }
   // Build
-  const string build_cmd = "cmake --build " + root_.string() + "/build" + (quiet_ ? " &>/dev/null" : "");
+  const string build_cmd = "cmake --build " + root_.string() + "/" BUILD_DIR + (quiet_ ? " &>/dev/null" : "");
 
 #ifdef DEBUG_MODE
   if (!quiet_)

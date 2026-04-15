@@ -6,18 +6,23 @@
 #include <string>
 
 // clang-format off
-#define N_ATTR_PKG   3
+#define N_ATTR_PKG   4
 #define REGISTRY     "registry.json"
 #define EXTERNAL     "external"
 #define INCLUDE_DIR  "include"
 #define LIB_DIR      "lib"
+#define BIN_DIR      "bin"
+#define BUILD_DIR    "build"
 // clang-format on
+
+class Build;
 
 struct Package
 {
   std::string name_;
   std::string version_;
   std::string binary_;
+  bool is_bin_;
 };
 
 class Registry
@@ -64,11 +69,14 @@ public:
 
 private:
   void load();
+  void installExecutable(const Build &b, bool quiet);
+  void installLibrary(const Build &b, bool quiet);
 
-  void unindexPackage(const std::string &pkg_name);
+  Package unindexPackage(const std::string &pkg_name);
 
   std::filesystem::path registry_path_;
   std::filesystem::path include_path_;
   std::filesystem::path lib_path_;
+  std::filesystem::path bin_path_;
   std::vector<Package> pkgs_;
 };

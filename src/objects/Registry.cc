@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -23,6 +24,7 @@ Registry::Registry(const bool is_global)
     registry_path_ = root / REGISTRY;
     include_path_ = root / INCLUDE_DIR;
     lib_path_ = root / LIB_DIR;
+    bin_path_ = root / BIN_DIR;
   }
   else
   {
@@ -30,6 +32,7 @@ Registry::Registry(const bool is_global)
     registry_path_ = root / REGISTRY;
     include_path_ = root / EXTERNAL / INCLUDE_DIR;
     lib_path_ = root / EXTERNAL / LIB_DIR;
+    bin_path_ = root / EXTERNAL / BIN_DIR;
   }
   load();
 }
@@ -43,11 +46,12 @@ void from_json(const json &j, Package &p)
   j.at(0).get_to(p.name_);
   j.at(1).get_to(p.version_);
   j.at(2).get_to(p.binary_);
+  j.at(3).get_to(p.is_bin_);
 }
 
 void to_json(json &j, const Package &p)
 {
-  j = json::array({p.name_, p.version_, p.binary_});
+  j = json::array({p.name_, p.version_, p.binary_, p.is_bin_});
 }
 
 void Registry::load()
@@ -88,26 +92,30 @@ void Registry::write() const
   output.close();
 }
 
-void Registry::installPackage(const std::filesystem::path &project_root, const bool force, const bool quiet)
+void Registry::installExecutable(const Build &b, bool quiet)
 {
-  Build b(true, quiet, project_root);
+  const fs::path exe_dest = bin_path_ / b.p_settings_.target_name_;
+  const fs::path exe_source = b.p_settings_.project_root_ / BUILD_DIR / b.p_settings_.target_name_;
 
-  if (b.p_settings_.type_ != LIB)
-    throw ZCError();
+  if (!quiet)
+    info("Installing global binary...");
 
+  fs::create_directories(bin_path_);
+
+  if (!fs::exists(exe_source))
+    throw ZCError(ZC_NOT_FOUND, "The compiled binary was not found: " + exe_source.string());
+
+  fs::copy_file(exe_source, exe_dest, fs::copy_options::overwrite_existing);
+
+  fs::permissions(
+      exe_dest, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add
+  );
+}
+
+void Registry::installLibrary(const Build &b, bool quiet)
+{
   const fs::path dest_include = include_path_ / b.p_settings_.name_;
   const fs::path dest_lib = lib_path_ / b.p_settings_.name_;
-
-  if ((fs::exists(dest_include) || fs::exists(dest_lib) || pkgExists(b.p_settings_.name_)) && !force)
-    if (!ask("The library seems to be already installed. Do you want to reinstall it ?"))
-      return;
-
-  b();
-
-#ifdef DEBUG_MODE
-  if (!quiet)
-    debug("Project compiled");
-#endif
 
   if (!quiet)
     info("Installing headers...");
@@ -123,7 +131,7 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
 
   fs::create_directories(dest_lib);
 
-  for (const auto &entry : fs::recursive_directory_iterator(project_root / "build"))
+  for (const auto &entry : fs::recursive_directory_iterator(b.p_settings_.project_root_ / BUILD_DIR))
   {
     if (string filename = entry.path().filename().string();
         filename.find(b.p_settings_.target_name_) != string::npos &&
@@ -133,19 +141,65 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
       fs::copy_file(entry.path(), dest_lib / filename, fs::copy_options::overwrite_existing);
     }
   }
-  indexPackage(Package{b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.target_name_});
-  success("Package " + b.p_settings_.name_ + " installed successfully.");
+}
+
+void Registry::installPackage(const std::filesystem::path &project_root, const bool force, const bool quiet)
+{
+  Build b(true, quiet, project_root);
+
+  if (pkgExists(b.p_settings_.name_) && !force)
+    if (!ask(
+            "The package '" + b.p_settings_.name_ +
+            "' seems to be already installed. Do you want to reinstall it?"
+        ))
+      return;
+
+  b();
+
+#ifdef DEBUG_MODE
+  if (!quiet)
+    debug("Project compiled");
+#endif
+
+  bool is_bin = false;
+  switch (b.p_settings_.type_)
+  {
+  case LIB:
+    installLibrary(b, quiet);
+    is_bin = false;
+    break;
+  case BIN:
+    installExecutable(b, quiet);
+    is_bin = true;
+    break;
+  case UNDEF:
+    throw ZCError(ZC_CONFIG_CONTENT_ERROR, "The project type must be 'lib' or 'bin'");
+  }
+
+  indexPackage(
+      Package{b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.target_name_, is_bin}
+  );
+  if (!quiet)
+    success("Package " + b.p_settings_.name_ + " installed successfully.");
 }
 
 bool Registry::removePackage(const std::string &pkg_name)
 {
-  unindexPackage(pkg_name);
+  Package p = unindexPackage(pkg_name);
 
-  if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
-    return false;
-
-  fs::remove_all(include_path_ / pkg_name);
-  fs::remove_all(lib_path_ / pkg_name);
+  if (p.is_bin_)
+  {
+    if (!fs::exists(bin_path_ / p.binary_))
+      return false;
+    fs::remove(bin_path_ / p.binary_);
+  }
+  else
+  {
+    if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
+      return false;
+    fs::remove_all(include_path_ / pkg_name);
+    fs::remove_all(lib_path_ / pkg_name);
+  }
   return true;
 }
 
@@ -158,11 +212,15 @@ void Registry::indexPackage(const Package &package)
     pkgs_.push_back(package);
 }
 
-void Registry::unindexPackage(const std::string &pkg_name)
+Package Registry::unindexPackage(const std::string &pkg_name)
 {
-  if (const auto it = ranges::find_if(pkgs_, [&](const Package &p) { return p.name_ == pkg_name; });
+  if (const auto it = std::ranges::find_if(pkgs_, [&](const Package &p) { return p.name_ == pkg_name; });
       it != pkgs_.end())
+  {
+    Package removed_pkg = *it;
     pkgs_.erase(it);
+    return removed_pkg;
+  }
   else
     throw ZCError(ZC_PACKAGE_NOT_FOUND, "The package was not found: " + pkg_name);
 }
@@ -175,10 +233,10 @@ bool Registry::pkgExists(const std::string &pkg_name) const
 
 Table Registry::packagesTable() const
 {
-  vector<vector<string>> str_pkgs{{"Package name", "Version", "Shared library name", "Static library name"}};
+  vector<vector<string>> str_pkgs{{"Package name", "Version", "Target", "Type"}};
 
-  for (const auto &[name_, version_, binary_] : pkgs_)
-    str_pkgs.push_back({name_, version_, binary_});
+  for (const auto &[name_, version_, binary_, is_bin_] : pkgs_)
+    str_pkgs.push_back({name_, version_, binary_, is_bin_ ? "executable" : "library"});
 
   return {static_cast<int>(str_pkgs.size()), N_ATTR_PKG, false, true, str_pkgs};
 }

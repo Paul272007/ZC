@@ -42,7 +42,7 @@ _zc_subcommands() {
 
 _zc_run() {
     _arguments \
-        '*:fichier source:_files -g "*.{c,cc,cpp,cxx,C}"' \
+        '*:source file:_files -g "*.{c,cc,cpp,cxx,C}"' \
         '(-a --args)'{-a,--args}'[Arguments passed to the program]:args' \
         '(-k --keep)'{-k,--keep}'[Do not delete executable after run]' \
         '(-p --plus)'{-p,--plus}'[Force compilation as C++]' \
@@ -56,9 +56,9 @@ _zc_run() {
 
 _zc_create() {
     _arguments \
-        '*:fichier à créer:_files' \
+        '*:file to create:_files' \
         '(-i --input)'{-i,--input}'[Files to use as basis]:fichier:_files' \
-        '(-f --force)'{-f,--force}'[Force writing even if files exist]' \
+        '(-f --force)'{-f,--force}'[Force writing even if files already exist]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-e --edit)'{-e,--edit}'[Edit files once created]'
 }
@@ -86,7 +86,6 @@ _zc_build() {
     _arguments \
         '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-r --release)'{-r,--release}'[Build in release mode]'
 }
 
 _zc_install() {
