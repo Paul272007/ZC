@@ -518,22 +518,7 @@ vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
           );
 
           if (!already_present)
-            required_libs.emplace_back(
-                package.name_, "-l" + (package.shared_.empty() ? package.static_ : package.shared_)
-            );
-        }
-      }
-      for (const auto &std_package : reg.getStdPackages())
-      {
-        if (inc.find(std_package.name_) != string::npos)
-        {
-          bool already_present = std::any_of(
-              required_libs.begin(), required_libs.end(),
-              [&](const auto &p) { return p.first == std_package.name_; }
-          );
-
-          if (!already_present)
-            required_libs.emplace_back("", std_package.flags_);
+            required_libs.emplace_back(package.name_, "-l" + package.binary_);
         }
       }
     }

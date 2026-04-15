@@ -118,39 +118,31 @@ void Build::generateCMakeLists() const
 
   if (p_settings_.type_ == BIN)
   {
-    cmake << "add_executable(" << p_settings_.executable_name_ << '\n';
+    cmake << "add_executable(" << p_settings_.target_name_ << '\n';
     cmake << "  ${SOURCES}\n";
     cmake << "  ${HEADERS}\n";
     cmake << ")\n\n";
-    outputs.push_back(p_settings_.executable_name_);
+    outputs.push_back(p_settings_.target_name_);
   }
   else if (p_settings_.type_ == LIB)
   {
-    const string static_name = p_settings_.static_lib_name_;
-    const string shared_name = p_settings_.shared_lib_name_;
+    const string static_target = p_settings_.target_name_ + "_static_target";
+    cmake << "add_library(" << static_target << " STATIC\n";
+    cmake << "  ${SOURCES}\n";
+    cmake << "  ${HEADERS}\n";
+    cmake << ")\n\n";
+    cmake << "set_target_properties(" << static_target << " PROPERTIES OUTPUT_NAME \""
+          << p_settings_.target_name_ << "\")\n\n";
+    outputs.push_back(static_target);
 
-    if (!static_name.empty())
-    {
-      const string static_target = static_name + "_static_target";
-      cmake << "add_library(" << static_target << " STATIC\n";
-      cmake << "  ${SOURCES}\n";
-      cmake << "  ${HEADERS}\n";
-      cmake << ")\n\n";
-      cmake << "set_target_properties(" << static_target << " PROPERTIES OUTPUT_NAME \"" << static_name
-            << "\")\n\n";
-      outputs.push_back(static_target);
-    }
-    if (!shared_name.empty())
-    {
-      string shared_target = shared_name + "_shared_target";
-      cmake << "add_library(" << shared_target << " SHARED\n";
-      cmake << "  ${SOURCES}\n";
-      cmake << "  ${HEADERS}\n";
-      cmake << ")\n\n";
-      cmake << "set_target_properties(" << shared_target << " PROPERTIES OUTPUT_NAME \"" << shared_name
-            << "\")\n\n";
-      outputs.push_back(shared_target);
-    }
+    const string shared_target = p_settings_.target_name_ + "_shared_target";
+    cmake << "add_library(" << shared_target << " SHARED\n";
+    cmake << "  ${SOURCES}\n";
+    cmake << "  ${HEADERS}\n";
+    cmake << ")\n\n";
+    cmake << "set_target_properties(" << shared_target << " PROPERTIES OUTPUT_NAME \""
+          << p_settings_.target_name_ << "\")\n\n";
+    outputs.push_back(shared_target);
   }
 
   for (const string &output : outputs)
@@ -175,8 +167,7 @@ void Build::generateCMakeLists() const
           local_deps.push_back(pkg);
         else if (fs::exists(global_lib_path / pkg.name_))
           global_deps.push_back(pkg);
-        else
-          throw ZCError(ZC_NOT_FOUND, "Library " + pkg.name_ + " was not found");
+        // Else it's a standard package no need to add a new link path
       }
 
       cmake << "target_link_directories(" << output << " PRIVATE\n";
@@ -189,9 +180,7 @@ void Build::generateCMakeLists() const
       // Linking dependencies
       cmake << "target_link_libraries(" << output << " PRIVATE\n";
       for (const auto dep : registry_.getPackages())
-        cmake << "  " << (dep.shared_.empty() ? dep.static_ : dep.shared_) << "\n";
-      for (const auto dep : registry_.getStdPackages())
-        cmake << "  " << (dep.name_) << "\n";
+        cmake << "  " << dep.binary_ << "\n";
       cmake << ")\n\n";
     }
 

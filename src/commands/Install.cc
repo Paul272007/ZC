@@ -6,7 +6,6 @@
 #include <objects/ZCError.hh>
 
 using namespace std;
-namespace fs = std::filesystem;
 
 Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
@@ -42,8 +41,5 @@ void Install::installFromJson() const
 
 void Install::installFromPath()
 {
-  if (!fs::exists(path_))
-    throw ZCError(ZC_NOT_FOUND, "The directory " + path_.string() + " does not exist");
-
   registry_.installPackage(getProjectRoot(path_), force_, quiet_);
 }

@@ -6,12 +6,10 @@
 class List : public Command
 {
 public:
-  List(bool force, bool quiet, bool std, bool all);
+  List(bool force, bool quiet);
 
   int operator()() override;
 
 private:
-  const bool std_;
-  const bool all_;
   const Registry registry_;
 };

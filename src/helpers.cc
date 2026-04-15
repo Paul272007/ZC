@@ -14,6 +14,9 @@ namespace
 {
 fs::path calculateProjectRoot(const fs::path &base)
 {
+  if (!fs::exists(base))
+    throw ZCError(ZC_NOT_FOUND, "The directory " + base.string() + " does not exist");
+
   fs::path current = base;
 
   while (true)
@@ -28,7 +31,7 @@ fs::path calculateProjectRoot(const fs::path &base)
   }
   throw ZCError(ZC_NOT_A_ZC_PROJECT, "The given directory is not inside a ZC project");
 }
-}
+} // namespace
 
 const fs::path &getProjectRoot()
 {

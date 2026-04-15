@@ -48,6 +48,7 @@ int main(const int argc, char *argv[])
   bool run_c = false;
   bool run_S = false;
   bool run_E = false;
+  bool std = false;
   vector<string> run_args;
 
   // zc init
@@ -57,10 +58,6 @@ int main(const int argc, char *argv[])
   string src_folder;
   string include_folder;
   string type;
-
-  // zc list
-  bool std = false;
-  bool all = false;
 
   // zc build
   bool release_mode = false;
@@ -129,10 +126,8 @@ int main(const int argc, char *argv[])
 
   // list->add_flag("--force,-f", force, "Force");
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  list->add_flag("--std,-s", std, "Show standard libraries");
-  list->add_flag("--all,-a", all, "Show all libraries");
 
-  list->callback([&]() { command = make_unique<List>(false, quiet, std, all); });
+  list->callback([&]() { command = make_unique<List>(false, quiet); });
 
   // ========================== BUILD ===============================
 

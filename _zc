@@ -1,0 +1,114 @@
+#compdef zc
+
+_zc() {
+    local context state state_descr line
+    typeset -A opt_args
+
+    _arguments -C \
+        '(-v --version)'{-v,--version}'[Show version]' \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '1: :_zc_subcommands' \
+        '*::args:->args'
+
+    case $state in
+        args)
+            case $line[1] in
+                run)     _zc_run     ;;
+                create)  _zc_create  ;;
+                init)    _zc_init    ;;
+                list)    _zc_list    ;;
+                build)   _zc_build   ;;
+                install) _zc_install ;;
+                remove)  _zc_remove  ;;
+                add)     _zc_add     ;;
+            esac
+    esac
+}
+
+_zc_subcommands() {
+    local subcommands
+    subcommands=(
+        'run:Compile and execute C/C++ file(s)'
+        'create:Create file based on template'
+        'init:Initialize empty project'
+        'list:List all globally installed libraries'
+        'build:Build project'
+        'install:Install package'
+        'remove:Remove package'
+        'add:Add dependency from global registry'
+    )
+    _describe 'subcommand' subcommands
+}
+
+_zc_run() {
+    _arguments \
+        '*:fichier source:_files -g "*.{c,cc,cpp,cxx,C}"' \
+        '(-a --args)'{-a,--args}'[Arguments passed to the program]:args' \
+        '(-k --keep)'{-k,--keep}'[Do not delete executable after run]' \
+        '(-p --plus)'{-p,--plus}'[Force compilation as C++]' \
+        '(-q --quiet)'{-q,--quiet}'[Enable quiet mode]' \
+        '(-f --force)'{-f,--force}'[Force compiling even if target exists]' \
+        '(-s --std)'{-s,--std}'[Add C/C++ standard from config file]' \
+        '-E[Preprocess only]' \
+        '-S[Compile but do not assemble or link]' \
+        '-c[Compile and assemble but do not link]'
+}
+
+_zc_create() {
+    _arguments \
+        '*:fichier à créer:_files' \
+        '(-i --input)'{-i,--input}'[Files to use as basis]:fichier:_files' \
+        '(-f --force)'{-f,--force}'[Force writing even if files exist]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-e --edit)'{-e,--edit}'[Edit files once created]'
+}
+
+_zc_init() {
+    _arguments \
+        '(-a --author)'{-a,--author}'[Project author]:author' \
+        '(-b --basis)'{-b,--basis}'[Template to use as basis]:template' \
+        '(-n --name)'{-n,--name}'[Package name]:name' \
+        '(-s --src-folder)'{-s,--src-folder}'[Source folder]:folder:_directories' \
+        '(-i --include-folder)'{-i,--include-folder}'[Include folder]:folder:_directories' \
+        '(-t --type)'{-t,--type}'[Project type]:type' \
+        '(-f --force)'{-f,--force}'[Force even if project already exists]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-e --edit)'{-e,--edit}'[Open project in editor once initialized]' \
+        '(-g --git)'{-g,--git}'[Create empty git repository]'
+}
+
+_zc_list() {
+    _arguments \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+}
+
+_zc_build() {
+    _arguments \
+        '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-r --release)'{-r,--release}'[Build in release mode]'
+}
+
+_zc_install() {
+    _arguments \
+        '*:package:' \
+        '(-p --path)'{-p,--path}'[Install from local path]:chemin:_directories' \
+        '(-g --global)'{-g,--global}'[Install the package globally]' \
+        '(-f --force)'{-f,--force}'[Force installing even if already installed]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+}
+
+_zc_remove() {
+    _arguments \
+        '*:package:' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-g --global)'{-g,--global}'[Remove globally installed package]'
+}
+
+_zc_add() {
+    _arguments \
+        '*:package:' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+}
+
+_zc "$@"

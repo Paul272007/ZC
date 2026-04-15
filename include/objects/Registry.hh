@@ -5,26 +5,19 @@
 #include <objects/Table.hh>
 #include <string>
 
-#define N_ATTR_PKG 4
-#define N_ATTR_STD_PKG 3
-#define REGISTRY "registry.json"
-#define EXTERNAL "external"
-#define INCLUDE_DIR "include"
-#define LIB_DIR "lib"
+// clang-format off
+#define N_ATTR_PKG   3
+#define REGISTRY     "registry.json"
+#define EXTERNAL     "external"
+#define INCLUDE_DIR  "include"
+#define LIB_DIR      "lib"
+// clang-format on
 
 struct Package
 {
   std::string name_;
   std::string version_;
-  std::string shared_;
-  std::string static_;
-};
-
-struct StdPackage
-{
-  std::string name_;
-  std::vector<std::string> headers_;
-  std::string flags_;
+  std::string binary_;
 };
 
 class Registry
@@ -65,9 +58,7 @@ public:
    * @return The Table
    */
   [[nodiscard]] Table packagesTable() const;
-  [[nodiscard]] Table stdPackagesTable() const;
   [[nodiscard]] const std::vector<Package> &getPackages() const;
-  [[nodiscard]] const std::vector<StdPackage> &getStdPackages() const;
   [[nodiscard]] const std::filesystem::path &getIncludePath() const;
   [[nodiscard]] const std::filesystem::path &getLibPath() const;
 
@@ -80,5 +71,4 @@ private:
   std::filesystem::path include_path_;
   std::filesystem::path lib_path_;
   std::vector<Package> pkgs_;
-  std::vector<StdPackage> std_pkgs_;
 };

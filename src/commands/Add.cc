@@ -23,24 +23,18 @@ int Add::operator()()
       // If it is a local dependency
       if (std::filesystem::exists(getProjectRoot() / EXTERNAL / LIB_DIR / target))
       {
-        if (!ask(
-                "The package " + target +
-                " is already installed on this project. Do you want to overwrite it ?"
-            ))
-        {
-          continue;
-        }
-        else
+        if (ask("The package " + target +
+                " is already installed on this project. Do you want to overwrite it ?"))
         {
           std::filesystem::remove_all(getProjectRoot() / EXTERNAL / INCLUDE_DIR / target);
           std::filesystem::remove_all(getProjectRoot() / EXTERNAL / LIB_DIR / target);
+          v.push_back(global_.getPackage(target));
         }
-      } // If it is a global dependency
-      else if (!ask(
-                   "The package " + target +
-                   " is already a dependency for this project. Do you want to overwrite the current one ?"
-               ))
-        continue;
+      }
+      else // If it is a global dependency, just say it was already added
+      {
+        info("Dependency already added.");
+      }
     } // Add the package to the list of packages to index and check if it is globally installed
     v.push_back(global_.getPackage(target));
   }

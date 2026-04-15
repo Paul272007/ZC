@@ -23,15 +23,14 @@ ProjectSettings &ProjectSettings::getInstance(const std::filesystem::path &proje
 }
 
 ProjectSettings::ProjectSettings(
-    const std::string &name, const std::string &author, const std::string &sharedLib,
-    const std::string &staticLib, const std::string &version, const std::string &src,
-    const std::string &include, const ProjectType &type
+    const std::string &name, const std::string &author, const std::string &targetName,
+    const std::string &version, const std::string &src, const std::string &include, const ProjectType &type
 )
-    : config_file_(fs::current_path() / ZC_FILE), type_(type), name_(name),
-      author_(author), shared_lib_name_(sharedLib), static_lib_name_(staticLib), version_(version), src_folder_(src),
-      include_folder_(include)
+    : config_file_(fs::current_path() / ZC_FILE), type_(type), name_(name), author_(author),
+      target_name_(targetName), version_(version), src_folder_(src), include_folder_(include)
 {
-  // If the project is being created (and does not exist yet), the root is the current path and zc.json doesn't exist yet
+  // If the project is being created (and does not exist yet), the root is the current path and zc.json
+  // doesn't exist yet
 }
 
 void ProjectSettings::load()
@@ -70,6 +69,7 @@ void ProjectSettings::load()
   version_ = Version(json_conf.value("version", "0.0.0"));
   src_folder_ = project_root_ / json_conf.value("srcFolder", "src");
   include_folder_ = project_root_ / json_conf.value("includeFolder", "include");
+  target_name_ = json_conf.value("target", "");
 
   // Type and output
   string type_str = "";
@@ -81,26 +81,6 @@ void ProjectSettings::load()
     type_ = LIB;
   else
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "The project type is incorrect");
-
-  switch (type_)
-  {
-  case BIN:
-    executable_name_ = json_conf.value("executable", "");
-    if (executable_name_.empty())
-      throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Executable is required when type is set to 'bin'");
-    break;
-  case LIB:
-    shared_lib_name_ = json_conf.value("shared", "");
-    static_lib_name_ = json_conf.value("static", "");
-    if (static_lib_name_.empty() && shared_lib_name_.empty())
-      throw ZCError(
-          ZC_CONFIG_CONTENT_ERROR,
-          "Library must compile into at least one type of library when type is set to 'lib'"
-      );
-    break;
-  case UNDEF:
-    break;
-  }
 }
 
 void ProjectSettings::write() const
@@ -111,15 +91,7 @@ void ProjectSettings::write() const
   root["author"] = author_;
   root["srcFolder"] = src_folder_;
   root["includeFolder"] = include_folder_;
-  if (type_ == LIB)
-  {
-    root["shared"] = shared_lib_name_;
-    root["static"] = static_lib_name_;
-  }
-  else if (type_ == BIN)
-  {
-    root["executable"] = executable_name_;
-  }
+  root["target"] = target_name_;
   if (version_)
     root["version"] = version_->string();
   ofstream output(config_file_);

@@ -136,7 +136,7 @@ int Init::operator()()
   }
 
   // Create configuration file with empty shared lib, static lib, executable
-  const ProjectSettings settings(name_, author_, "", "", "", src_folder_, include_folder_, type_);
+  const ProjectSettings settings(name_, author_, "", "", src_folder_, include_folder_, type_);
   settings.write();
 
   if (settings_.edit_on_init_ || edit_)

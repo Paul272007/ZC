@@ -1,7 +1,7 @@
 {
-  "std_libraries": [
-    ["math", ["math.h"], [], "-lm"],
-    ["ncurses", [], [], "-lncurses"]
-  ],
-  "libraries": []
+  "libraries": [
+    ["Math", "0.0.0", "m"],
+    ["Libcurl", "0.0.0", "curl"],
+    ["Ncurses", "0.0.0", "ncurses"]
+  ]
 }
