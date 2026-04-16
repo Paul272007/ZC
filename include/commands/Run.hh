@@ -32,7 +32,8 @@ public:
    * @param quiet Enable quiet mode for output
    */
   Run(const std::vector<std::string> &files, const std::vector<std::string> &args, bool keep, bool plus,
-      bool preprocess, bool compile, bool assemble, bool force, bool quiet, bool add_std);
+      bool preprocess, bool compile, bool assemble, bool force, bool quiet, bool add_std,
+      bool static_compile);
 
   /**
    * @brief Execute command
@@ -74,6 +75,7 @@ private:
   const Registry registry_;
   const bool add_std_;
   const bool keep_ = false;
+  const bool static_ = false;
   bool plus_ = false;
   std::string output_name_;
   std::string build_cmd_;

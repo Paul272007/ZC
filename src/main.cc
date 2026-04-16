@@ -50,6 +50,7 @@ int main(const int argc, char *argv[])
   bool run_S = false;
   bool run_E = false;
   bool std = false;
+  bool static_compile = false;
   vector<string> run_args;
 
   // zc init
@@ -86,12 +87,13 @@ int main(const int argc, char *argv[])
   run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
   run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
-  run->add_flag("--std,-s", std, "Add C/C++ standard from config file");
+  run->add_flag("--std,-S", std, "Add C/C++ standard from config file");
+  run->add_flag("--static,-s", static_compile, "Compile using static libraries");
   run->add_flag("-E", run_E, "Preprocess only");
   run->add_flag("-S", run_S, "Compile, but do not assemble or link");
   run->add_flag("-c", run_c, "Compile and assemble, but do not link");
 
-  run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet, std); });
+  run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet, std, static_compile); });
 
   // ========================== CREATE ===============================
   
@@ -107,11 +109,11 @@ int main(const int argc, char *argv[])
   // ========================== INIT ===============================
 
   init->add_option("--author,-a", author, "Specify the project's author");
-  init->add_option("--basis,-b", project_template, "Specify template to use as basis");
+  init->add_option("--template,-t", project_template, "Specify template to use as basis");
   init->add_option("--name,-n", name, "Specify package name");
   init->add_option("--src-folder,-s", src_folder, "Specify source folder");
   init->add_option("--include-folder,-i", include_folder, "Specify include folder");
-  init->add_option("--type,-t", type, "Specify package type");
+  init->add_option("--type,-T", type, "Specify package type");
 
   init->add_flag("--force,-f", force, "Force creating project even if one was already created in selected directory");
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");

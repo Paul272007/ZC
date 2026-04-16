@@ -18,10 +18,11 @@ namespace fs = std::filesystem;
 Run::Run(
     const std::vector<std::string> &files, const std::vector<std::string> &args, const bool keep,
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
-    const bool quiet, const bool add_std
+    const bool quiet, const bool add_std, const bool static_compile
 )
     : Command(force, quiet), settings_(Settings::getInstance()), registry_(Registry(true)), add_std_(add_std),
-      keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args)
+      keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args),
+      static_(static_compile)
 {
   // Fill files_
   for (const auto &f : files)
@@ -220,6 +221,8 @@ void Run::buildCommand()
   }
 
   // Color flags
+  if (static_)
+    cmd << "-static ";
   cmd << "-fdiagnostics-color=always";
   build_cmd_ = cmd.str();
 }
