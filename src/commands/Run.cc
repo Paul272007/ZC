@@ -11,7 +11,6 @@
 #include <objects/File.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
-#include <utility>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -207,15 +206,15 @@ void Run::buildCommand()
     break;
   default:
     cmd << "-I" << registry_.getIncludePath().string() << " "; // Path to headers
-    for (const vector<pair<string, string>> libs = getInclusions(); const auto &[name, flags] : libs)
+    for (const vector<string> libs = getInclusions(); const auto lib : libs)
     {
-      if (!name.empty())
+      fs::path lib_dir = (registry_.getLibPath() / lib);
+      if (fs::exists(lib_dir))
       {
-        string lib_dir = (registry_.getLibPath() / name).string();
-        cmd << "-L" << escape_shell_arg(lib_dir) << " "; // Path to libraries
-        cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir) << " ";
+        cmd << "-L" << escape_shell_arg(lib_dir.string()) << " "; // Path to libraries
+        cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir.string()) << " ";
       }
-      cmd << flags << " ";
+      cmd << "-l" << lib << " ";
     }
     break;
   }
@@ -225,17 +224,16 @@ void Run::buildCommand()
   build_cmd_ = cmd.str();
 }
 
-vector<pair<string, string>> Run::getInclusions() const
+vector<string> Run::getInclusions() const
 {
-  vector<pair<string, string>> libs_to_link;
+  vector<string> libs_to_link;
 
   for (const auto &f : files_)
   {
-    for (vector<pair<string, string>> includes = f.getInclusions(registry_); const auto &include : includes)
+    for (vector<string> includes = f.getInclusions(registry_); const auto &include : includes)
     {
-      const bool already_present = std::any_of(
-          libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p.first == include.first; }
-      );
+      const bool already_present =
+          std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
 
       if (!already_present)
         libs_to_link.push_back(include);

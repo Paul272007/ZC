@@ -4,7 +4,6 @@
 #include <objects/Registry.hh>
 #include <objects/Settings.hh>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <commands/Command.hh>
@@ -69,7 +68,7 @@ private:
   /**
    * @brief Get library inclusions from file
    */
-  std::vector<std::pair<std::string, std::string>> getInclusions() const;
+  std::vector<std::string> getInclusions() const;
 
   const Settings &settings_;
   const Registry registry_;

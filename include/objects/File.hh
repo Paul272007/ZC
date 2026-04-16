@@ -4,7 +4,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 class Registry;
@@ -97,7 +96,7 @@ public:
   /**
    * @brief Get inclusions from file and return associated required libraries
    */
-  [[nodiscard]] std::vector<std::pair<std::string, std::string>> getInclusions(const Registry &reg) const;
+  [[nodiscard]] std::vector<std::string> getInclusions(const Registry &reg) const;
 
   /**
    * @brief Get file path

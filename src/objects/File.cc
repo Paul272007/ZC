@@ -484,10 +484,10 @@ ostream &operator<<(ostream &stream, const File &file)
   return stream;
 }
 
-vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
+vector<string> File::getInclusions(const Registry &reg) const
 {
   vector<string> found_includes;
-  vector<std::pair<string, string>> required_libs;
+  vector<string> required_libs;
 
   CXIndex index = clang_createIndex(0, 0);
 
@@ -513,12 +513,11 @@ vector<std::pair<string, string>> File::getInclusions(const Registry &reg) const
             inc == package.name_ + ".hh" || inc == package.name_ + ".hpp")
         {
           bool already_present = std::any_of(
-              required_libs.begin(), required_libs.end(),
-              [&](const auto &p) { return p.first == package.name_; }
+              required_libs.begin(), required_libs.end(), [&](const auto &p) { return p == package.name_; }
           );
 
           if (!already_present)
-            required_libs.emplace_back(package.name_, "-l" + package.binary_);
+            required_libs.push_back(package.binary_);
         }
       }
     }

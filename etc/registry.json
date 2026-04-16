@@ -1,7 +1,7 @@
 {
   "libraries": [
-    ["Math", "0.0.0", "m"],
-    ["Libcurl", "0.0.0", "curl"],
-    ["Ncurses", "0.0.0", "ncurses"]
+    ["math", "0.0.0", "m", false],
+    ["libcurl", "0.0.0", "curl", false],
+    ["ncurses", "0.0.0", "ncurses", false]
   ]
 }

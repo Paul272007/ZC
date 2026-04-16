@@ -114,5 +114,5 @@ chown "$REAL_USER:$(id -gn "$REAL_USER")" "$CLANGD_CONFIG"
 
 echo -e "${GREEN}===== ZC installed successfully! =====${NC}"
 
-printf "You can now append 'export PATH=\"\$HOME/.zc/bin:\$PATH\"' to your ~/.bashrc or ~/.zshrc file to use commands installed via zc"
+printf "You can now append 'export PATH=\"\$HOME/.zc/bin:\$PATH\"' to your ~/.bashrc or ~/.zshrc file to use commands installed via zc\n"
 exit 0
