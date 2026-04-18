@@ -185,20 +185,28 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
 
 bool Registry::removePackage(const std::string &pkg_name)
 {
-  Package p = unindexPackage(pkg_name);
+  Package p;
+  try
+  {
+    p = unindexPackage(pkg_name);
+  }
+  catch (const ZCError &)
+  {
+    return false;
+  }
 
   if (p.is_bin_)
   {
-    if (!fs::exists(bin_path_ / p.binary_))
-      return false;
-    fs::remove(bin_path_ / p.binary_);
+    if (fs::exists(bin_path_ / p.binary_))
+      fs::remove(bin_path_ / p.binary_);
   }
   else
   {
-    if (!fs::exists(include_path_ / pkg_name) || !fs::exists(lib_path_ / pkg_name))
-      return false;
-    fs::remove_all(include_path_ / pkg_name);
-    fs::remove_all(lib_path_ / pkg_name);
+    if (fs::exists(include_path_ / pkg_name))
+      fs::remove_all(include_path_ / pkg_name);
+
+    if (fs::exists(lib_path_ / pkg_name))
+      fs::remove_all(lib_path_ / pkg_name);
   }
   return true;
 }

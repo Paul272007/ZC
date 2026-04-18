@@ -17,7 +17,7 @@ int Remove::operator()()
     if (!registry_.removePackage(pkg))
     {
       if (!quiet_)
-        warning("All headers / binaries for package " + pkg + " weren't deleted successfully.");
+        warning("The package " + pkg + " was not found");
     }
     else
     {
