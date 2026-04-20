@@ -105,7 +105,9 @@ void Install::installFromServer()
       );
     }
 
-    string download_url = index_json["packages"][name]["versions"][version_to_install]["url"];
+    string download_url = index_json["packages"][name]["versions"][version_to_install].value("url", "");
+    if (download_url.empty())
+      throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Missing 'url' for package " + name);
 
     log_info("Downloading " + name + " v" + version_to_install + "...");
 
@@ -113,21 +115,16 @@ void Install::installFromServer()
     const fs::path extract_path = tmp_dir / name;
 
     // Download archive
-    string download_cmd = "curl -sL " + download_url + " -o " + archive_path.string();
+    string download_cmd = "curl -sfL " + download_url + " -o " + escape_shell_arg(archive_path.string());
     if (system(download_cmd.c_str()) != 0)
       throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download archive for " + name);
-
-    // Extract archive
-    fs::create_directories(extract_path);
-    string tar_cmd = "tar -xzf " + archive_path.string() + " -C " + extract_path.string();
-    if (system(tar_cmd.c_str()) != 0)
-      throw ZCError(ZC_INTERNAL_ERROR, "Failed to extract package " + name);
 
     // Check hash
     string expected_hash = index_json["packages"][name]["versions"][version_to_install]["sha256"];
 
-    string actual_hash =
-        execAndGetOutput(("shasum -a 256 " + archive_path.string() + " | awk '{ print $1 }'").c_str());
+    string actual_hash = execAndGetOutput(
+        ("shasum -a 256 " + escape_shell_arg(archive_path.string()) + " | awk '{ print $1 }'").c_str()
+    );
     actual_hash.erase(actual_hash.find_last_not_of(" \n\r\t") + 1);
 
     if (expected_hash != "SKIP" && actual_hash != expected_hash)
@@ -139,6 +136,13 @@ void Install::installFromServer()
     }
     else
       log_success("Hash is correct");
+
+    // Extract archive
+    fs::create_directories(extract_path);
+    string tar_cmd = "tar -xzf " + escape_shell_arg(archive_path.string()) + " -C " +
+                     escape_shell_arg(extract_path.string());
+    if (system(tar_cmd.c_str()) != 0)
+      throw ZCError(ZC_INTERNAL_ERROR, "Failed to extract package " + name);
 
     // Install package
     fs::path project_root = extract_path;

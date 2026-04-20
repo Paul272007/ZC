@@ -32,7 +32,8 @@ int Publish::operator()()
   log_info("Downloading archive to calculate SHA-256 hash...");
 
   // Download user archive
-  string curl_cmd = "curl -sfL " + escape_shell_arg(archive_url) + " -o " + archive_path.string();
+  string curl_cmd =
+      "curl -sfL " + escape_shell_arg(archive_url) + " -o " + escape_shell_arg(archive_path.string());
   if (system(curl_cmd.c_str()) != 0)
     throw ZCError(ZC_INTERNAL_ERROR, "Failed to download the archive. Check the URL.");
 
@@ -40,7 +41,7 @@ int Publish::operator()()
   string sha256 = "";
   try
   {
-    string hash_cmd = "shasum -a 256 " + archive_path.string() + " | awk '{ print $1 }'";
+    string hash_cmd = "shasum -a 256 " + escape_shell_arg(archive_path.string()) + " | awk '{ print $1 }'";
     sha256 = execAndGetOutput(hash_cmd.c_str());
 
     sha256.erase(sha256.find_last_not_of(" \n\r\t") + 1);
