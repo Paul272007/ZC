@@ -47,9 +47,15 @@ fi
 
 for item in etc/*; do
   item_name=$(basename "$item")
+
   if [ "$item_name" == "config.json" ] && [ "$CONFIG_EXISTS" == "true" ]; then
     continue
   fi
+
+  if [ "$item_name" == "registry.json" ] && [ -f "$ZC_DIR/registry.json" ]; then
+    continue
+  fi
+
   cp -r "$item" "$ZC_DIR/"
 done
 
@@ -58,8 +64,9 @@ cp -r etc/completions "$ZC_DIR/completions"
 
 # --- PROMPT FOR CONFIGURATION ---
 if [ "$CONFIG_EXISTS" == "false" ]; then
-  echo -e "\n${GREEN}>>> Configuration initiale de ZC <<<${NC}"
-  echo "Appuyez sur Entrée pour accepter les valeurs par défaut."
+  echo -e "\n${GREEN}>>> ZC Initial configuration <<<${NC}"
+  echo "Type Enter to accept default values"
+  echo "You can always change your configuration by editing ~/.zc/config.json"
 
   prompt_str() {
     local msg=$1
