@@ -16,13 +16,11 @@ int Remove::operator()()
   {
     if (!registry_.removePackage(pkg))
     {
-      if (!quiet_)
-        warning("The package " + pkg + " was not found");
+      log_warning("The package " + pkg + " was not found");
     }
     else
     {
-      if (!quiet_)
-        success("Package " + pkg + " removed successfully.");
+      log_success("Package " + pkg + " removed successfully.");
     }
   }
   registry_.write();

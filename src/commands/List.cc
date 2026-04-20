@@ -1,5 +1,4 @@
 #include <commands/Command.hh>
-#include <iostream>
 
 #include <commands/List.hh>
 
@@ -12,10 +11,7 @@ List::List(const bool force, const bool quiet) : Command(force, quiet), registry
 int List::operator()()
 {
   if (Table lib = registry_.packagesTable(); lib.getSize() < 2)
-  {
-    if (!quiet_)
-      cout << "No user libraries to show." << endl;
-  }
+    log_info("No user libraries to show.");
   else
     lib.draw();
 

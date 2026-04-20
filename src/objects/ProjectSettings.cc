@@ -1,10 +1,11 @@
 #include <filesystem>
-
 #include <fstream>
+#include <string>
+#include <vector>
+
 #include <helpers.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/ZCError.hh>
-#include <string>
 
 using json = nlohmann::json;
 using namespace std;
@@ -14,6 +15,7 @@ ProjectSettings::ProjectSettings(const std::filesystem::path &project_root)
     : project_root_(project_root), config_file_(project_root_ / ZC_FILE)
 {
   load();
+  checkFolderNames();
 }
 
 ProjectSettings::ProjectSettings(
@@ -25,6 +27,7 @@ ProjectSettings::ProjectSettings(
 {
   // If the project is being created (and does not exist yet), the root is the current path and zc.json
   // doesn't exist yet
+  checkFolderNames();
 }
 
 void ProjectSettings::load()
@@ -103,4 +106,22 @@ void ProjectSettings::write() const
   }
   output << root.dump(2);
   output.close();
+}
+
+void ProjectSettings::checkFolderNames() const
+{
+  vector<std::string> invalid_names{"external",       "build",         ".cache",
+                                    "CMakeLists.txt", "registry.json", "zc.json"};
+
+  std::string src_str = src_folder_.filename().string();
+  std::string inc_str = include_folder_.filename().string();
+
+  bool is_src_invalid = std::ranges::find(invalid_names, src_str) != invalid_names.end();
+  bool is_inc_invalid = std::ranges::find(invalid_names, inc_str) != invalid_names.end();
+
+  if (is_src_invalid)
+    throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Source folder has a forbidden name");
+
+  if (is_inc_invalid)
+    throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Include folder has a forbidden name");
 }

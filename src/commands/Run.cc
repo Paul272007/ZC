@@ -64,8 +64,7 @@ int Run::operator()()
   buildCommand();
 
 #ifdef DEBUG_MODE
-  if (!quiet_)
-    debug(build_cmd_);
+  log_debug(build_cmd_);
 #endif
 
   cout << flush;
@@ -75,13 +74,11 @@ int Run::operator()()
   if (const int compile_res = system(build_cmd_.c_str()); compile_res != 0)
     throw ZCError(ZC_COMPILATION_ERROR, "Compilation failed");
 
-  if (!quiet_)
-    success("Compilation successful.");
+  log_success("Compilation successful.");
 
   if (mode_ != FULL)
   {
-    if (!quiet_)
-      success("File created: " + output_name_);
+    log_success("File created: " + output_name_);
     return 0;
   }
 
@@ -92,8 +89,7 @@ int Run::operator()()
       throw ZCError(ZC_INTERNAL_ERROR, "Unexpected terminal clearing error");
   }
 
-  if (!quiet_)
-    info("Executing program...");
+  log_info("Executing program...");
   string exec_cmd = fs::absolute(output_name_).string();
 
   for (const auto &arg : args_)
@@ -105,11 +101,7 @@ int Run::operator()()
   {
     fs::remove(output_name_);
 #ifdef DEBUG_MODE
-    if (!quiet_)
-    {
-      cout << endl;
-      debug("Temporary file removed: " + output_name_);
-    }
+    log_debug("Temporary file removed: " + output_name_);
 #endif
   }
 

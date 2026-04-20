@@ -52,8 +52,8 @@ private:
   std::string template_;
   std::string name_;
   std::string target_;
-  std::string src_folder_ = "src/";
-  std::string include_folder_ = "include/";
+  std::string src_folder_ = "src";
+  std::string include_folder_ = "include";
   ProjectType type_;
   const bool edit_;
   const bool git_;

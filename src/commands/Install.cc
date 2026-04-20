@@ -17,10 +17,21 @@ Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
     const bool quiet
 )
-    : Command(force, quiet), targets_(targets), path_(path), registry_(Registry(global))
+    : Command(force, quiet), path_(path), registry_(Registry(global))
 {
   if (!global && !path_.empty() && getProjectRoot(path_) == getProjectRoot())
     throw ZCError(ZC_BAD_COMMAND, "Cannot install library as its own dependency");
+
+  for (const auto &target : targets)
+  {
+    string requested_version = "";
+    size_t at_pos = target.find('@');
+
+    if (at_pos != string::npos)
+      targets_.push_back({target.substr(0, at_pos), target.substr(at_pos + 1)});
+    else
+      targets_.push_back({target, ""});
+  }
 }
 
 int Install::operator()()
@@ -47,7 +58,7 @@ void Install::installFromJson()
   const std::vector<Package> pkgs = registry_.getPackages();
   for (const auto &p : pkgs)
     if (p.origin_ != "std")
-      targets_.push_back(p.name_);
+      targets_.push_back({p.name_, p.version_});
   installFromServer();
 }
 
@@ -55,12 +66,11 @@ void Install::installFromServer()
 {
   const fs::path tmp_dir = getZCRootDir() / TMP_DIR;
 
-  if (!quiet_)
-    info("Fetching registry index from " REGISTRY_URL "...");
+  log_info("Fetching registry index from " REGISTRY_URL "...");
 
   fs::create_directories(tmp_dir);
   const fs::path index_path = tmp_dir / "index.json";
-  string curl_cmd = "curl -sL " REGISTRY_URL " -o " + index_path.string();
+  string curl_cmd = "curl -sfL " REGISTRY_URL " -o " + index_path.string();
 
   if (system(curl_cmd.c_str()) != 0)
     throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download registry index.");
@@ -76,33 +86,61 @@ void Install::installFromServer()
     throw ZCError(ZC_CONFIG_PARSING_ERROR, "Invalid JSON received from registry server.");
   }
 
-  for (const string &target : targets_)
+  for (const auto &[name, version] : targets_)
   {
-    if (!index_json.contains("packages") || !index_json["packages"].contains(target))
+    if (!index_json.contains("packages") || !index_json["packages"].contains(name))
     {
-      if (!quiet_)
-        warning("Package '" + target + "' not found in the remote registry.");
+      log_warning("Package '" + name + "' not found in the remote registry.");
       continue;
     }
 
-    string latest_version = index_json["packages"][target]["latest"];
-    string download_url = index_json["packages"][target]["versions"][latest_version]["url"];
+    string version_to_install = version;
+    if (version.empty())
+      version_to_install = index_json["packages"][name]["latest"];
 
-    if (!quiet_)
-      info("Downloading " + target + " v" + latest_version + "...");
+    if (!index_json["packages"][name]["versions"].contains(version_to_install))
+    {
+      throw ZCError(
+          ZC_BAD_COMMAND, "Version " + version_to_install + " of package '" + name + "' does not exist."
+      );
+    }
 
-    const fs::path archive_path = tmp_dir / (target + ".tar.gz");
-    const fs::path extract_path = tmp_dir / target;
+    string download_url = index_json["packages"][name]["versions"][version_to_install]["url"];
 
+    log_info("Downloading " + name + " v" + version_to_install + "...");
+
+    const fs::path archive_path = tmp_dir / (name + ".tar.gz");
+    const fs::path extract_path = tmp_dir / name;
+
+    // Download archive
     string download_cmd = "curl -sL " + download_url + " -o " + archive_path.string();
     if (system(download_cmd.c_str()) != 0)
-      throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download archive for " + target);
+      throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download archive for " + name);
 
+    // Extract archive
     fs::create_directories(extract_path);
     string tar_cmd = "tar -xzf " + archive_path.string() + " -C " + extract_path.string();
     if (system(tar_cmd.c_str()) != 0)
-      throw ZCError(ZC_INTERNAL_ERROR, "Failed to extract package " + target);
+      throw ZCError(ZC_INTERNAL_ERROR, "Failed to extract package " + name);
 
+    // Check hash
+    string expected_hash = index_json["packages"][name]["versions"][version_to_install]["sha256"];
+
+    string actual_hash =
+        execAndGetOutput(("shasum -a 256 " + archive_path.string() + " | awk '{ print $1 }'").c_str());
+    actual_hash.erase(actual_hash.find_last_not_of(" \n\r\t") + 1);
+
+    if (expected_hash != "SKIP" && actual_hash != expected_hash)
+    {
+      fs::remove(archive_path);
+      throw ZCError(
+          ZC_INTERNAL_ERROR, "SECURITY ALERT: The SHA-256 hash of " + name + " does not match the registry!"
+      );
+    }
+    else
+      log_success("Hash is correct");
+
+    // Install package
     fs::path project_root = extract_path;
     for (const auto &entry : fs::directory_iterator(extract_path))
     {

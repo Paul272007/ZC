@@ -46,3 +46,9 @@ std::string join(const std::vector<std::string> &v, const std::string &separator
  * @param s The string to be converted
  */
 std::string upper(const std::string &s);
+
+std::string execAndGetOutput(const char *cmd);
+
+std::string urlEncode(const std::string &s);
+
+void checkPackageName(const std::string &name);

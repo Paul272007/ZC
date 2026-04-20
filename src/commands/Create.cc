@@ -67,8 +67,7 @@ int Create::operator()()
           );
       }
       writeCDecls(f);
-      if (!quiet_)
-        success("File written: " + f.getPath().string());
+      log_success("File written: " + f.getPath().string());
     }
     // Else use a template
     else
@@ -79,8 +78,7 @@ int Create::operator()()
         if (f.getExt() == t.getExt() || (f.getLanguage() != OTHER && f.getLanguage() == t.getLanguage()))
         {
           f.copy(t);
-          if (!quiet_)
-            success("File written: " + f.getPath().string());
+          log_success("File written: " + f.getPath().string());
           found = true;
           break;
         }

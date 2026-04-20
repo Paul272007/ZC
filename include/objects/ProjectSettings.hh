@@ -33,4 +33,7 @@ public:
   std::optional<Version> version_;
   std::filesystem::path src_folder_;
   std::filesystem::path include_folder_;
+
+private:
+  void checkFolderNames() const;
 };

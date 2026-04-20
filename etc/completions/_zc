@@ -21,6 +21,7 @@ _zc() {
                 install) _zc_install ;;
                 remove)  _zc_remove  ;;
                 add)     _zc_add     ;;
+                publish) _zc_publish ;;
             esac
     esac
 }
@@ -36,6 +37,7 @@ _zc_subcommands() {
         'install:Install package'
         'remove:Remove package'
         'add:Add dependency from global registry'
+        'publish:Publish package to server'
     )
     _describe 'subcommand' subcommands
 }
@@ -92,7 +94,7 @@ _zc_build() {
 _zc_install() {
     _arguments \
         '*:package:' \
-        '(-p --path)'{-p,--path}'[Install from local path]:chemin:_directories' \
+        '(-p --path)'{-p,--path}'[Install from local path]:path:_directories' \
         '(-g --global)'{-g,--global}'[Install the package globally]' \
         '(-f --force)'{-f,--force}'[Force installing even if already installed]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
@@ -109,6 +111,11 @@ _zc_add() {
     _arguments \
         '*:package:' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+}
+
+_zc_publish() {
+  _arguments \
+    '(-q --quiet)'{-q, --quiet}'[Do not show any messages]'
 }
 
 _zc "$@"

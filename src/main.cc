@@ -11,6 +11,7 @@
 #include <commands/Init.hh>
 #include <commands/Install.hh>
 #include <commands/List.hh>
+#include <commands/Publish.hh>
 #include <commands/Remove.hh>
 #include <commands/Run.hh>
 #include <interface.hh>
@@ -77,6 +78,7 @@ int main(const int argc, char *argv[])
   const auto install = app.add_subcommand("install", "Install package");
   const auto remove  = app.add_subcommand("remove",  "Remove package");
   const auto add     = app.add_subcommand("add",     "Add dependency from global registry");
+  const auto publish = app.add_subcommand("publish", "Publish package to server");
 
   // ========================== RUN ===============================
 
@@ -166,6 +168,12 @@ int main(const int argc, char *argv[])
   add->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   add->callback([&]() { command = make_unique<Add>(targets, false, quiet); });
+
+  // ========================== PUBLISH ===============================
+
+  publish->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  publish->callback([&]() { command = make_unique<Publish>(false, quiet); });
 
   // clang-format on
   /* ========================================================= *

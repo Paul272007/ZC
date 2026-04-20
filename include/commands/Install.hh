@@ -2,12 +2,14 @@
 
 #include <filesystem>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <commands/Command.hh>
 #include <objects/Registry.hh>
-#include <vector>
+#include <objects/Version.hh>
 
-#define REGISTRY_URL "http://localhost:8000/index.json"
+#define REGISTRY_URL "https://paul272007.github.io/ZC-Registry/index.json"
 
 class Install : public Command
 {
@@ -37,7 +39,7 @@ private:
   void installFromJson();
   void installFromServer();
 
-  std::vector<std::string> targets_;
+  std::vector<std::pair<std::string, std::string>> targets_;
   const std::filesystem::path path_;
 
   Registry registry_;

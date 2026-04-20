@@ -43,8 +43,7 @@ int Add::operator()()
   {
     local_.indexPackage(pkg);
     modifs = true;
-    if (!quiet_)
-      success("Added dependency: " + pkg.name_);
+    log_success("Added dependency: " + pkg.name_);
   }
   if (modifs)
     local_.write();

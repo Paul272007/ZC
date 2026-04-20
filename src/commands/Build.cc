@@ -1,6 +1,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <vector>
 
 #include <commands/Build.hh>
 #include <commands/Command.hh>
@@ -9,7 +11,6 @@
 #include <objects/ProjectSettings.hh>
 #include <objects/Settings.hh>
 #include <objects/ZCError.hh>
-#include <vector>
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -19,6 +20,8 @@ Build::Build(const bool force, const bool quiet, const fs::path &project_root)
       p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
       registry_(Registry(false, project_root.empty() ? getProjectRoot() : project_root))
 {
+  checkPackageName(p_settings_.name_);
+  checkPackageName(p_settings_.target_name_);
 }
 
 int Build::operator()()
@@ -26,19 +29,16 @@ int Build::operator()()
   // CMake configuration
   if (!fs::exists("CMakeLists.txt") || force_)
   {
-    if (!quiet_)
-      info("Generating build configuration...");
+    log_info("Generating build configuration...");
 
     generateCMakeLists();
     const string config_cmd = "cmake " + root_.string() + " -B " + root_.string() +
                               "/" BUILD_DIR " -DCMAKE_BUILD_TYPE=Debug" + (quiet_ ? " &>/dev/null" : "");
 
 #ifdef DEBUG_MODE
-    if (!quiet_)
-      debug(config_cmd);
+    log_debug(config_cmd);
 #else
-    if (!quiet_)
-      info("Configuring project...");
+    log_info("Configuring project...");
 #endif
 
     if (system(config_cmd.c_str()) != 0)
@@ -48,18 +48,15 @@ int Build::operator()()
   const string build_cmd = "cmake --build " + root_.string() + "/" BUILD_DIR + (quiet_ ? " &>/dev/null" : "");
 
 #ifdef DEBUG_MODE
-  if (!quiet_)
-    debug(build_cmd);
+  log_debug(build_cmd);
 #else
-  if (!quiet_)
-    info("Building project...");
+  log_info("Building project...");
 #endif
 
   if (system(build_cmd.c_str()) != 0)
     throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
 
-  if (!quiet_)
-    success("Project was built successfully in build/");
+  log_success("Project was built successfully in build/");
   return 0;
 }
 

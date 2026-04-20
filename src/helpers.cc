@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <helpers.hh>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <objects/ZCError.hh>
@@ -110,4 +111,60 @@ std::string upper(const std::string &s)
     output += static_cast<char>(toupper(static_cast<unsigned char>(c)));
   }
   return output;
+}
+
+std::string execAndGetOutput(const char *cmd)
+{
+  char buffer[128];
+  string result = "";
+  FILE *pipe = popen(cmd, "r");
+  if (!pipe)
+    throw std::runtime_error("popen() failed!");
+  try
+  {
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
+      result += buffer;
+    }
+  }
+  catch (...)
+  {
+    pclose(pipe);
+    throw;
+  }
+  pclose(pipe);
+  return result;
+}
+
+std::string urlEncode(const std::string &s)
+{
+  string result;
+  for (char c : s)
+  {
+    if (c == '"')
+      result += "%22";
+    else if (c == ' ')
+      result += "%20";
+    else if (c == '\n')
+      result += "%0A";
+    else
+      result += c;
+  }
+  return result;
+}
+
+void checkPackageName(const std::string &name)
+{
+  const char forbidden_chars[] = {'@', '#', ' ', '*',  '%', '!',  '?', '{', '}', '[', ']',
+                                  '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':'};
+
+  if (name.at(0) == '-')
+    throw ZCError(ZC_CONFIG_CONTENT_ERROR, "The name of the package begin with '-'");
+
+  for (char c : forbidden_chars)
+  {
+    size_t pos = name.find(c);
+    if (pos != string::npos) // TODO : change to target if target is being checked
+      throw ZCError(ZC_CONFIG_CONTENT_ERROR, &"The name of the package contains invalid character: "[c]);
+  }
 }

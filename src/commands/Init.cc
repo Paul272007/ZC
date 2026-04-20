@@ -134,8 +134,7 @@ int Init::operator()()
 
   if (git_)
   {
-    if (!quiet_)
-      info("Initializing git repo...");
+    log_info("Initializing git repo...");
     if (system("git init") != 0)
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
