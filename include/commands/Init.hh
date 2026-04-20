@@ -46,6 +46,8 @@ private:
    */
   [[nodiscard]] std::vector<std::filesystem::path> getProjectTemplates() const;
 
+  void initializeUsingTemplate() const;
+
   std::vector<std::string> project_templates_;
   std::filesystem::path path_;
   std::string author_;
@@ -58,5 +60,5 @@ private:
   const bool edit_;
   const bool git_;
   Settings &settings_;
-  std::filesystem::path project_templates_path_ = getZCRootDir() / PROJECT_TEMPLATES;
+  inline static std::filesystem::path project_templates_path_ = getZCRootDir() / PROJECT_TEMPLATES;
 };

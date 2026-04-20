@@ -75,61 +75,56 @@ vector<fs::path> Init::getProjectTemplates() const
   return templates_list;
 }
 
+void Init::initializeUsingTemplate() const
+{
+  fs::path template_path = project_templates_path_ / template_;
+
+  if (!fs::exists(template_path))
+    throw ZCError(ZC_NOT_FOUND, "The following template was not found: " + template_);
+
+  for (const auto &entry : fs::recursive_directory_iterator(template_path))
+  {
+    // For each entry in the template, check if it already exists here
+    const fs::path &src_path = entry.path();
+
+    fs::path rel_path = fs::relative(src_path, template_path);
+    fs::path dest_path = path_ / rel_path;
+
+    if (fs::exists(dest_path) && !force_)
+      if (!ask("The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"))
+        continue;
+
+    // Copy stuff
+    if (fs::is_symlink(src_path))
+    {
+      fs::path target = fs::read_symlink(src_path);
+
+      if (fs::is_directory(src_path))
+        fs::create_directory_symlink(target, dest_path);
+      else
+        fs::create_symlink(target, dest_path);
+    }
+    else if (fs::is_directory(src_path))
+    {
+      fs::create_directories(dest_path);
+    }
+    else if (fs::is_regular_file(src_path))
+    {
+      // Only copy gitignore if git is enabled on project
+      if (src_path.filename() == ".gitignore" && !git_)
+        continue;
+
+      fs::create_directories(dest_path.parent_path());
+      fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
+    }
+  }
+}
+
 int Init::operator()()
 {
   if (!template_.empty())
   {
-    const vector<fs::path> templates_list = getProjectTemplates();
-    bool found = false;
-
-    for (const auto &dir : templates_list)
-    {
-      if (split(dir, '.').back() == template_)
-      {
-        for (const auto &entry : fs::recursive_directory_iterator(dir))
-        {
-          // For each entry in the template, check if it already exists here
-          const fs::path &src_path = entry.path();
-
-          fs::path rel_path = fs::relative(src_path, dir);
-          fs::path dest_path = path_ / rel_path;
-
-          // Only copy gitignore if git is enabled on project
-          if (src_path.filename() == ".gitignore" && !git_)
-            continue;
-
-          if (fs::exists(dest_path) && !force_)
-            if (!ask("The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"))
-              continue;
-
-          // Copy stuff
-          if (fs::is_symlink(src_path))
-          {
-            fs::path target = fs::read_symlink(src_path);
-            // Directory symlinks
-            if (fs::is_directory(src_path))
-              fs::create_directory_symlink(target, dest_path);
-            else
-              fs::create_symlink(target, dest_path);
-          }
-          else if (fs::is_directory(src_path))
-          {
-            fs::create_directories(dest_path);
-          }
-          else if (fs::is_regular_file(src_path))
-          {
-            fs::create_directories(dest_path.parent_path());
-            fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
-          }
-        }
-
-        found = true;
-        break;
-      }
-    }
-
-    if (!found)
-      throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "The following template was not found: " + template_);
+    initializeUsingTemplate();
   }
 
   if (git_)
