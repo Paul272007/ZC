@@ -51,6 +51,7 @@ private:
   std::string author_;
   std::string template_;
   std::string name_;
+  std::string target_;
   std::string src_folder_ = "src/";
   std::string include_folder_ = "include/";
   ProjectType type_;

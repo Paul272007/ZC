@@ -16,12 +16,6 @@ ProjectSettings::ProjectSettings(const std::filesystem::path &project_root)
   load();
 }
 
-ProjectSettings &ProjectSettings::getInstance(const std::filesystem::path &project_root)
-{
-  static ProjectSettings instance(project_root);
-  return instance;
-}
-
 ProjectSettings::ProjectSettings(
     const std::string &name, const std::string &author, const std::string &targetName,
     const std::string &version, const std::string &src, const std::string &include, const ProjectType &type
@@ -87,13 +81,19 @@ void ProjectSettings::write() const
 {
   json root;
   root["name"] = name_;
-  root["type"] = type_ == BIN ? "bin" : (type_ == LIB) ? "lib" : "";
   root["author"] = author_;
-  root["srcFolder"] = src_folder_;
-  root["includeFolder"] = include_folder_;
   root["target"] = target_name_;
+  root["type"] = type_ == BIN ? "bin" : (type_ == LIB) ? "lib" : "";
+
+  if (src_folder_ != "src")
+    root["srcFolder"] = src_folder_;
+
+  if (include_folder_ != "include")
+    root["includeFolder"] = include_folder_;
+
   if (version_)
     root["version"] = version_->string();
+
   ofstream output(config_file_);
   if (!output.is_open())
   {

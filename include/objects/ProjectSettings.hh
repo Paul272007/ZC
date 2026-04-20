@@ -16,7 +16,7 @@ enum ProjectType
 class ProjectSettings
 {
 public:
-  static ProjectSettings &getInstance(const std::filesystem::path &project_root);
+  explicit ProjectSettings(const std::filesystem::path &project_root);
   ProjectSettings(
       const std::string &name, const std::string &author, const std::string &targetName,
       const std::string &version, const std::string &src, const std::string &include, const ProjectType &type
@@ -33,7 +33,4 @@ public:
   std::optional<Version> version_;
   std::filesystem::path src_folder_;
   std::filesystem::path include_folder_;
-
-private:
-  explicit ProjectSettings(const std::filesystem::path &project_root);
 };

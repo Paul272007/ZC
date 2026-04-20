@@ -15,8 +15,9 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Build::Build(const bool force, const bool quiet, const fs::path &project_root)
-    : Command(force, quiet), p_settings_(ProjectSettings::getInstance(root_)), registry_(Registry(false)),
-      root_(project_root.empty() ? getProjectRoot() : project_root)
+    : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root),
+      p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
+      registry_(Registry(false, project_root.empty() ? getProjectRoot() : project_root))
 {
 }
 

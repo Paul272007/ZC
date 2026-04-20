@@ -16,7 +16,7 @@ using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-Registry::Registry(const bool is_global)
+Registry::Registry(const bool is_global, const std::string &project_root)
 {
   if (is_global)
   {
@@ -28,7 +28,7 @@ Registry::Registry(const bool is_global)
   }
   else
   {
-    const fs::path &root(getProjectRoot());
+    const fs::path root(project_root.empty() ? getProjectRoot() : fs::path(project_root));
     registry_path_ = root / REGISTRY;
     include_path_ = root / EXTERNAL / INCLUDE_DIR;
     lib_path_ = root / EXTERNAL / LIB_DIR;
@@ -43,15 +43,19 @@ void from_json(const json &j, Package &p)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Package format is invalid (expected array).");
   if (j.size() < N_ATTR_PKG)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Not enough values given in package declaration.");
+  if (!j.at(0).is_string() || !j.at(1).is_string() || !j.at(2).is_string() || !j.at(3).is_string() ||
+      !j.at(4).is_boolean())
+    throw ZCError(ZC_CONFIG_TYPE_ERROR, "Incorrect data types in package declaration.");
   j.at(0).get_to(p.name_);
   j.at(1).get_to(p.version_);
   j.at(2).get_to(p.binary_);
-  j.at(3).get_to(p.is_bin_);
+  j.at(3).get_to(p.origin_);
+  j.at(4).get_to(p.is_bin_);
 }
 
 void to_json(json &j, const Package &p)
 {
-  j = json::array({p.name_, p.version_, p.binary_, p.is_bin_});
+  j = json::array({p.name_, p.version_, p.binary_, p.origin_, p.is_bin_});
 }
 
 void Registry::load()
@@ -143,7 +147,9 @@ void Registry::installLibrary(const Build &b, bool quiet)
   }
 }
 
-void Registry::installPackage(const std::filesystem::path &project_root, const bool force, const bool quiet)
+void Registry::installPackage(
+    const std::filesystem::path &project_root, const bool force, const bool quiet, const std::string &origin
+)
 {
   Build b(true, quiet, project_root);
 
@@ -177,7 +183,9 @@ void Registry::installPackage(const std::filesystem::path &project_root, const b
   }
 
   indexPackage(
-      Package{b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.target_name_, is_bin}
+      Package{
+          b.p_settings_.name_, b.p_settings_.version_->string(), b.p_settings_.target_name_, origin, is_bin
+      }
   );
   if (!quiet)
     success("Package " + b.p_settings_.name_ + " installed successfully.");
@@ -241,10 +249,10 @@ bool Registry::pkgExists(const std::string &pkg_name) const
 
 Table Registry::packagesTable() const
 {
-  vector<vector<string>> str_pkgs{{"Package name", "Version", "Target", "Type"}};
+  vector<vector<string>> str_pkgs{{"Package name", "Version", "Target", "Origin", "Type"}};
 
-  for (const auto &[name_, version_, binary_, is_bin_] : pkgs_)
-    str_pkgs.push_back({name_, version_, binary_, is_bin_ ? "executable" : "library"});
+  for (const auto &[name_, version_, binary_, origin_, is_bin_] : pkgs_)
+    str_pkgs.push_back({name_, version_, binary_, origin_, is_bin_ ? "Executable" : "Library"});
 
   return {static_cast<int>(str_pkgs.size()), N_ATTR_PKG, false, true, str_pkgs};
 }

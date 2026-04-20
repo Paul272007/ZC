@@ -31,19 +31,24 @@ Init::Init(
   if (name.empty())
     name_ = input("Package name: ", fs::current_path().filename().string());
 
+  target_ = input("Package target: ", fs::current_path().filename().string());
+
   if (author.empty())
     author_ = input("Project author: ");
 
-  // std::string type = input("Project type: (lib/bin)");
-  std::string type2 = upper(type);
-  if (type2 == "LIB")
-    type_ = LIB;
-  else if (type2 == "BIN")
-    type_ = BIN;
-  // else it stays UNDEF
-
   if (project_template.empty())
     template_ = input("Template to use to initialize project: ");
+
+  // std::string type = input("Project type: (lib/bin)");
+  if (!type.empty())
+  {
+    std::string type2 = upper(type);
+    if (type2 == "LIB")
+      type_ = LIB;
+    else if (type2 == "BIN")
+      type_ = BIN;
+  }
+  // else it stays UNDEF
 
   // Don't ask to override default settings for these
   if (!src_folder.empty())
@@ -135,8 +140,8 @@ int Init::operator()()
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
 
-  // Create configuration file with empty shared lib, static lib, executable
-  const ProjectSettings settings(name_, author_, "", "", src_folder_, include_folder_, type_);
+  // Create configuration file with empty version
+  const ProjectSettings settings(name_, author_, target_, "", src_folder_, include_folder_, type_);
   settings.write();
 
   if (settings_.edit_on_init_ || edit_)

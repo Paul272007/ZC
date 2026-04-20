@@ -87,7 +87,7 @@ int main(const int argc, char *argv[])
   run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
   run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
-  run->add_flag("--std,-S", std, "Add C/C++ standard from config file");
+  run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_compile, "Compile using static libraries");
   run->add_flag("-E", run_E, "Preprocess only");
   run->add_flag("-S", run_S, "Compile, but do not assemble or link");

@@ -7,6 +7,8 @@
 #include <objects/Registry.hh>
 #include <vector>
 
+#define REGISTRY_URL "http://localhost:8000/index.json"
+
 class Install : public Command
 {
 public:
@@ -32,9 +34,10 @@ public:
 
 private:
   void installFromPath();
-  void installFromJson() const;
+  void installFromJson();
+  void installFromServer();
 
-  const std::vector<std::string> targets_;
+  std::vector<std::string> targets_;
   const std::filesystem::path path_;
 
   Registry registry_;

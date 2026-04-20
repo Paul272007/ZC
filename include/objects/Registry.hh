@@ -6,13 +6,14 @@
 #include <string>
 
 // clang-format off
-#define N_ATTR_PKG   4
+#define N_ATTR_PKG   5
 #define REGISTRY     "registry.json"
 #define EXTERNAL     "external"
 #define INCLUDE_DIR  "include"
 #define LIB_DIR      "lib"
 #define BIN_DIR      "bin"
 #define BUILD_DIR    "build"
+#define TMP_DIR      "tmp"
 // clang-format on
 
 class Build;
@@ -22,13 +23,14 @@ struct Package
   std::string name_;
   std::string version_;
   std::string binary_;
+  std::string origin_;
   bool is_bin_;
 };
 
 class Registry
 {
 public:
-  explicit Registry(bool is_global);
+  explicit Registry(bool is_global, const std::string &project_root = "");
   void write() const;
   /**
    * @brief Install a library based on its root folder
@@ -37,7 +39,9 @@ public:
    * @param force Force installation even if the library already exists
    * @param quiet Activate quiet mode
    */
-  void installPackage(const std::filesystem::path &project_root, bool force, bool quiet);
+  void installPackage(
+      const std::filesystem::path &project_root, bool force, bool quiet, const std::string &origin
+  );
 
   /**
    * @brief Uninstall package and remove it from index
