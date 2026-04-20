@@ -21,9 +21,13 @@ private:
   const std::filesystem::path root_;
   std::vector<File> sources_;
   const bool clean_;
+  const bool is_zc_build_command_;
 
 public:
-  Build(bool force, bool quiet, bool clean, const std::filesystem::path &project_root);
+  Build(
+      bool force, bool quiet, bool clean, const std::filesystem::path &project_root,
+      bool is_zc_build_command = true
+  );
 
   int operator()() override;
   const ProjectSettings p_settings_;

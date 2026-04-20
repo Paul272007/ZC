@@ -15,8 +15,12 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-Build::Build(const bool force, const bool quiet, const bool clean, const fs::path &project_root)
+Build::Build(
+    const bool force, const bool quiet, const bool clean, const fs::path &project_root,
+    const bool is_zc_build_command
+)
     : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root), clean_(clean),
+      is_zc_build_command_(is_zc_build_command),
       p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
       registry_(Registry(false, project_root.empty() ? getProjectRoot().string() : project_root.string()))
 {
@@ -59,7 +63,7 @@ int Build::operator()()
   log_success("Project was built successfully in build/");
 
   // Move binary to current path to make it easier to execute it
-  if (p_settings_.type_ == BIN)
+  if (p_settings_.type_ == BIN && is_zc_build_command_)
   {
     fs ::path binary = root_ / BUILD_DIR / p_settings_.target_name_;
     if (fs::exists(binary))
