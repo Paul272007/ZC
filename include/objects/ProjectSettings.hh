@@ -29,6 +29,8 @@ public:
   ProjectType type_;
   std::string name_;
   std::string author_;
+  std::string c_std_ = "c17";
+  std::string cpp_std_ = "c++20";
   std::string target_name_;
   std::optional<Version> version_;
   std::filesystem::path src_folder_;

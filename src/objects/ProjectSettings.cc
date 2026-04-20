@@ -63,6 +63,8 @@ void ProjectSettings::load()
   }
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
+  c_std_ = json_conf.value("c_std", "c17");
+  cpp_std_ = json_conf.value("cpp_std", "c++20");
   version_ = Version(json_conf.value("version", "0.0.0"));
   src_folder_ = project_root_ / json_conf.value("srcFolder", "src");
   include_folder_ = project_root_ / json_conf.value("includeFolder", "include");

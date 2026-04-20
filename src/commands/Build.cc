@@ -88,8 +88,8 @@ void Build::generateCMakeLists() const
   cmake << "endif()\n\n";
 
   // Standards
-  // cmake << "set(CMAKE_CXX_STANDARD " << (settings_.cpp_std_.substr(3)) << ")\n";
-  // cmake << "set(CMAKE_C_STANDARD " << (settings_.c_std_.substr(1)) << ")\n\n";
+  cmake << "set(CMAKE_CXX_STANDARD " << (p_settings_.cpp_std_.substr(3)) << ")\n";
+  cmake << "set(CMAKE_C_STANDARD " << (p_settings_.c_std_.substr(1)) << ")\n\n";
 
   // Sources
   vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
