@@ -63,7 +63,7 @@ int main(const int argc, char *argv[])
   string type;
 
   // zc build
-  bool release_mode = false;
+  bool clean = false;
 
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
@@ -137,8 +137,9 @@ int main(const int argc, char *argv[])
 
   build->add_flag("--force,-f", force, "Force regenerating CMakeLists.txt");
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  build->add_flag("--clean,-c", clean, "Clean after building");
 
-  build->callback([&]() { command = make_unique<Build>(force, quiet, path); });
+  build->callback([&]() { command = make_unique<Build>(force, quiet, clean, path); });
 
   // ========================== INSTALL ===============================
 
@@ -154,7 +155,7 @@ int main(const int argc, char *argv[])
   // ========================== REMOVE ===============================
 
   remove->add_option("targets", targets, "The packages to be removed")->required();
-  
+
   // remove->add_flag("--force,-f", force, "Force removing packages");
   remove->add_flag("--quiet,-q", quiet, "Do not show any messages");
   remove->add_flag("--global,-g", global, "Remove globally installed package");

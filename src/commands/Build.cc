@@ -15,8 +15,8 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-Build::Build(const bool force, const bool quiet, const fs::path &project_root)
-    : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root),
+Build::Build(const bool force, const bool quiet, const bool clean, const fs::path &project_root)
+    : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root), clean_(clean),
       p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
       registry_(Registry(false, project_root.empty() ? getProjectRoot().string() : project_root.string()))
 {
@@ -57,7 +57,31 @@ int Build::operator()()
     throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
 
   log_success("Project was built successfully in build/");
+
+  // Move binary to current path to make it easier to execute it
+  if (p_settings_.type_ == BIN)
+  {
+    fs ::path binary = root_ / BUILD_DIR / p_settings_.target_name_;
+    if (fs::exists(binary))
+      fs::rename(binary, fs::current_path() / p_settings_.target_name_);
+  }
+
+  if (clean_)
+    clean();
+
   return 0;
+}
+
+void Build::clean() const
+{
+  if (fs::exists(root_ / "CMakeLists.txt"))
+    fs::remove(root_ / "CMakeLists.txt");
+
+  if (fs::exists(root_ / ".cache"))
+    fs::remove_all(root_ / ".cache");
+
+  if (p_settings_.type_ == BIN && fs::exists(root_ / "build"))
+    fs::remove_all(root_ / "build");
 }
 
 void Build::generateCMakeLists() const

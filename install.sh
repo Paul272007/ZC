@@ -32,17 +32,103 @@ fi
 
 echo -e "${BLUE}[1/5] Setting up user environment...${NC}"
 ZC_DIR="$HOME/.zc"
+CONFIG_FILE="$ZC_DIR/config.json"
+CONFIG_EXISTS=false
 
-# Copy configuration
+if [ -f "$CONFIG_FILE" ]; then
+  CONFIG_EXISTS=true
+fi
+
 if [ ! -d "$ZC_DIR" ]; then
   mkdir -p "$ZC_DIR/lib"
   mkdir -p "$ZC_DIR/include"
   mkdir -p "$ZC_DIR/completions"
-  cp -r etc/* "$ZC_DIR"
 fi
+
+for item in etc/*; do
+  item_name=$(basename "$item")
+  if [ "$item_name" == "config.json" ] && [ "$CONFIG_EXISTS" == "true" ]; then
+    continue
+  fi
+  cp -r "$item" "$ZC_DIR/"
+done
 
 # Always force updating completions
 cp -r etc/completions "$ZC_DIR/completions"
+
+# --- PROMPT FOR CONFIGURATION ---
+if [ "$CONFIG_EXISTS" == "false" ]; then
+  echo -e "\n${GREEN}>>> Configuration initiale de ZC <<<${NC}"
+  echo "Appuyez sur Entrée pour accepter les valeurs par défaut."
+
+  prompt_str() {
+    local msg=$1
+    local default=$2
+    local var=$3
+    read -p "$(echo -e "${BLUE}?${NC} $msg ($default): ")" input
+    eval $var=\"\${input:-$default}\"
+  }
+
+  prompt_bool() {
+    local msg=$1
+    local default=$2
+    local var=$3
+    local disp_default="y/N"
+    [ "$default" == "true" ] && disp_default="Y/n"
+
+    read -p "$(echo -e "${BLUE}?${NC} $msg ($disp_default): ")" input
+    input=$(echo "$input" | tr '[:upper:]' '[:lower:]') # Conversion minuscule compatible Bash 3 (macOS)
+
+    if [ -z "$input" ]; then
+      eval $var="$default"
+    elif [[ "$input" == "y" || "$input" == "yes" || "$input" == "true" || "$input" == "o" || "$input" == "oui" ]]; then
+      eval $var="true"
+    else
+      eval $var="false"
+    fi
+  }
+
+  prompt_str "C Compiler" "clang" VAL_C_COMP
+  prompt_str "C++ Compiler" "clang++" VAL_CPP_COMP
+  prompt_str "C default standard" "c17" VAL_C_STD
+  prompt_str "C++ default standard" "c++20" VAL_CPP_STD
+  prompt_str "Additionnal flags for compiling ?" "-Wall -Wextra" VAL_FLAGS
+  prompt_str "Text editor to use" "${EDITOR:-nvim}" VAL_EDITOR
+  prompt_bool "Always add standard flag ?" "false" VAL_AUTO_STD
+  prompt_bool "Always clear terminal before using zc run ?" "false" VAL_CLEAR
+  prompt_bool "Always keep binaries created by zc run ?" "false" VAL_KEEP
+  prompt_bool "Always open file in text editor after zc create ?" "false" VAL_EDIT_CREATE
+  prompt_bool "Always open project in text editor after zc init ?" "false" VAL_EDIT_INIT
+
+  # Transform list of flags into json array
+  JSON_FLAGS=""
+  for flag in $VAL_FLAGS; do
+    if [ -z "$JSON_FLAGS" ]; then
+      JSON_FLAGS="\"$flag\""
+    else
+      JSON_FLAGS="$JSON_FLAGS, \"$flag\""
+    fi
+  done
+
+  # Generate config file
+  cat <<EOF >"$CONFIG_FILE"
+{
+  "c_compiler": "$VAL_C_COMP",
+  "cpp_compiler": "$VAL_CPP_COMP",
+  "c_std": "$VAL_C_STD",
+  "cpp_std": "$VAL_CPP_STD",
+  "auto_add_std": $VAL_AUTO_STD,
+  "flags": [$JSON_FLAGS],
+  "editor": "$VAL_EDITOR",
+  "clear_before_run": $VAL_CLEAR,
+  "auto_keep": $VAL_KEEP,
+  "edit_on_create": $VAL_EDIT_CREATE,
+  "edit_on_init": $VAL_EDIT_INIT
+}
+EOF
+  echo -e "${GREEN}Configuration successfully generated${NC}\n"
+fi
+# ------------------------------------------
 
 # Build and copy source files, and clean up build artifacts
 echo -e "${BLUE}[2/5] Cleaning existing installation...${NC}"

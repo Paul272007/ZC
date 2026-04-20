@@ -151,7 +151,7 @@ void Registry::installPackage(
     const std::filesystem::path &project_root, const bool force, const bool quiet, const std::string &origin
 )
 {
-  Build b(true, quiet, project_root);
+  Build b(true, quiet, false, project_root);
 
   if (pkgExists(b.p_settings_.name_) && !force)
     if (!ask(

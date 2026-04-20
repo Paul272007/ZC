@@ -16,11 +16,14 @@ private:
    */
   void generateCMakeLists() const;
 
+  void clean() const;
+
   const std::filesystem::path root_;
   std::vector<File> sources_;
+  const bool clean_;
 
 public:
-  Build(bool force, bool quiet, const std::filesystem::path &project_root);
+  Build(bool force, bool quiet, bool clean, const std::filesystem::path &project_root);
 
   int operator()() override;
   const ProjectSettings p_settings_;
