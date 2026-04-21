@@ -36,6 +36,7 @@ void ProjectSettings::load()
   if (!json_conf.contains("name") || !json_conf.contains("target"))
     throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "required properties for project are missing");
 
+  static_compile_ = json_conf.value<bool>("static", false);
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
   c_std_ = json_conf.value("c_std", "c17");

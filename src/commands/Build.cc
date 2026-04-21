@@ -203,6 +203,9 @@ void Build::generateCMakeLists() const
     cmake << "if(UNIX)\n";
     cmake << "  target_link_libraries(" << output << " PRIVATE pthread dl)\n";
     cmake << "endif()\n\n";
+
+    if (p_settings_.static_compile_)
+      cmake << "target_link_options(" << output << " PRIVATE \"-static\")\n\n";
   }
 
   // Activate RPATH

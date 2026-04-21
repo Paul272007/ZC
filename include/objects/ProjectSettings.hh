@@ -25,6 +25,7 @@ public:
 
   void write() const override;
 
+  bool static_compile_;
   ProjectType type_;
   std::string name_;
   std::string author_;
