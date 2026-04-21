@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_set>
 
 #include <helpers.hh>
 #include <objects/Table.hh>
@@ -46,6 +47,11 @@ public:
       const std::filesystem::path &project_root, bool force, bool quiet, const std::string &origin
   );
 
+  void installPackage(
+      const std::filesystem::path &project_root, bool force, bool quiet, const std::string &origin,
+      std::unordered_set<std::string> &visited
+  );
+
   /**
    * @brief Uninstall package and remove it from index
    *
@@ -81,6 +87,7 @@ private:
 
   Package unindexPackage(const std::string &pkg_name);
 
+  const bool is_global_;
   const std::filesystem::path registry_path_;
   const std::filesystem::path include_path_;
   const std::filesystem::path lib_path_;

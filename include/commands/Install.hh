@@ -27,6 +27,11 @@ public:
       const std::vector<std::string> &targets, const std::string &path, bool global, bool force, bool quiet
   );
 
+  Install(
+      const std::vector<std::pair<std::string, std::string>> &targets, const std::string &path,
+      const bool global, const bool force, const bool quiet
+  );
+
   /**
    * @brief Execute command
    *

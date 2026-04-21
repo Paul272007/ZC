@@ -8,6 +8,7 @@
 
 // clang-format off
 #define ROOT_DIR                        ".zc"
+#define INDEX                    "index.json"
 #define ZC_FILE                     "zc.json"
 #define REGISTRY              "registry.json"
 #define EXTERNAL                   "external"

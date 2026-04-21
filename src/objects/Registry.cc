@@ -1,9 +1,11 @@
 #include <algorithm>
 #include <filesystem>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <commands/Build.hh>
+#include <commands/Install.hh>
 #include <helpers.hh>
 #include <interface.hh>
 #include <nlohmann/json.hpp>
@@ -17,16 +19,17 @@ using json = nlohmann::json;
 
 Registry::Registry()
     : registry_path_(getZCRootDir() / REGISTRY), include_path_(getZCRootDir() / INCLUDE_DIR),
-      lib_path_(getZCRootDir() / LIB_DIR), bin_path_(getZCRootDir() / BIN_DIR)
+      lib_path_(getZCRootDir() / LIB_DIR), bin_path_(getZCRootDir() / BIN_DIR), is_global_(true)
 {
-  load(true);
+  load(is_global_);
 }
 
 Registry::Registry(const std::filesystem::path &project_root)
     : registry_path_(project_root / REGISTRY), include_path_(project_root / EXTERNAL / INCLUDE_DIR),
-      lib_path_(project_root / EXTERNAL / LIB_DIR), bin_path_(project_root / EXTERNAL / BIN_DIR)
+      lib_path_(project_root / EXTERNAL / LIB_DIR), bin_path_(project_root / EXTERNAL / BIN_DIR),
+      is_global_(false)
 {
-  load(false);
+  load(is_global_);
 }
 
 void from_json(const json &j, Package &p)
@@ -122,9 +125,50 @@ void Registry::installLibrary(const Build &b, bool quiet)
 }
 
 void Registry::installPackage(
-    const std::filesystem::path &project_root, const bool force, const bool quiet, const std::string &origin
+    const fs::path &project_root, const bool force, const bool quiet, const std::string &origin
 )
 {
+  unordered_set<string> visited;
+  installPackage(project_root, force, quiet, origin, visited);
+}
+
+void Registry::installPackage(
+    const std::filesystem::path &project_root, const bool force, const bool quiet, const std::string &origin,
+    std::unordered_set<std::string> &visited
+)
+{
+  Build b_probe(true, quiet, false, project_root, false); // to read its name
+  const string pkg_name = b_probe.p_settings_.name_;
+
+  if (visited.count(pkg_name))
+  {
+    if (!quiet)
+      info("Skipping already-processed dependency: " + pkg_name);
+    return;
+  }
+  visited.insert(pkg_name);
+
+  // Get package's dependencies
+  Registry dep_registry(project_root);
+  const auto &deps = dep_registry.getPackages();
+
+  if (!deps.empty())
+  {
+    if (!quiet)
+      info("Installing dependencies...");
+
+    vector<pair<string, string>> dep_targets;
+    for (const auto &dep : deps)
+      if (dep.origin_ != "std" && dep.origin_ != "local")
+        dep_targets.push_back({dep.name_, dep.version_});
+
+    if (!dep_targets.empty())
+    {
+      Install dep_install(/* targets= */ dep_targets, /* path= */ "", is_global_, false, quiet);
+      dep_install();
+    }
+  }
+
   Build b(true, quiet, false, project_root, false);
 
   if (pkgExists(b.p_settings_.name_) && !force)

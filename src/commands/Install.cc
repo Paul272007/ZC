@@ -34,6 +34,15 @@ Install::Install(
   }
 }
 
+Install::Install(
+    const vector<pair<string, string>> &targets, const string &path, const bool global, const bool force,
+    const bool quiet
+)
+    : Command(force, quiet), path_(path), registry_(global ? Registry() : Registry(getProjectRoot())),
+      targets_(targets)
+{
+}
+
 int Install::operator()()
 {
   if (!targets_.empty() && !path_.empty())
@@ -69,7 +78,7 @@ void Install::installFromServer()
   log_info("Fetching registry index from " REGISTRY_URL "...");
 
   fs::create_directories(tmp_dir);
-  const fs::path index_path = tmp_dir / "index.json";
+  const fs::path index_path = tmp_dir / INDEX;
   string curl_cmd = "curl -sfL " REGISTRY_URL " -o " + index_path.string();
 
   if (system(curl_cmd.c_str()) != 0)
