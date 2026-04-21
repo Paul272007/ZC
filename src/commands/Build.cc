@@ -23,7 +23,7 @@ Build::Build(
     : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root), clean_(clean),
       is_zc_build_command_(is_zc_build_command),
       p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
-      registry_(Registry(false, project_root.empty() ? getProjectRoot().string() : project_root.string()))
+      registry_(Registry(project_root.empty() ? getProjectRoot() : project_root))
 {
   checkPackageName(p_settings_.name_);
   checkPackageName(p_settings_.target_name_);

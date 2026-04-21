@@ -8,7 +8,7 @@
 #include <objects/ZCError.hh>
 
 Add::Add(const std::vector<std::string> &targets, const bool force, const bool quiet)
-    : Command(force, quiet), targets_(targets), global_(Registry(true)), local_(Registry(false))
+    : Command(force, quiet), targets_(targets), global_(Registry()), local_(Registry(getProjectRoot()))
 {
 }
 

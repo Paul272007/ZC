@@ -22,7 +22,18 @@ struct Package
 class Registry
 {
 public:
-  Registry(bool is_global, const std::filesystem::path &project_root = getProjectRoot());
+  /**
+   * @brief Global registry constructor
+   */
+  Registry();
+
+  /**
+   * @brief Local registry constructor
+   *
+   * @param project_root The root of the project
+   */
+  Registry(const std::filesystem::path &project_root);
+
   void write() const;
   /**
    * @brief Install a library based on its root folder
@@ -64,15 +75,15 @@ public:
   [[nodiscard]] const std::filesystem::path &getLibPath() const;
 
 private:
-  void load();
+  void load(bool is_global);
   void installExecutable(const Build &b, bool quiet);
   void installLibrary(const Build &b, bool quiet);
 
   Package unindexPackage(const std::string &pkg_name);
 
-  std::filesystem::path registry_path_;
-  std::filesystem::path include_path_;
-  std::filesystem::path lib_path_;
-  std::filesystem::path bin_path_;
+  const std::filesystem::path registry_path_;
+  const std::filesystem::path include_path_;
+  const std::filesystem::path lib_path_;
+  const std::filesystem::path bin_path_;
   std::vector<Package> pkgs_;
 };

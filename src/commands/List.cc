@@ -10,7 +10,8 @@ namespace fs = std::filesystem;
 List::List(
     const bool force, const bool quiet, const bool global, const bool templates, const bool p_templates
 )
-    : Command(force, quiet), registry_(Registry(global)), templates_(templates), p_templates_(p_templates)
+    : Command(force, quiet), registry_(global ? Registry() : Registry(getProjectRoot())),
+      templates_(templates), p_templates_(p_templates)
 {
 }
 

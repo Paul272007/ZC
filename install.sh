@@ -60,7 +60,7 @@ for item in etc/*; do
 done
 
 # Always force updating completions
-cp -r etc/completions "$ZC_DIR/completions"
+cp -r etc/completions "$ZC_DIR"
 
 # --- PROMPT FOR CONFIGURATION ---
 if [ "$CONFIG_EXISTS" == "false" ]; then

@@ -17,7 +17,7 @@ Install::Install(
     const std::vector<std::string> &targets, const std::string &path, const bool global, const bool force,
     const bool quiet
 )
-    : Command(force, quiet), path_(path), registry_(Registry(global))
+    : Command(force, quiet), path_(path), registry_(global ? Registry() : Registry(getProjectRoot()))
 {
   if (!global && !path_.empty() && getProjectRoot(path_) == getProjectRoot())
     throw ZCError(ZC_BAD_COMMAND, "Cannot install library as its own dependency");

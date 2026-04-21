@@ -13,7 +13,7 @@ public:
   /**
    * @brief Get an instance
    *
-   * @return A Settings instance
+   * @return A GlobalSettings instance
    */
   static GlobalSettings &getInstance();
 
@@ -29,8 +29,5 @@ public:
 protected:
   void load() override;
 
-  /**
-   * @brief Default constructor
-   */
   GlobalSettings();
 };

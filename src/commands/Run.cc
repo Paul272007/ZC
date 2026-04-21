@@ -19,9 +19,8 @@ Run::Run(
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
     const bool quiet, const bool add_std, const bool static_compile
 )
-    : Command(force, quiet), settings_(GlobalSettings::getInstance()), registry_(Registry(true)),
-      add_std_(add_std), keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args),
-      static_(static_compile)
+    : Command(force, quiet), settings_(GlobalSettings::getInstance()), add_std_(add_std), keep_(keep),
+      plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args), static_(static_compile)
 {
   // Fill files_
   for (const auto &f : files)

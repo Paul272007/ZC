@@ -6,7 +6,7 @@
 #include <objects/Registry.hh>
 
 Remove::Remove(const std::vector<std::string> &targets, const bool force, const bool quiet, const bool global)
-    : Command(force, quiet), registry_(Registry(global)), targets_(targets)
+    : Command(force, quiet), registry_(global ? Registry() : Registry(getProjectRoot())), targets_(targets)
 {
 }
 

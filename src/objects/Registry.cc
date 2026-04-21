@@ -15,25 +15,18 @@ using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-Registry::Registry(const bool is_global, const std::filesystem::path &project_root)
+Registry::Registry()
+    : registry_path_(getZCRootDir() / REGISTRY), include_path_(getZCRootDir() / INCLUDE_DIR),
+      lib_path_(getZCRootDir() / LIB_DIR), bin_path_(getZCRootDir() / BIN_DIR)
 {
-  if (is_global)
-  {
-    const fs::path &root(getZCRootDir());
-    registry_path_ = root / REGISTRY;
-    include_path_ = root / INCLUDE_DIR;
-    lib_path_ = root / LIB_DIR;
-    bin_path_ = root / BIN_DIR;
-  }
-  else
-  {
-    const fs::path root(project_root);
-    registry_path_ = root / REGISTRY;
-    include_path_ = root / EXTERNAL / INCLUDE_DIR;
-    lib_path_ = root / EXTERNAL / LIB_DIR;
-    bin_path_ = root / EXTERNAL / BIN_DIR;
-  }
-  load();
+  load(true);
+}
+
+Registry::Registry(const std::filesystem::path &project_root)
+    : registry_path_(project_root / REGISTRY), include_path_(project_root / EXTERNAL / INCLUDE_DIR),
+      lib_path_(project_root / EXTERNAL / LIB_DIR), bin_path_(project_root / EXTERNAL / BIN_DIR)
+{
+  load(false);
 }
 
 void from_json(const json &j, Package &p)
@@ -57,9 +50,10 @@ void to_json(json &j, const Package &p)
   j = json::array({p.name_, p.version_, p.binary_, p.origin_, p.is_bin_});
 }
 
-void Registry::load()
+void Registry::load(bool is_global)
 {
-  if (!fs::exists(registry_path_))
+  // Global registry has to exist
+  if (!is_global && !fs::exists(registry_path_))
     return; // no file = no installed libraries / dependencies
 
   json json_registry = parseJsonFile(registry_path_);

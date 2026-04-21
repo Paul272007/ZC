@@ -53,7 +53,7 @@ _zc_run() {
         '(-q --quiet)'{-q,--quiet}'[Enable quiet mode]' \
         '(-f --force)'{-f,--force}'[Force compiling even if target exists]' \
         '(-s --static)'{-s,--static}'[Compile using static libraries]' \
-        '(--std)[Add C/C++ standard from config file]' \
+        '--std[Add C/C++ standard from config file]' \
         '-E[Preprocess only]' \
         '-S[Compile but do not assemble or link]' \
         '-c[Compile and assemble but do not link]'
