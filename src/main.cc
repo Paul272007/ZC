@@ -63,6 +63,10 @@ int main(const int argc, char *argv[])
   string include_folder;
   string type;
 
+  // zc list
+  bool templates = false;
+  bool p_templates = false;
+
   // zc build
   bool clean_after_build = false;
 
@@ -130,8 +134,11 @@ int main(const int argc, char *argv[])
 
   // list->add_flag("--force,-f", force, "Force");
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  list->add_flag("--global,-g", global, "List global libraries instead of local libraries");
+  list->add_flag("--templates,-t", templates, "List templates instead of libraries");
+  list->add_flag("--project-templates,-p", p_templates, "List project templates instead of libraries");
 
-  list->callback([&]() { command = make_unique<List>(false, quiet); });
+  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates); });
 
   // ========================== BUILD ===============================
 

@@ -1,3 +1,4 @@
+#include "commands/Clean.hh"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -71,21 +72,12 @@ int Build::operator()()
   }
 
   if (clean_)
-    clean();
+  {
+    Clean c(false, quiet_, p_settings_, root_);
+    c();
+  }
 
   return 0;
-}
-
-void Build::clean() const
-{
-  if (fs::exists(root_ / "CMakeLists.txt"))
-    fs::remove(root_ / "CMakeLists.txt");
-
-  if (fs::exists(root_ / ".cache"))
-    fs::remove_all(root_ / ".cache");
-
-  if (p_settings_.type_ == BIN && fs::exists(root_ / "build"))
-    fs::remove_all(root_ / "build");
 }
 
 void Build::generateCMakeLists() const
@@ -116,8 +108,11 @@ void Build::generateCMakeLists() const
   cmake << "endif()\n\n";
 
   // Standards
-  cmake << "set(CMAKE_CXX_STANDARD " << (p_settings_.cpp_std_.substr(3)) << ")\n";
-  cmake << "set(CMAKE_C_STANDARD " << (p_settings_.c_std_.substr(1)) << ")\n\n";
+  if (p_settings_.add_std_)
+  {
+    cmake << "set(CMAKE_CXX_STANDARD " << (p_settings_.cpp_std_.substr(3)) << ")\n";
+    cmake << "set(CMAKE_C_STANDARD " << (p_settings_.c_std_.substr(1)) << ")\n\n";
+  }
 
   // Sources
   vector<string> c_extensions{"c", "cc", "cxx", "cpp"};

@@ -16,8 +16,6 @@ private:
    */
   void generateCMakeLists() const;
 
-  void clean() const;
-
   const std::filesystem::path root_;
   std::vector<File> sources_;
   const bool clean_;

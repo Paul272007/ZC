@@ -7,7 +7,7 @@
 #include <commands/Command.hh>
 #include <helpers.hh>
 #include <objects/File.hh>
-#include <objects/Settings.hh>
+#include <objects/GlobalSettings.hh>
 
 #define TEMPLATES "templates"
 
@@ -51,7 +51,7 @@ private:
   void writeCDecls(const File &f) const;
 
   bool edit_;
-  Settings &settings_;
+  GlobalSettings &settings_;
   std::vector<File> files_;
   std::vector<File> input_files_;
   std::filesystem::path templates_path_ = getZCRootDir() / TEMPLATES;

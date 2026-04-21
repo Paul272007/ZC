@@ -5,8 +5,8 @@
 
 #include <commands/Command.hh>
 #include <helpers.hh>
+#include <objects/GlobalSettings.hh>
 #include <objects/ProjectSettings.hh>
-#include <objects/Settings.hh>
 #include <vector>
 
 #define PROJECT_TEMPLATES "project_templates"
@@ -59,6 +59,6 @@ private:
   ProjectType type_;
   const bool edit_;
   const bool git_;
-  Settings &settings_;
+  GlobalSettings &settings_;
   inline static std::filesystem::path project_templates_path_ = getZCRootDir() / PROJECT_TEMPLATES;
 };

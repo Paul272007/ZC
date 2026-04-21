@@ -53,7 +53,6 @@ pair<unsigned, unsigned> get_cursor_offsets(CXCursor cursor)
   return {start_offset, end_offset};
 }
 
-// Helper pour extraire le texte (réutilise les offsets)
 string get_cursor_text(CXCursor cursor, const string &content)
 {
   auto [start, end] = get_cursor_offsets(cursor);
@@ -65,14 +64,12 @@ string get_cursor_text(CXCursor cursor, const string &content)
   return content.substr(start, end - start);
 }
 
-// Vérifie si un curseur est inclus dans un typedef déjà vu
+// Checks if a cursor is included in an already seen typedef
 bool is_inside_typedef(CXCursor cursor, const vector<pair<unsigned, unsigned>> &ranges)
 {
   auto [start, end] = get_cursor_offsets(cursor);
   for (const auto &range : ranges)
   {
-    // Si l'élément commence APRES le début du typedef et finit AVANT la fin du
-    // typedef
     if (start >= range.first && end <= range.second)
     {
       if (start == range.first && end == range.second)
@@ -85,13 +82,12 @@ bool is_inside_typedef(CXCursor cursor, const vector<pair<unsigned, unsigned>> &
 
 // --- Visitors ---
 
-// PASSE 1 : Find typedefs
+// 1 : Find typedefs
 CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto *ctx = static_cast<VisitorContext *>(client_data);
   CXCursorKind kind = clang_getCursorKind(cursor);
 
-  // On ignore ce qui n'est pas dans le fichier principal
   CXSourceLocation loc = clang_getCursorLocation(cursor);
   if (!clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
@@ -101,10 +97,10 @@ CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXCli
     ctx->typedef_ranges.push_back(get_cursor_offsets(cursor));
   }
 
-  return CXChildVisit_Continue; // On continue pour tout trouver
+  return CXChildVisit_Continue;
 }
 
-// PASSE 2 : Extraction
+// 2 : Extraction
 CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto *ctx = static_cast<VisitorContext *>(client_data);
@@ -117,22 +113,19 @@ CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientDat
   if (!clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
 
-  // Si c'est une structure/enum/union, on vérifie si elle est "mangée" par un
-  // typedef
   if (kind == CXCursor_EnumDecl || kind == CXCursor_StructDecl || kind == CXCursor_UnionDecl)
   {
     if (is_inside_typedef(cursor, ctx->typedef_ranges))
     {
-      return CXChildVisit_Continue; // On l'ignore, le typedef la contient déjà
+      return CXChildVisit_Continue;
     }
   }
 
-  // Extraction du texte
+  // Extract text
   string text = get_cursor_text(cursor, *ctx->content);
   if (text.empty())
     return CXChildVisit_Continue;
 
-  // Dispatch selon le type
   if (kind == CXCursor_InclusionDirective)
   {
     (*ctx->decls)["includes"].push_back(text + "\n");
@@ -174,7 +167,6 @@ CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientDat
   }
   else if (kind == CXCursor_VarDecl)
   {
-    // Nettoyage variables globales
     size_t equal_pos = text.find('=');
     if (equal_pos != string::npos)
       text = text.substr(0, equal_pos);
@@ -314,11 +306,10 @@ unique_ptr<Declarations> File::parse() const
   // 2. Initialize libclang index
   CXIndex index = clang_createIndex(0, 0);
 
-  // 3. Arguments de compilation (très important pour les headers)
-  // On ajoute le dossier include courant et on force le mode C
+  // 3. Compilation arguments
   const char *args[] = {"-x", "c", "-I.", "-Iinclude"};
 
-  // 4. Parser le fichier
+  // 4. Parse file
   CXTranslationUnit unit = clang_parseTranslationUnit(
       index, path_.c_str(), args, size(args), nullptr, 0,
       CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_KeepGoing
@@ -326,16 +317,13 @@ unique_ptr<Declarations> File::parse() const
 
   if (unit == nullptr)
   {
-    // Fallback ou erreur silencieuse, selon votre besoin.
-    // Ici on lance l'erreur comme dans votre code original.
     clang_disposeIndex(index);
     throw ZCError(ZC_PARSING_ERROR, "Unable to parse translation unit: " + path_.string());
   }
 
-  // 5. Lancer le visiteur
+  // 5. Launch visitor
   CXCursor cursor = clang_getTranslationUnitCursor(unit);
   VisitorContext ctx = {decls.get(), &content};
-  // clang_visitChildren(cursor, visitor, &ctx);
   // 1
   clang_visitChildren(cursor, visitor_find_typedefs, &ctx);
   // 2
@@ -473,14 +461,9 @@ string File::getExt() const
   return path_.extension().string();
 }
 
-void File::display(ostream &s) const
-{
-  s << escape_shell_arg(path_.string());
-}
-
 ostream &operator<<(ostream &stream, const File &file)
 {
-  file.display(stream);
+  stream << escape_shell_arg(file.path_.string());
   return stream;
 }
 
@@ -494,7 +477,7 @@ vector<string> File::getInclusions(const Registry &reg) const
   // To see #includes
   unsigned options = CXTranslationUnit_DetailedPreprocessingRecord;
 
-  const char *args[] = {"-x", "c++"};
+  const char *args[] = {"-x", "c++"}; // Always compile as C++
   CXTranslationUnit unit = clang_parseTranslationUnit(index, path_.c_str(), args, 2, nullptr, 0, options);
 
   if (unit)

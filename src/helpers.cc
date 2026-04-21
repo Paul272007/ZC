@@ -1,11 +1,13 @@
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
-#include <helpers.hh>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include <helpers.hh>
+#include <nlohmann/json.hpp>
 #include <objects/ZCError.hh>
 
 using namespace std;
@@ -34,17 +36,15 @@ fs::path calculateProjectRoot(const fs::path &base)
 }
 } // namespace
 
-const fs::path &getProjectRoot()
+const fs::path getProjectRoot()
 {
   static fs::path path = calculateProjectRoot(fs::current_path());
   return path;
 }
 
-const fs::path &getProjectRoot(const std::filesystem::path &base)
+const fs::path getProjectRoot(const std::filesystem::path &base)
 {
-  // Function is always called for 1 path max.
-  static fs::path path = calculateProjectRoot(base);
-  return path;
+  return calculateProjectRoot(base);
 }
 
 const fs::path &getZCRootDir()
@@ -167,4 +167,39 @@ void checkPackageName(const std::string &name)
     if (pos != string::npos) // TODO : change to target if target is being checked
       throw ZCError(ZC_CONFIG_CONTENT_ERROR, &"The name of the package contains invalid character: "[c]);
   }
+}
+
+nlohmann::json parseJsonFile(const std::filesystem::path &file_path)
+{
+  nlohmann::json parsed_json;
+
+  if (!std::filesystem::exists(file_path))
+    throw ZCError(ZC_CONFIG_NOT_FOUND, "The JSON file was not found: " + file_path.string());
+
+  std::ifstream input(file_path);
+  if (!input.is_open())
+    throw ZCError(ZC_CONFIG_READING_ERROR, "The JSON file couldn't be read: " + file_path.string());
+
+  try
+  {
+    input >> parsed_json;
+  }
+  catch (const nlohmann::json::parse_error &e)
+  {
+    throw ZCError(
+        ZC_CONFIG_PARSING_ERROR, "The JSON file couldn't be parsed: " + file_path.string() + ": " + e.what()
+    );
+  }
+
+  return parsed_json;
+}
+
+void writeJsonFile(const nlohmann::json &json, const std::filesystem::path &file_path)
+{
+  ofstream output(file_path);
+  if (!output.is_open())
+    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The JSON file couldn't be written: " + file_path.string());
+
+  output << json.dump(2);
+  output.close();
 }

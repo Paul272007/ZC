@@ -18,6 +18,6 @@ public:
   int operator()() override;
 
 private:
-  const std::filesystem::path root_;
   const ProjectSettings p_settings_;
+  const std::filesystem::path root_;
 };

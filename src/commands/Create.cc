@@ -18,7 +18,7 @@ Create::Create(
     const vector<string> &files, const bool force, const bool quiet, const vector<string> &input_files,
     const bool edit
 )
-    : Command(force, quiet), edit_(edit), settings_(Settings::getInstance())
+    : Command(force, quiet), edit_(edit), settings_(GlobalSettings::getInstance())
 {
   for (const auto &f : files)
     files_.emplace_back(f);

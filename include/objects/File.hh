@@ -75,20 +75,6 @@ public:
   [[nodiscard]] bool exists() const;
 
   /**
-   * @brief Delete the file
-   *
-   * @return Whether the file was successfully deleted
-   */
-  // bool remove() const;
-
-  /**
-   * @brief Display the file to stream s
-   *
-   * @param s The stream into which the file is displayed
-   */
-  void display(std::ostream &s) const;
-
-  /**
    * @brief Parse the file and extract all declarations (works for C only)
    */
   [[nodiscard]] std::unique_ptr<Declarations> parse() const;
@@ -120,16 +106,16 @@ public:
    */
   [[nodiscard]] Language getLanguage() const;
 
+  /**
+   * @brief << operator overload
+   *
+   * @param stream The stream in which to write the filename
+   * @param file The file to be written
+   */
+  friend std::ostream &operator<<(std::ostream &stream, const File &file);
+
 private:
   std::filesystem::path path_;
   std::string filename_;
   Language language_;
 };
-
-/**
- * @brief << operator overload
- *
- * @param stream The stream in which to write the filename
- * @param file The file to be written
- */
-std::ostream &operator<<(std::ostream &stream, const File &file);

@@ -9,7 +9,6 @@
 #include <helpers.hh>
 #include <interface.hh>
 #include <objects/File.hh>
-#include <objects/Settings.hh>
 #include <objects/ZCError.hh>
 
 using namespace std;
@@ -20,8 +19,8 @@ Run::Run(
     const bool plus, const bool preprocess, const bool compile, const bool assemble, const bool force,
     const bool quiet, const bool add_std, const bool static_compile
 )
-    : Command(force, quiet), settings_(Settings::getInstance()), registry_(Registry(true)), add_std_(add_std),
-      keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args),
+    : Command(force, quiet), settings_(GlobalSettings::getInstance()), registry_(Registry(true)),
+      add_std_(add_std), keep_(keep), plus_(plus), mode_(getMode(preprocess, compile, assemble)), args_(args),
       static_(static_compile)
 {
   // Fill files_
@@ -164,13 +163,13 @@ void Run::buildCommand()
   if (plus_)
   {
     cmd << settings_.cpp_compiler_ << " ";
-    if (settings_.auto_add_std_ || add_std_)
+    if (settings_.add_std_ || add_std_)
       cmd << "'-std=" << settings_.cpp_std_ << "' ";
   }
   else
   {
     cmd << settings_.c_compiler_ << " ";
-    if (settings_.auto_add_std_ || add_std_)
+    if (settings_.add_std_ || add_std_)
       cmd << "'-std=" << settings_.c_std_ << "' ";
   }
 

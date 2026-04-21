@@ -1,18 +1,17 @@
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include <helpers.hh>
 #include <objects/ProjectSettings.hh>
+#include <objects/Settings.hh>
 #include <objects/ZCError.hh>
 
 using json = nlohmann::json;
 using namespace std;
 namespace fs = std::filesystem;
 
-ProjectSettings::ProjectSettings(const std::filesystem::path &project_root)
-    : project_root_(project_root), config_file_(project_root_ / ZC_FILE)
+ProjectSettings::ProjectSettings(const std::filesystem::path &project_root) : Settings(project_root)
 {
   load();
   checkFolderNames();
@@ -22,8 +21,8 @@ ProjectSettings::ProjectSettings(
     const std::string &name, const std::string &author, const std::string &targetName,
     const std::string &version, const std::string &src, const std::string &include, const ProjectType &type
 )
-    : config_file_(fs::current_path() / ZC_FILE), type_(type), name_(name), author_(author),
-      target_name_(targetName), version_(version), src_folder_(src), include_folder_(include)
+    : Settings(fs::current_path()), type_(type), name_(name), author_(author), target_name_(targetName),
+      version_(version), src_folder_(src), include_folder_(include)
 {
   // If the project is being created (and does not exist yet), the root is the current path and zc.json
   // doesn't exist yet
@@ -32,45 +31,22 @@ ProjectSettings::ProjectSettings(
 
 void ProjectSettings::load()
 {
-  json json_conf;
-  if (!fs::exists(config_file_))
-  {
-    throw ZCError(
-        ZC_CONFIG_NOT_FOUND, "The project configuration file was not found: " + config_file_.string()
-    );
-  }
-  ifstream input(config_file_);
-  if (!input.is_open())
-  {
-    throw ZCError(
-        ZC_CONFIG_READING_ERROR, "The project configuration file couldn't be read: " + config_file_.string()
-    );
-  }
-  try
-  {
-    input >> json_conf;
-  }
-  catch (const json::parse_error &e)
-  {
-    throw ZCError(
-        ZC_CONFIG_PARSING_ERROR,
-        "The configuration file couldn't be parsed: " + config_file_.string() + ": " + e.what()
-    );
-  }
-  if (!json_conf.contains("name"))
-  {
+  json json_conf = parseJsonFile(config_path_);
+
+  if (!json_conf.contains("name") || !json_conf.contains("target"))
     throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "required properties for project are missing");
-  }
+
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
   c_std_ = json_conf.value("c_std", "c17");
   cpp_std_ = json_conf.value("cpp_std", "c++20");
+  add_std_ = json_conf.value("add_std", false);
   version_ = Version(json_conf.value("version", "0.0.0"));
-  src_folder_ = project_root_ / json_conf.value("srcFolder", "src");
-  include_folder_ = project_root_ / json_conf.value("includeFolder", "include");
+  src_folder_ = root_ / json_conf.value("srcFolder", "src");
+  include_folder_ = root_ / json_conf.value("includeFolder", "include");
   target_name_ = json_conf.value("target", "");
 
-  // Type and output
+  // Type
   string type_str = "";
   if (json_conf.contains("type") && json_conf["type"].is_string())
     type_str = upper(json_conf["type"].get<string>());
@@ -99,15 +75,7 @@ void ProjectSettings::write() const
   if (version_)
     root["version"] = version_->string();
 
-  ofstream output(config_file_);
-  if (!output.is_open())
-  {
-    throw ZCError(
-        ZC_CONFIG_WRITING_ERROR, "The project configuration couldn't be written: " + config_file_.string()
-    );
-  }
-  output << root.dump(2);
-  output.close();
+  writeJsonFile(root, config_path_);
 }
 
 void ProjectSettings::checkFolderNames() const

@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -16,7 +15,7 @@ using namespace std;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-Registry::Registry(const bool is_global, const std::string &project_root)
+Registry::Registry(const bool is_global, const std::filesystem::path &project_root)
 {
   if (is_global)
   {
@@ -28,7 +27,7 @@ Registry::Registry(const bool is_global, const std::string &project_root)
   }
   else
   {
-    const fs::path root(project_root.empty() ? getProjectRoot() : fs::path(project_root));
+    const fs::path root(project_root);
     registry_path_ = root / REGISTRY;
     include_path_ = root / EXTERNAL / INCLUDE_DIR;
     lib_path_ = root / EXTERNAL / LIB_DIR;
@@ -60,27 +59,11 @@ void to_json(json &j, const Package &p)
 
 void Registry::load()
 {
-  json json_registry;
   if (!fs::exists(registry_path_))
-    return; // = no installed libraries / dependencies
-  // throw ZCError(ZC_CONFIG_NOT_FOUND, "The configuration file was not found: " + registry_path_.string());
+    return; // no file = no installed libraries / dependencies
 
-  ifstream input(registry_path_);
-  if (!input.is_open())
-    throw ZCError(
-        ZC_CONFIG_READING_ERROR, "The configuration file couldn't be read: " + registry_path_.string()
-    );
-  try
-  {
-    input >> json_registry;
-  }
-  catch (const json::parse_error &e)
-  {
-    throw ZCError(
-        ZC_CONFIG_PARSING_ERROR,
-        "The configuration file couldn't be parsed: " + registry_path_.string() + ": " + e.what()
-    );
-  }
+  json json_registry = parseJsonFile(registry_path_);
+
   if (json_registry.contains("libraries") && json_registry["libraries"].is_array())
     pkgs_ = json_registry.at("libraries").get<vector<Package>>();
 }
@@ -89,17 +72,14 @@ void Registry::write() const
 {
   json root;
   root["libraries"] = pkgs_;
-  ofstream output(registry_path_);
-  if (!output.is_open())
-    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The registry couldn't be written: " + registry_path_.string());
-  output << root.dump(2);
-  output.close();
+
+  writeJsonFile(root, registry_path_);
 }
 
 void Registry::installExecutable(const Build &b, bool quiet)
 {
   const fs::path exe_dest = bin_path_ / b.p_settings_.target_name_;
-  const fs::path exe_source = b.p_settings_.project_root_ / BUILD_DIR / b.p_settings_.target_name_;
+  const fs::path exe_source = b.p_settings_.root_ / BUILD_DIR / b.p_settings_.target_name_;
 
   if (!quiet)
     info("Installing global binary...");
@@ -135,7 +115,7 @@ void Registry::installLibrary(const Build &b, bool quiet)
 
   fs::create_directories(dest_lib);
 
-  for (const auto &entry : fs::recursive_directory_iterator(b.p_settings_.project_root_ / BUILD_DIR))
+  for (const auto &entry : fs::recursive_directory_iterator(b.p_settings_.root_ / BUILD_DIR))
   {
     if (string filename = entry.path().filename().string();
         filename.find(b.p_settings_.target_name_) != string::npos &&

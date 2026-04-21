@@ -18,7 +18,7 @@ Init::Init(
     const bool edit, const bool git, const std::string &type
 )
     : Command(force, quiet), path_(fs::current_path()), type_(UNDEF), edit_(edit), git_(git),
-      settings_(Settings::getInstance())
+      settings_(GlobalSettings::getInstance())
 {
   if (!force_ && fs::exists(ZC_FILE))
     if (!ask(

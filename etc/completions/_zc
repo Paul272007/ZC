@@ -85,6 +85,9 @@ _zc_init() {
 _zc_list() {
     _arguments \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-g --global)'{-g,--global}'[List global libraries instead of local libraries]' \
+        '(-t --templates)'{-t,--templates}'[List templates instead of libraries]' \
+        '(-p --project-templates)'{-p,--project-templates}'[List project templates instead of libraries]'
 }
 
 _zc_build() {

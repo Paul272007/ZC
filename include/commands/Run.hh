@@ -1,8 +1,8 @@
 #pragma once
 
 #include <objects/File.hh>
+#include <objects/GlobalSettings.hh>
 #include <objects/Registry.hh>
-#include <objects/Settings.hh>
 #include <string>
 #include <vector>
 
@@ -71,7 +71,7 @@ private:
    */
   std::vector<std::string> getInclusions() const;
 
-  const Settings &settings_;
+  const GlobalSettings &settings_;
   const Registry registry_;
   const bool add_std_;
   const bool keep_ = false;

@@ -1,20 +1,12 @@
 #pragma once
 
 #include <filesystem>
-
-#include <objects/Table.hh>
 #include <string>
 
-// clang-format off
-#define N_ATTR_PKG   5
-#define REGISTRY     "registry.json"
-#define EXTERNAL     "external"
-#define INCLUDE_DIR  "include"
-#define LIB_DIR      "lib"
-#define BIN_DIR      "bin"
-#define BUILD_DIR    "build"
-#define TMP_DIR      "tmp"
-// clang-format on
+#include <helpers.hh>
+#include <objects/Table.hh>
+
+#define N_ATTR_PKG 5
 
 class Build;
 
@@ -30,7 +22,7 @@ struct Package
 class Registry
 {
 public:
-  explicit Registry(bool is_global, const std::string &project_root = "");
+  Registry(bool is_global, const std::filesystem::path &project_root = getProjectRoot());
   void write() const;
   /**
    * @brief Install a library based on its root folder

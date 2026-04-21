@@ -4,8 +4,16 @@
 
 namespace fs = std::filesystem;
 
+Clean::Clean(
+    const bool force, const bool quiet, const ProjectSettings &p_settings,
+    const std::filesystem::path &project_root
+)
+    : Command(force, quiet), root_(project_root), p_settings_(p_settings)
+{
+}
+
 Clean::Clean(const bool force, const bool quiet, const std::filesystem::path &project_root)
-    : Command(force, quiet), root_(project_root), p_settings_(ProjectSettings(root_))
+    : Command(force, quiet), root_(project_root), p_settings_(ProjectSettings(project_root))
 {
 }
 
