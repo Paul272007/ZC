@@ -6,6 +6,7 @@
 #include <CLI11.hpp>
 #include <commands/Add.hh>
 #include <commands/Build.hh>
+#include <commands/Clean.hh>
 #include <commands/Command.hh>
 #include <commands/Create.hh>
 #include <commands/Init.hh>
@@ -63,7 +64,7 @@ int main(const int argc, char *argv[])
   string type;
 
   // zc build
-  bool clean = false;
+  bool clean_after_build = false;
 
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
@@ -79,6 +80,7 @@ int main(const int argc, char *argv[])
   const auto remove  = app.add_subcommand("remove",  "Remove package");
   const auto add     = app.add_subcommand("add",     "Add dependency from global registry");
   const auto publish = app.add_subcommand("publish", "Publish package to server");
+  const auto clean   = app.add_subcommand("clean",   "Clean all temporary files and directories");
 
   // ========================== RUN ===============================
 
@@ -137,9 +139,9 @@ int main(const int argc, char *argv[])
 
   build->add_flag("--force,-f", force, "Force regenerating CMakeLists.txt");
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  build->add_flag("--clean,-c", clean, "Clean after building");
+  build->add_flag("--clean,-c", clean_after_build, "Clean after building");
 
-  build->callback([&]() { command = make_unique<Build>(force, quiet, clean, path); });
+  build->callback([&]() { command = make_unique<Build>(force, quiet, clean_after_build, path); });
 
   // ========================== INSTALL ===============================
 
@@ -175,6 +177,13 @@ int main(const int argc, char *argv[])
   publish->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   publish->callback([&]() { command = make_unique<Publish>(false, quiet); });
+
+  // ========================== CLEAN ===============================
+
+  clean->add_flag("--force,-f", force, "Force cleaning build directory");
+  clean->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  clean->callback([&]() { command = make_unique<Clean>(force, quiet); });
 
   // clang-format on
   /* ========================================================= *

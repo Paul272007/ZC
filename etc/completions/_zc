@@ -22,6 +22,7 @@ _zc() {
                 remove)  _zc_remove  ;;
                 add)     _zc_add     ;;
                 publish) _zc_publish ;;
+                clean)   _zc_clean   ;;
             esac
     esac
 }
@@ -38,6 +39,7 @@ _zc_subcommands() {
         'remove:Remove package'
         'add:Add dependency from global registry'
         'publish:Publish package to server'
+        'clean:Clean temporary files and directories'
     )
     _describe 'subcommand' subcommands
 }
@@ -117,6 +119,12 @@ _zc_add() {
 _zc_publish() {
   _arguments \
     '(-q --quiet)'{-q, --quiet}'[Do not show any messages]'
+}
+
+_zc_clean() {
+  _arguments \
+    '(-q --quiet)'{-q, --quiet}'[Do not show any messages]' \
+    '(-f --force)'{-f, --force}'[Force cleaning build directory]'
 }
 
 _zc "$@"
