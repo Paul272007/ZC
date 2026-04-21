@@ -19,6 +19,7 @@ public:
 
   void write() const override;
 
+  bool move_binary_to_current_path_;
   bool clear_before_run_;
   bool auto_keep_;
   bool edit_on_init_;

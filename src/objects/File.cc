@@ -224,6 +224,39 @@ CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXCli
 
 // ----------------------------------------------- File class
 
+std::string to_string(Language l)
+{
+  switch (l)
+  {
+  case C:
+    return "C";
+  case CPP:
+    return "C++";
+  case H:
+    return "C Header";
+  case HPP:
+    return "C++ Header";
+  case PY:
+    return "Python";
+  case PYC:
+    return "Compressed Python";
+  case ARCHIVE:
+    return "Static Library";
+  case DYN_LIB:
+    return "Shared Library";
+  case OBJECT:
+    return "Object File";
+  case INSTANCE:
+    return "Instance File";
+  case ASSEMBLER:
+    return "Assembly";
+  case MULTI_LANGUAGES:
+    return "Multiple languages";
+  default:
+    return "Unknown";
+  }
+}
+
 File::File(const string &path) : path_(path)
 {
   if (const string ext = getExt(); ext == ".py")

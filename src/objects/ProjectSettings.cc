@@ -18,7 +18,7 @@ ProjectSettings::ProjectSettings(const std::filesystem::path &project_root) : Se
 }
 
 ProjectSettings::ProjectSettings(
-    const std::string &name, const std::string &author, const std::string &targetName,
+    const std::string &name, const std::string &author, const std::string &targetName, const bool add_std,
     const std::string &version, const std::string &src, const std::string &include, const ProjectType &type
 )
     : Settings(fs::current_path()), type_(type), name_(name), author_(author), target_name_(targetName),
@@ -26,6 +26,7 @@ ProjectSettings::ProjectSettings(
 {
   // If the project is being created (and does not exist yet), the root is the current path and zc.json
   // doesn't exist yet
+  add_std_ = add_std;
   checkFolderNames();
 }
 

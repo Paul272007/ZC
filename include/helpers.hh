@@ -7,15 +7,17 @@
 #include <nlohmann/json_fwd.hpp>
 
 // clang-format off
-#define ROOT_DIR     ".zc"
-#define ZC_FILE      "zc.json"
-#define REGISTRY     "registry.json"
-#define EXTERNAL     "external"
-#define INCLUDE_DIR  "include"
-#define LIB_DIR      "lib"
-#define BIN_DIR      "bin"
-#define BUILD_DIR    "build"
-#define TMP_DIR      "tmp"
+#define ROOT_DIR                        ".zc"
+#define ZC_FILE                     "zc.json"
+#define REGISTRY              "registry.json"
+#define EXTERNAL                   "external"
+#define INCLUDE_DIR                 "include"
+#define LIB_DIR                         "lib"
+#define BIN_DIR                         "bin"
+#define BUILD_DIR                     "build"
+#define TMP_DIR                         "tmp"
+#define TEMPLATES                 "templates"
+#define PROJECT_TEMPLATES "project_templates"
 // clang-format on
 
 /**

@@ -9,8 +9,6 @@
 #include <objects/File.hh>
 #include <objects/GlobalSettings.hh>
 
-#define TEMPLATES "templates"
-
 class Create : public Command
 {
 public:
@@ -54,5 +52,5 @@ private:
   GlobalSettings &settings_;
   std::vector<File> files_;
   std::vector<File> input_files_;
-  std::filesystem::path templates_path_ = getZCRootDir() / TEMPLATES;
+  static inline std::filesystem::path templates_path_ = getZCRootDir() / TEMPLATES;
 };

@@ -34,7 +34,7 @@ std::vector<File> Create::getTemplates() const
     if (fs::exists(templates_path_) && fs::is_directory(templates_path_))
       for (const auto &entry : fs::directory_iterator(templates_path_))
         if (entry.is_regular_file())
-          file_list.emplace_back(entry.path().string());
+          file_list.emplace_back(entry.path());
   }
   catch (const fs::filesystem_error &e)
   {

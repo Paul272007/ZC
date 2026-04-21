@@ -23,6 +23,7 @@ Build::Build(
     : Command(force, quiet), root_(project_root.empty() ? getProjectRoot() : project_root), clean_(clean),
       is_zc_build_command_(is_zc_build_command),
       p_settings_(ProjectSettings(project_root.empty() ? getProjectRoot() : project_root)),
+      g_settings_(GlobalSettings::getInstance()),
       registry_(Registry(project_root.empty() ? getProjectRoot() : project_root))
 {
   checkPackageName(p_settings_.name_);
@@ -63,12 +64,15 @@ int Build::operator()()
 
   log_success("Project was built successfully in build/");
 
-  // Move binary to current path to make it easier to execute it
-  if (p_settings_.type_ == BIN && is_zc_build_command_)
+  if (g_settings_.move_binary_to_current_path_)
   {
-    fs ::path binary = root_ / BUILD_DIR / p_settings_.target_name_;
-    if (fs::exists(binary))
-      fs::rename(binary, fs::current_path() / p_settings_.target_name_);
+    // Move binary to current path to make it easier to execute it
+    if (p_settings_.type_ == BIN && is_zc_build_command_)
+    {
+      fs ::path binary = root_ / BUILD_DIR / p_settings_.target_name_;
+      if (fs::exists(binary))
+        fs::rename(binary, fs::current_path() / p_settings_.target_name_);
+    }
   }
 
   if (clean_)

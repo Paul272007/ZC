@@ -9,8 +9,6 @@
 #include <objects/ProjectSettings.hh>
 #include <vector>
 
-#define PROJECT_TEMPLATES "project_templates"
-
 class Init : public Command
 {
 public:

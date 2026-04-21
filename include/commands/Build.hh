@@ -5,6 +5,7 @@
 
 #include <commands/Command.hh>
 #include <objects/File.hh>
+#include <objects/GlobalSettings.hh>
 #include <objects/ProjectSettings.hh>
 #include <objects/Registry.hh>
 
@@ -29,5 +30,6 @@ public:
 
   int operator()() override;
   const ProjectSettings p_settings_;
+  const GlobalSettings g_settings_;
   const Registry registry_;
 };

@@ -21,10 +21,11 @@ enum Language
   OBJECT,
   INSTANCE,
   ASSEMBLER,
-  ZC,
   MULTI_LANGUAGES,
   OTHER
 };
+
+std::string to_string(Language l);
 
 using Declarations = std::map<std::string, std::vector<std::string>>;
 

@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <string>
-#include <vector>
 
 #include <commands/Init.hh>
 #include <helpers.hh>
@@ -56,23 +55,6 @@ Init::Init(
 
   if (!include_folder.empty())
     include_folder_ = include_folder;
-}
-
-vector<fs::path> Init::getProjectTemplates() const
-{
-  vector<fs::path> templates_list;
-  try
-  {
-    if (fs::exists(project_templates_path_) && fs::is_directory(project_templates_path_))
-      for (const auto &entry : fs::directory_iterator(project_templates_path_))
-        if (entry.is_directory())
-          templates_list.push_back(entry.path());
-  }
-  catch (const fs::filesystem_error &e)
-  {
-    throw ZCError(ZC_INTERNAL_ERROR, e.what());
-  }
-  return templates_list;
 }
 
 void Init::initializeUsingTemplate() const
@@ -135,7 +117,9 @@ int Init::operator()()
   }
 
   // Create configuration file with empty version
-  const ProjectSettings settings(name_, author_, target_, "", src_folder_, include_folder_, type_);
+  const ProjectSettings settings(
+      name_, author_, target_, settings_.add_std_, "", src_folder_, include_folder_, type_
+  );
   settings.write();
 
   if (settings_.edit_on_init_ || edit_)
