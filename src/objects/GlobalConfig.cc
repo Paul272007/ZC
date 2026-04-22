@@ -1,31 +1,20 @@
-#include <string>
+#include "objects/GlobalConfig.hh"
+#include "files.hh"
+#include "nlohmann/json.hpp"
+#include "objects/Config.hh"
 
-#include <helpers.hh>
-#include <objects/GlobalSettings.hh>
-#include <objects/Settings.hh>
-#include <objects/ZCError.hh>
-
-using json = nlohmann::json;
-using namespace std;
-
-GlobalSettings::GlobalSettings() : Settings(getZCRootDir())
+GlobalConfig::GlobalConfig(const std::filesystem::path &file) : Config(file)
 {
   load();
 }
 
-GlobalSettings &GlobalSettings::getInstance()
-{
-  static GlobalSettings instance;
-  return instance;
-}
-
-void GlobalSettings::write() const
+void GlobalConfig::write() const
 {
 }
 
-void GlobalSettings::load()
+void GlobalConfig::load()
 {
-  json json_conf = parseJsonFile(config_path_);
+  nlohmann::json json_conf = parseJsonFile(file_);
 
   c_compiler_ = json_conf.value("c_compiler", "clang");
   cpp_compiler_ = json_conf.value("cpp_compiler", "clang++");
@@ -36,7 +25,7 @@ void GlobalSettings::load()
 
   editor_ = json_conf.value("editor", "nvim");
 
-  flags_ = json_conf.value<vector<string>>("flags", vector<string>{"-Wall", "-Wextra"});
+  flags_ = json_conf.value<std::vector<std::string>>("flags", std::vector<std::string>{"-Wall", "-Wextra"});
 
   move_binary_to_current_path_ = json_conf.value<bool>("move_binary_to_current_path", false);
   clear_before_run_ = json_conf.value<bool>("clear_before_run", false);

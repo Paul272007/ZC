@@ -13,6 +13,7 @@ public:
   std::tuple<int, int, int> to_tuple() const;
   std::string string() const;
 
+  Version operator=(const std::string &s) const;
   bool operator==(const Version &other) const;
   bool operator!=(const Version &other) const;
   bool operator<(const Version &other) const;

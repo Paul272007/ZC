@@ -1,19 +1,21 @@
 #pragma once
 
-#include <commands/Command.hh>
-#include <objects/Registry.hh>
 #include <string>
 #include <vector>
+
+#include "commands/Command.hh"
+#include "objects/GlobalController.hh"
+#include "objects/LocalController.hh"
 
 class Add : public Command
 {
 public:
-  Add(const std::vector<std::string> &targets, const bool force, const bool quiet);
+  Add(const bool force, const bool quiet, const std::vector<std::string> &targets);
 
   int operator()() override;
 
 private:
   const std::vector<std::string> targets_;
-  Registry global_;
-  Registry local_;
+  LocalController l_;
+  GlobalController g_;
 };

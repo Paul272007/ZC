@@ -3,30 +3,16 @@
 #include <string>
 #include <vector>
 
-#include <commands/Command.hh>
-#include <objects/Registry.hh>
+#include "commands/Command.hh"
 
 class Remove : public Command
 {
 public:
-  /**
-   * @brief Uninstall given libraries
-   *
-   * @param targets The libraries to be installed
-   * @param force
-   * @param quiet
-   * @param global
-   */
-  Remove(const std::vector<std::string> &targets, bool force, bool quiet, bool global);
+  Remove(bool force, bool quiet, bool global, const std::vector<std::string> &targets);
 
-  /**
-   * @brief Execute command
-   *
-   * @return Exit code
-   */
   int operator()() override;
 
 private:
-  Registry registry_;
   const std::vector<std::string> targets_;
+  Controller *c_ = nullptr;
 };

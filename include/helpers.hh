@@ -6,21 +6,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-// clang-format off
-#define ROOT_DIR                        ".zc"
-#define INDEX                    "index.json"
-#define ZC_FILE                     "zc.json"
-#define REGISTRY              "registry.json"
-#define EXTERNAL                   "external"
-#define INCLUDE_DIR                 "include"
-#define LIB_DIR                         "lib"
-#define BIN_DIR                         "bin"
-#define BUILD_DIR                     "build"
-#define TMP_DIR                         "tmp"
-#define TEMPLATES                 "templates"
-#define PROJECT_TEMPLATES "project_templates"
-// clang-format on
-
 /**
  * @brief Returns the root directory of ZC
  */
@@ -69,9 +54,5 @@
 [[nodiscard]] std::string execAndGetOutput(const char *cmd);
 
 [[nodiscard]] std::string urlEncode(const std::string &s);
-
-[[nodiscard]] nlohmann::json parseJsonFile(const std::filesystem::path &file_path);
-
-void writeJsonFile(const nlohmann::json &json, const std::filesystem::path &file_path);
 
 void checkPackageName(const std::string &name);

@@ -1,7 +1,7 @@
-#include <commands/Command.hh>
-#include <objects/ProjectSettings.hh>
+#pragma once
 
-#define GH_REPO "Paul272007/ZC-Registry"
+#include "commands/Command.hh"
+#include "objects/LocalController.hh"
 
 class Publish : public Command
 {
@@ -10,5 +10,5 @@ public:
   int operator()() override;
 
 private:
-  ProjectSettings p_settings_;
+  LocalController l_;
 };

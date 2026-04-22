@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
 
-#include <interface.hh>
-#include <objects/Table.hh>
+#include "interface.hh"
+#include "objects/Table.hh"
 
 using namespace std;
 
@@ -21,8 +21,8 @@ Table::Table(
     const int n_rows, const int n_cols, bool hasRowHeaders, bool hasColHeaders,
     const std::vector<std::vector<std::string>> &content
 )
-    : n_cols_(n_cols), n_rows_(n_rows), current_line_(0), content_(content),
-      hasRowHeaders_(hasRowHeaders), hasColHeaders_(hasColHeaders)
+    : n_cols_(n_cols), n_rows_(n_rows), current_line_(0), content_(content), hasRowHeaders_(hasRowHeaders),
+      hasColHeaders_(hasColHeaders)
 {
   // Allocate internal vectors' size before using them
   max_widths_.resize(n_cols, 0);
@@ -30,8 +30,8 @@ Table::Table(
 }
 
 void Table::setThickness(
-    bool rowThickness, bool colThickness, bool rowSeparatorThickness,
-    bool colSeparatorThickness, bool rowBorderThickness, bool colBorderThickness
+    bool rowThickness, bool colThickness, bool rowSeparatorThickness, bool colSeparatorThickness,
+    bool rowBorderThickness, bool colBorderThickness
 )
 {
   rowThickness_ = rowThickness;
@@ -58,8 +58,7 @@ void Table::getWidths()
     for (int i = 0; i < n_rows_; i++)
     {
       // Check if the line does exist in content_
-      if (i < static_cast<int>(content_.size()) &&
-          j < static_cast<int>(content_[i].size()))
+      if (i < static_cast<int>(content_.size()) && j < static_cast<int>(content_[i].size()))
       {
         const int length = content_[i][j].size();
         sizes_[i][j] = length;
@@ -80,33 +79,27 @@ void Table::getChars()
   int isSepRowDouble = (hasColHeaders_ && rowSeparatorThickness_);
   int isSepColDouble = (hasRowHeaders_ && colSeparatorThickness_);
   chars_.sepCross_ = (isSepColDouble)
-                         ? (isSepRowDouble ? DOUBLE_VERTICAL_HORIZONTAL
-                                           : VERTICAL_DOUBLE_HORIZONTAL_SINGLE)
-                         : (isSepRowDouble ? VERTICAL_SINGLE_HORIZONTAL_DOUBLE
-                                           : LIGHT_VERTICAL_HORIZONTAL);
+                         ? (isSepRowDouble ? DOUBLE_VERTICAL_HORIZONTAL : VERTICAL_DOUBLE_HORIZONTAL_SINGLE)
+                         : (isSepRowDouble ? VERTICAL_SINGLE_HORIZONTAL_DOUBLE : LIGHT_VERTICAL_HORIZONTAL);
   if (rowSeparatorThickness_)
   {
     chars_.sepRow_ = DOUBLE_HORIZONTAL;
-    chars_.sepSepCross_ = (colSeparatorThickness_)
-                              ? DOUBLE_VERTICAL_HORIZONTAL
-                              : VERTICAL_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.sepSepCross_ =
+        (colSeparatorThickness_) ? DOUBLE_VERTICAL_HORIZONTAL : VERTICAL_SINGLE_HORIZONTAL_DOUBLE;
   }
   else
   {
     chars_.sepRow_ = LIGHT_HORIZONTAL;
-    chars_.sepSepCross_ = (colSeparatorThickness_)
-                              ? VERTICAL_DOUBLE_HORIZONTAL_SINGLE
-                              : LIGHT_VERTICAL_HORIZONTAL;
+    chars_.sepSepCross_ =
+        (colSeparatorThickness_) ? VERTICAL_DOUBLE_HORIZONTAL_SINGLE : LIGHT_VERTICAL_HORIZONTAL;
   }
   if (rowThickness_)
   {
-    chars_.cross_ = (colThickness_) ? DOUBLE_VERTICAL_HORIZONTAL
-                                    : VERTICAL_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.cross_ = (colThickness_) ? DOUBLE_VERTICAL_HORIZONTAL : VERTICAL_SINGLE_HORIZONTAL_DOUBLE;
   }
   else
   {
-    chars_.cross_ = (colThickness_) ? VERTICAL_DOUBLE_HORIZONTAL_SINGLE
-                                    : LIGHT_VERTICAL_HORIZONTAL;
+    chars_.cross_ = (colThickness_) ? VERTICAL_DOUBLE_HORIZONTAL_SINGLE : LIGHT_VERTICAL_HORIZONTAL;
   }
   chars_.sepCol_ = (colSeparatorThickness_) ? DOUBLE_VERTICAL : LIGHT_VERTICAL;
   // Rest
@@ -127,14 +120,10 @@ void Table::getChars()
       chars_.bottomLeftCorner_ = UP_SINGLE_RIGHT_DOUBLE;
       chars_.bottomRightCorner_ = UP_SINGLE_LEFT_DOUBLE;
     }
-    chars_.topT_ = (colThickness_) ? DOUBLE_DOWN_HORIZONTAL
-                                   : DOWN_SINGLE_HORIZONTAL_DOUBLE;
-    chars_.bottomT_ =
-        (colThickness_) ? DOUBLE_UP_HORIZONTAL : UP_SINGLE_HORIZONTAL_DOUBLE;
-    chars_.topSepT_ = (colSeparatorThickness_) ? DOUBLE_DOWN_HORIZONTAL
-                                               : DOWN_SINGLE_HORIZONTAL_DOUBLE;
-    chars_.bottomSepT_ = (colSeparatorThickness_) ? DOUBLE_UP_HORIZONTAL
-                                                  : UP_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.topT_ = (colThickness_) ? DOUBLE_DOWN_HORIZONTAL : DOWN_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.bottomT_ = (colThickness_) ? DOUBLE_UP_HORIZONTAL : UP_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.topSepT_ = (colSeparatorThickness_) ? DOUBLE_DOWN_HORIZONTAL : DOWN_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.bottomSepT_ = (colSeparatorThickness_) ? DOUBLE_UP_HORIZONTAL : UP_SINGLE_HORIZONTAL_DOUBLE;
   }
   else // !rowBorderThickness
   {
@@ -153,39 +142,27 @@ void Table::getChars()
       chars_.bottomLeftCorner_ = LIGHT_UP_RIGHT;
       chars_.bottomRightCorner_ = LIGHT_UP_LEFT;
     }
-    chars_.topT_ =
-        (colThickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
-    chars_.bottomT_ =
-        (colThickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
-    chars_.topSepT_ = (colSeparatorThickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE
-                                               : LIGHT_DOWN_HORIZONTAL;
-    chars_.bottomSepT_ = (colSeparatorThickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE
-                                                  : LIGHT_UP_HORIZONTAL;
+    chars_.topT_ = (colThickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
+    chars_.bottomT_ = (colThickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
+    chars_.topSepT_ = (colSeparatorThickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
+    chars_.bottomSepT_ = (colSeparatorThickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
   }
 
   if (colBorderThickness_)
   {
     chars_.borderCol_ = DOUBLE_VERTICAL;
-    chars_.leftT_ =
-        (rowThickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
-    chars_.leftSepT_ = (rowSeparatorThickness_) ? DOUBLE_VERTICAL_RIGHT
-                                                : VERTICAL_DOUBLE_RIGHT_SINGLE;
-    chars_.rightT_ =
-        (rowThickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
-    chars_.rightSepT_ = (rowSeparatorThickness_) ? DOUBLE_VERTICAL_LEFT
-                                                 : VERTICAL_DOUBLE_LEFT_SINGLE;
+    chars_.leftT_ = (rowThickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
+    chars_.leftSepT_ = (rowSeparatorThickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
+    chars_.rightT_ = (rowThickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
+    chars_.rightSepT_ = (rowSeparatorThickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
   }
   else
   {
     chars_.borderCol_ = LIGHT_VERTICAL;
-    chars_.leftT_ =
-        (rowThickness_) ? VERTICAL_SINGLE_RIGHT_DOUBLE : LIGHT_VERTICAL_RIGHT;
-    chars_.leftSepT_ = (rowSeparatorThickness_) ? VERTICAL_SINGLE_RIGHT_DOUBLE
-                                                : LIGHT_VERTICAL_RIGHT;
-    chars_.rightT_ =
-        (rowThickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE : LIGHT_VERTICAL_LEFT;
-    chars_.rightSepT_ = (rowSeparatorThickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE
-                                                 : LIGHT_VERTICAL_LEFT;
+    chars_.leftT_ = (rowThickness_) ? VERTICAL_SINGLE_RIGHT_DOUBLE : LIGHT_VERTICAL_RIGHT;
+    chars_.leftSepT_ = (rowSeparatorThickness_) ? VERTICAL_SINGLE_RIGHT_DOUBLE : LIGHT_VERTICAL_RIGHT;
+    chars_.rightT_ = (rowThickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE : LIGHT_VERTICAL_LEFT;
+    chars_.rightSepT_ = (rowSeparatorThickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE : LIGHT_VERTICAL_LEFT;
   }
 }
 
@@ -272,17 +249,14 @@ void Table::middleLine()
 
   // First column
   padding(max_widths_[0] - sizes_[current_line_][0] - 1);
-  cout << (content_[current_line_][0].empty() ? "" : content_[current_line_][0])
-       << " ";
+  cout << (content_[current_line_][0].empty() ? "" : content_[current_line_][0]) << " ";
 
   // Other columns
   for (int i = 1; i < n_cols_; i++)
   {
     cout << chars_.col_; // Internal vertical separator
     padding(max_widths_[i] - sizes_[current_line_][i] - 1);
-    cout << (content_[current_line_][i].empty() ? ""
-                                                : content_[current_line_][i])
-         << " ";
+    cout << (content_[current_line_][i].empty() ? "" : content_[current_line_][i]) << " ";
   }
 
   current_line_++;

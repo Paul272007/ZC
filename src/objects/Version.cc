@@ -40,6 +40,11 @@ std::string Version::string() const
   return s.str();
 }
 
+Version Version::operator=(const std::string &s) const
+{
+  return Version(s);
+}
+
 std::ostream &operator<<(std::ostream &os, const Version &v)
 {
   os << v.major_ << "." << v.minor_ << "." << v.patch_;

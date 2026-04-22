@@ -1,24 +1,16 @@
 #pragma once
 
+#include <functional>
 #include <string>
 
-#include <interface.hh>
+#include "interface.hh"
+#include "objects/Controller.hh"
 
 class Command
 {
 public:
-  /**
-   * @brief Create default destructor
-   */
   virtual ~Command() = default;
 
-  /**
-   * @brief Execute the Command
-   *
-   * Get overwritten in every child class
-   *
-   * @return Exit code of the command
-   */
   virtual int operator()() = 0;
 
 protected:
@@ -26,30 +18,31 @@ protected:
   {
   }
 
-  void log_info(const std::string &message) const
-  {
-    if (!quiet_)
-      info(message);
-  }
-
-  void log_success(const std::string &message) const
-  {
-    if (!quiet_)
-      info(message);
-  }
-
-  void log_debug(const std::string &message) const
-  {
-    if (!quiet_)
-      debug(message);
-  }
-
-  void log_warning(const std::string &message) const
-  {
-    if (!quiet_)
-      debug(message);
-  }
-
   const bool force_;
   const bool quiet_;
+
+  std::function<void(LogLevel, const std::string &)> logger_ = [this](LogLevel level, const std::string &msg)
+  {
+    if (this->quiet_)
+      return;
+
+    switch (level)
+    {
+    case LogLevel::INFO:
+      info(msg);
+      break;
+    case LogLevel::SUCCESS:
+      success(msg);
+      break;
+    case LogLevel::WARNING:
+      warning(msg);
+      break;
+    case LogLevel::DEBUG:
+      debug(msg);
+      break;
+    case LogLevel::ERROR:
+      error(msg);
+      break;
+    }
+  };
 };

@@ -1,14 +1,10 @@
-#include <filesystem>
-#include <vector>
+#include "commands/Add.hh"
+#include "objects/Controller.hh"
+#include "objects/LocalController.hh"
+#include "objects/Registry.hh"
 
-#include <commands/Add.hh>
-#include <helpers.hh>
-#include <interface.hh>
-#include <objects/Registry.hh>
-#include <objects/ZCError.hh>
-
-Add::Add(const std::vector<std::string> &targets, const bool force, const bool quiet)
-    : Command(force, quiet), targets_(targets), global_(Registry()), local_(Registry(getProjectRoot()))
+Add::Add(const bool force, const bool quiet, const std::vector<std::string> &targets)
+    : Command(force, quiet), targets_(targets), l_(logger_, force), g_(logger_, force)
 {
 }
 
@@ -17,35 +13,29 @@ int Add::operator()()
   std::vector<Package> v;
   for (const auto &target : targets_)
   {
-    // If the package is in the local registry
-    if (local_.pkgExists(target) && !force_)
+    if (force_)
     {
-      // If it is a local dependency
-      if (std::filesystem::exists(getProjectRoot() / EXTERNAL / LIB_DIR / target))
+      v.push_back(g_.r_->getPackage(target));
+      continue;
+    }
+    else
+    {
+      if (l_.r_->getPackage(target).is_installed_locally)
       {
-        if (ask("The package " + target +
-                " is already installed on this project. Do you want to overwrite it ?"))
-        {
-          std::filesystem::remove_all(getProjectRoot() / EXTERNAL / INCLUDE_DIR / target);
-          std::filesystem::remove_all(getProjectRoot() / EXTERNAL / LIB_DIR / target);
-          v.push_back(global_.getPackage(target));
-        }
+        logger_(LogLevel::WARNING, "Skipped package '" + target + "' already installed locally.");
+        continue;
       }
-      else // If it is a global dependency, just say it was already added
-      {
-        info("Dependency already added.");
-      }
-    } // Add the package to the list of packages to index and check if it is globally installed
-    v.push_back(global_.getPackage(target));
+      v.push_back(g_.r_->getPackage(target));
+    }
   }
+
   bool modifs = false;
-  for (const auto &pkg : v)
+  for (auto &pkg : v)
   {
-    local_.indexPackage(pkg);
+    l_.addDependency(pkg);
     modifs = true;
-    log_success("Added dependency: " + pkg.name_);
   }
   if (modifs)
-    local_.write();
+    l_.r_->write();
   return 0;
 }

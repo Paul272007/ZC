@@ -1,25 +1,19 @@
-#include <filesystem>
-#include <string>
-
-#include <commands/Init.hh>
-#include <helpers.hh>
-#include <interface.hh>
-#include <objects/ProjectSettings.hh>
-#include <objects/Settings.hh>
-#include <objects/ZCError.hh>
+#include "commands/Init.hh"
+#include "objects/Controller.hh"
+#include "objects/LocalConfig.hh"
+#include "objects/ZCError.hh"
 
 using namespace std;
 namespace fs = std::filesystem;
 
 Init::Init(
-    const std::string &author, const std::string &project_template, const std::string &name,
-    const std::string &src_folder, const std::string &include_folder, const bool force, const bool quiet,
-    const bool edit, const bool git, const std::string &type
+    bool force, bool quiet, bool edit, bool git, const std::string &author,
+    const std::string &project_template, const std::string &name, const std::string &type
 )
-    : Command(force, quiet), path_(fs::current_path()), type_(UNDEF), edit_(edit), git_(git),
-      settings_(GlobalSettings::getInstance())
+    : Command(force, quiet), path_(fs::current_path()), type_(Type::UNDEF), edit_(edit), git_(git),
+      l_(logger_, force), g_(logger_, force)
 {
-  if (!force_ && fs::exists(ZC_FILE))
+  if (!force_ && fs::exists(CONFIG))
     if (!ask(
             "It seems like a ZC project is already initialized in this directory. Do you want to overwrite "
             "it ?"
@@ -43,87 +37,37 @@ Init::Init(
   {
     std::string type2 = upper(type);
     if (type2 == "LIB")
-      type_ = LIB;
+      type_ = Type::LIB;
     else if (type2 == "BIN")
-      type_ = BIN;
+      type_ = Type::BIN;
   }
   // else it stays UNDEF
-
-  // Don't ask to override default settings for these
-  if (!src_folder.empty())
-    src_folder_ = src_folder;
-
-  if (!include_folder.empty())
-    include_folder_ = include_folder;
-}
-
-void Init::initializeUsingTemplate() const
-{
-  fs::path template_path = project_templates_path_ / template_;
-
-  if (!fs::exists(template_path))
-    throw ZCError(ZC_NOT_FOUND, "The following template was not found: " + template_);
-
-  for (const auto &entry : fs::recursive_directory_iterator(template_path))
-  {
-    // For each entry in the template, check if it already exists here
-    const fs::path &src_path = entry.path();
-
-    fs::path rel_path = fs::relative(src_path, template_path);
-    fs::path dest_path = path_ / rel_path;
-
-    if (fs::exists(dest_path) && !force_)
-      if (!ask("The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"))
-        continue;
-
-    // Copy stuff
-    if (fs::is_symlink(src_path))
-    {
-      fs::path target = fs::read_symlink(src_path);
-
-      if (fs::is_directory(src_path))
-        fs::create_directory_symlink(target, dest_path);
-      else
-        fs::create_symlink(target, dest_path);
-    }
-    else if (fs::is_directory(src_path))
-    {
-      fs::create_directories(dest_path);
-    }
-    else if (fs::is_regular_file(src_path))
-    {
-      // Only copy gitignore if git is enabled on project
-      if (src_path.filename() == ".gitignore" && !git_)
-        continue;
-
-      fs::create_directories(dest_path.parent_path());
-      fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
-    }
-  }
 }
 
 int Init::operator()()
 {
   if (!template_.empty())
   {
-    initializeUsingTemplate();
+    g_.initializeWithTemplate(l_.root_dir_, template_);
   }
 
   if (git_)
   {
-    log_info("Initializing git repo...");
+    logger_(LogLevel::INFO, "Initializing git repo...");
     if (system("git init") != 0)
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
 
   // Create configuration file with empty version
-  const ProjectSettings settings(
-      name_, author_, target_, settings_.add_std_, "", src_folder_, include_folder_, type_
-  );
-  settings.write();
+  l_.lc_->name_ = name_;
+  l_.lc_->author_ = author_;
+  l_.lc_->target_ = target_;
+  l_.lc_->add_std_ = g_.gc_->add_std_;
+  l_.lc_->type_ = type_;
+  l_.lc_->write();
 
-  if (settings_.edit_on_init_ || edit_)
-    return system(string(settings_.editor_ + " " + path_.string()).c_str());
+  if (g_.gc_->edit_on_init_ || edit_)
+    return system(string(g_.gc_->editor_ + " " + path_.string()).c_str());
 
   return 0;
 }

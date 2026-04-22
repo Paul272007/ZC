@@ -1,22 +1,14 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 #include <vector>
 
-#include <helpers.hh>
-#include <nlohmann/json.hpp>
-#include <objects/Settings.hh>
+#include "objects/Config.hh"
 
-class GlobalSettings : public Settings
+class GlobalConfig : public Config
 {
 public:
-  /**
-   * @brief Get an instance
-   *
-   * @return A GlobalSettings instance
-   */
-  static GlobalSettings &getInstance();
-
+  explicit GlobalConfig(const std::filesystem::path &file);
   void write() const override;
 
   bool move_binary_to_current_path_;
@@ -29,6 +21,4 @@ public:
 
 protected:
   void load() override;
-
-  GlobalSettings();
 };

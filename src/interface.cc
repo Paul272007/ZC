@@ -1,7 +1,7 @@
 #include <iostream>
-
-#include <interface.hh>
 #include <string>
+
+#include "interface.hh"
 
 using namespace std;
 
@@ -23,6 +23,11 @@ void warning(const string &msg)
 void info(const string &msg)
 {
   cout << BLUE << "[INFO]    " << COLOR_RESET << msg << endl;
+}
+
+void error(const string &msg)
+{
+  cout << RED << "[ERROR]   " << COLOR_RESET << msg << endl;
 }
 
 bool ask(const string &question)

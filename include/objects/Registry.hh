@@ -2,95 +2,43 @@
 
 #include <filesystem>
 #include <string>
-#include <unordered_set>
+#include <vector>
 
-#include <helpers.hh>
-#include <objects/Table.hh>
-
-#define N_ATTR_PKG 5
-
-class Build;
+#include "objects/Table.hh"
+#include "objects/Version.hh"
 
 struct Package
 {
-  std::string name_;
-  std::string version_;
-  std::string binary_;
-  std::string origin_;
-  bool is_bin_;
+  std::string name;
+  std::string binary;
+  std::string origin;
+  Version version = {0, 0, 0};
+  bool is_exec;
+  bool is_installed_locally = true;
 };
 
 class Registry
 {
 public:
-  /**
-   * @brief Global registry constructor
-   */
-  Registry();
-
-  /**
-   * @brief Local registry constructor
-   *
-   * @param project_root The root of the project
-   */
-  Registry(const std::filesystem::path &project_root);
+  explicit Registry(const std::filesystem::path &file) : file_(file)
+  {
+  }
+  virtual ~Registry() = default;
 
   void write() const;
-  /**
-   * @brief Install a library based on its root folder
-   *
-   * @param project_root The root of the project to install
-   * @param force Force installation even if the library already exists
-   * @param quiet Activate quiet mode
-   */
-  void installPackage(
-      const std::filesystem::path &project_root, bool force, bool quiet, const std::string &origin
-  );
-
-  void installPackage(
-      const std::filesystem::path &project_root, bool force, bool quiet, const std::string &origin,
-      std::unordered_set<std::string> &visited
-  );
-
-  /**
-   * @brief Uninstall package and remove it from index
-   *
-   * @param pkg_name The target package
-   * @return Whether all files were successfully deleted or not
-   */
-  bool removePackage(const std::string &pkg_name);
-
-  const Package &getPackage(const std::string &pkg_name) const;
-
-  /**
-   * @param pkg_name The name of the package to check
-   * @return Whether the package was found or not
-   */
-  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
-
   void indexPackage(const Package &package);
-
-  /**
-   * @brief Create a Table containing all the packages, ready to be displayed
-   *
-   * @return The Table
-   */
-  [[nodiscard]] Table packagesTable() const;
-  [[nodiscard]] const std::vector<Package> &getPackages() const;
-  [[nodiscard]] const std::filesystem::path &getIncludePath() const;
-  [[nodiscard]] const std::filesystem::path &getLibPath() const;
-
-private:
-  void load(bool is_global);
-  void installExecutable(const Build &b, bool quiet);
-  void installLibrary(const Build &b, bool quiet);
-
   Package unindexPackage(const std::string &pkg_name);
 
-  const bool is_global_;
-  const std::filesystem::path registry_path_;
-  const std::filesystem::path include_path_;
-  const std::filesystem::path lib_path_;
-  const std::filesystem::path bin_path_;
+  [[nodiscard]] const Package &getPackage(const std::string &pkg_name) const;
+
+  [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
+
+  [[nodiscard]] Table packagesTable() const;
+  [[nodiscard]] const std::vector<Package> &getPackages() const;
+
+protected:
+  void load();
+
   std::vector<Package> pkgs_;
+  const std::filesystem::path file_;
 };

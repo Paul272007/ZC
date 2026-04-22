@@ -1,28 +1,30 @@
 #include <string>
 #include <vector>
 
-#include <commands/Remove.hh>
-#include <interface.hh>
-#include <objects/Registry.hh>
+#include "commands/Remove.hh"
+#include "objects/Controller.hh"
+#include "objects/GlobalController.hh"
+#include "objects/LocalController.hh"
 
-Remove::Remove(const std::vector<std::string> &targets, const bool force, const bool quiet, const bool global)
-    : Command(force, quiet), registry_(global ? Registry() : Registry(getProjectRoot())), targets_(targets)
+Remove::Remove(bool force, bool quiet, bool global, const std::vector<std::string> &targets)
+    : Command(force, quiet), targets_(targets)
 {
+  if (global)
+    c_ = new GlobalController(logger_, force);
+  else
+    c_ = new LocalController(logger_, force);
 }
 
 int Remove::operator()()
 {
   for (const auto &pkg : targets_)
   {
-    if (!registry_.removePackage(pkg))
-    {
-      log_warning("The package " + pkg + " was not found");
-    }
+    if (!c_->removePackage(pkg))
+      logger_(LogLevel::WARNING, "The package " + pkg + " was not found");
     else
-    {
-      log_success("Package " + pkg + " removed successfully.");
-    }
+      logger_(LogLevel::SUCCESS, "Package " + pkg + " removed successfully.");
   }
-  registry_.write();
+  c_->r_->write();
+  delete c_;
   return 0;
 }

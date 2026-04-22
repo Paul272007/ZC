@@ -101,7 +101,7 @@ int main(const int argc, char *argv[])
   run->add_flag("-S", run_S, "Compile, but do not assemble or link");
   run->add_flag("-c", run_c, "Compile and assemble, but do not link");
 
-  run->callback([&]() { command = make_unique<Run>(input_files, run_args, run_keep, run_plus, run_E, run_S, run_c, force, quiet, std, static_compile); });
+  run->callback([&]() { command = make_unique<Run>(force, quiet, run_keep, run_plus, run_E, run_S, run_c, std, static_compile, input_files, run_args); });
 
   // ========================== CREATE ===============================
   
@@ -112,7 +112,7 @@ int main(const int argc, char *argv[])
   create->add_flag("--quiet,-q", quiet, "Do not show any messages");
   create->add_flag("--edit,-e", edit, "Edit the files once created");
 
-  create->callback([&]() { command = make_unique<Create>(output_files, force, quiet, input_files, edit); });
+  create->callback([&]() { command = make_unique<Create>(force, quiet, edit, output_files, input_files); });
 
   // ========================== INIT ===============================
 
@@ -128,7 +128,7 @@ int main(const int argc, char *argv[])
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--git,-g", git, "Create empty git repository");
 
-  init->callback([&]() { command = make_unique<Init>(author, project_template, name, src_folder, include_folder, force, quiet, edit, git, type); });
+  init->callback([&]() { command = make_unique<Init>(force, quiet, edit, git, author, project_template, name, type); });
 
   // ========================== LIST ===============================
 
@@ -159,7 +159,7 @@ int main(const int argc, char *argv[])
   install->add_flag("--force,-f", force, "Force installing the package even if already installed");
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
-  install->callback([&]() { command = make_unique<Install>(targets, path, global, force, quiet); });
+  install->callback([&]() { command = make_unique<Install>(force, quiet, global, path, targets); });
 
   // ========================== REMOVE ===============================
 
@@ -169,7 +169,7 @@ int main(const int argc, char *argv[])
   remove->add_flag("--quiet,-q", quiet, "Do not show any messages");
   remove->add_flag("--global,-g", global, "Remove globally installed package");
 
-  remove->callback([&]() { command = make_unique<Remove>(targets, false, quiet, global); });
+  remove->callback([&]() { command = make_unique<Remove>(false, quiet, global, targets); });
 
   // ========================== ADD ===============================
 
@@ -177,7 +177,7 @@ int main(const int argc, char *argv[])
 
   add->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
-  add->callback([&]() { command = make_unique<Add>(targets, false, quiet); });
+  add->callback([&]() { command = make_unique<Add>(false, quiet, targets); });
 
   // ========================== PUBLISH ===============================
 

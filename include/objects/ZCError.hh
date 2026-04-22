@@ -7,14 +7,15 @@
 enum ErrorCode
 {
   // No errors
-  SUCCESS = 0,
+  ZC_SUCCESS = 0,
   // Program errors
   ZC_COMPILATION_ERROR = 10,
   ZC_EXECUTION_ERROR = 11,
   // File errors
   ZC_NOT_FOUND = 20,
   ZC_WRITING_ERROR = 21,
-  ZC_PARSING_ERROR = 22,
+  ZC_READING_ERROR = 22,
+  ZC_PARSING_ERROR = 23,
   // Configuration errors
   ZC_CONFIG_PARSING_ERROR = 30,
   ZC_CONFIG_NOT_FOUND = 31,
@@ -51,7 +52,7 @@ public:
    * @brief Default constructor just to not get errors when throwing empty
    * errors
    */
-  ZCError();
+  ZCError() = default;
 
   /**
    * @brief Create ZCError instance
@@ -62,11 +63,12 @@ public:
   ZCError(ErrorCode code, const std::string &message);
 
   /**
-   * @brief Display error to stream
+   * @brief << overload for ZCError
    *
-   * @param stream The stream in which the error is displayed
+   * @param stream The stream in which the error is written
+   * @param error The error to be displayed
    */
-  void display(std::ostream &stream) const;
+  friend std::ostream &operator<<(std::ostream &stream, const ZCError &error);
 
   /**
    * @brief Get the error code as an int
@@ -76,14 +78,6 @@ public:
   int getCode_() const;
 
 private:
-  ErrorCode code_ = SUCCESS;
-  std::string message_ = "Success";
+  ErrorCode code_ = ZC_SUCCESS;
+  std::string message_ = "Feature not implemented";
 };
-
-/**
- * @brief << overload for ZCError
- *
- * @param stream The stream in which the error is written
- * @param error The error to be displayed
- */
-std::ostream &operator<<(std::ostream &stream, const ZCError &error);

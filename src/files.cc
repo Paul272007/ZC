@@ -1,20 +1,13 @@
 #include <chrono>
 #include <clang-c/Index.h>
-#include <filesystem>
 #include <fstream>
-#include <string>
-#include <utility>
 
-#include <helpers.hh>
-#include <interface.hh>
-#include <objects/File.hh>
-#include <objects/Registry.hh>
-#include <objects/ZCError.hh>
+#include "files.hh"
+#include "nlohmann/json.hpp"
+#include "objects/Registry.hh"
+#include "objects/ZCError.hh"
 
 using namespace std;
-namespace fs = std::filesystem;
-
-// ----------------------------------------------- Helpers
 
 namespace
 {
@@ -219,120 +212,14 @@ CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXCli
 
   return CXChildVisit_Continue;
 }
-
 } // namespace
 
-// ----------------------------------------------- File class
-
-std::string to_string(Language l)
-{
-  switch (l)
-  {
-  case C:
-    return "C";
-  case CPP:
-    return "C++";
-  case H:
-    return "C Header";
-  case HPP:
-    return "C++ Header";
-  case PY:
-    return "Python";
-  case PYC:
-    return "Compressed Python";
-  case ARCHIVE:
-    return "Static Library";
-  case DYN_LIB:
-    return "Shared Library";
-  case OBJECT:
-    return "Object File";
-  case INSTANCE:
-    return "Instance File";
-  case ASSEMBLER:
-    return "Assembly";
-  case MULTI_LANGUAGES:
-    return "Multiple languages";
-  default:
-    return "Unknown";
-  }
-}
-
-File::File(const string &path) : path_(path)
-{
-  if (const string ext = getExt(); ext == ".py")
-    language_ = PY;
-  else if (ext == ".pyc")
-    language_ = PYC;
-  else if (ext == ".c")
-    language_ = C;
-  else if (ext == ".h")
-    language_ = H;
-  else if (ext == ".cpp" || ext == ".cc" || ext == ".cxx")
-    language_ = CPP;
-  else if (ext == ".hpp" || ext == ".hh" || ext == ".hxx")
-    language_ = HPP;
-  else if (ext == ".a")
-    language_ = ARCHIVE;
-  else if (ext == ".so" || ext == ".dylib" || ext == ".dll")
-    language_ = DYN_LIB;
-  else if (ext == ".o")
-    language_ = OBJECT;
-  else if (ext == ".i")
-    language_ = INSTANCE;
-  else if (ext == ".asm" || ext == ".s")
-    language_ = ASSEMBLER;
-  else
-    language_ = OTHER;
-}
-
-fs::path File::getPath() const
-{
-  return path_;
-}
-
-Language File::getLanguage() const
-{
-  return language_;
-}
-
-string File::getFilename() const
-{
-  return split(path_, '/').back();
-}
-
-string File::read() const
-{
-  ifstream file(path_);
-
-  if (!file.is_open())
-    return "";
-  stringstream buffer;
-  buffer << file.rdbuf();
-  return buffer.str();
-}
-
-void File::write(const string &content) const
-{
-  ofstream file(path_);
-
-  if (!file.is_open())
-  {
-    throw ZCError(ZC_NOT_FOUND, "File not found: " + path_.string());
-  }
-
-  file << content;
-  if (!file.good())
-  {
-    throw ZCError(ZC_WRITING_ERROR, "Error writing to file: " + path_.string());
-  }
-}
-
-unique_ptr<Declarations> File::parse() const
+unique_ptr<Declarations> parse(const std::filesystem::path &f)
 {
   unique_ptr<Declarations> decls = make_unique<Declarations>();
 
   // 1. Read file and extract content
-  string content = read();
+  string content = read(f);
   if (content.empty())
     return decls;
 
@@ -344,14 +231,14 @@ unique_ptr<Declarations> File::parse() const
 
   // 4. Parse file
   CXTranslationUnit unit = clang_parseTranslationUnit(
-      index, path_.c_str(), args, size(args), nullptr, 0,
+      index, f.c_str(), args, size(args), nullptr, 0,
       CXTranslationUnit_DetailedPreprocessingRecord | CXTranslationUnit_KeepGoing
   );
 
   if (unit == nullptr)
   {
     clang_disposeIndex(index);
-    throw ZCError(ZC_PARSING_ERROR, "Unable to parse translation unit: " + path_.string());
+    throw ZCError(ZC_PARSING_ERROR, "Unable to parse translation unit: " + f.string());
   }
 
   // 5. Launch visitor
@@ -369,12 +256,7 @@ unique_ptr<Declarations> File::parse() const
   return decls;
 }
 
-bool File::exists() const
-{
-  return fs::exists(path_);
-}
-
-void File::writeDeclarations(const Declarations &decls) const
+void writeDeclarations(const Declarations &decls, const std::filesystem::path &file)
 {
   stringstream content;
 
@@ -486,21 +368,30 @@ void File::writeDeclarations(const Declarations &decls) const
           << "}\n"
           << "#endif\n";
 
-  write(content.str());
+  write(file, content.str());
 }
 
-string File::getExt() const
+void write(const std::filesystem::path &file, const std::string &content)
 {
-  return path_.extension().string();
+  ofstream stream(file);
+
+  if (!stream.is_open())
+    throw ZCError(ZC_WRITING_ERROR, "Could not write " + file.string());
+
+  stream << content;
+  stream.close();
 }
 
-ostream &operator<<(ostream &stream, const File &file)
+bool isCpp(const std::filesystem::path &file)
 {
-  stream << escape_shell_arg(file.path_.string());
-  return stream;
+  const char *exts[] = {".cc", ".cpp", ".cxx"};
+  for (const char *ext : exts)
+    if (file.extension().string() == ext)
+      return true;
+  return false;
 }
 
-vector<string> File::getInclusions(const Registry &reg) const
+vector<string> getFileInclusions(const std::filesystem::path &file, const std::vector<Package> &pkgs)
 {
   vector<string> found_includes;
   vector<string> required_libs;
@@ -511,7 +402,7 @@ vector<string> File::getInclusions(const Registry &reg) const
   unsigned options = CXTranslationUnit_DetailedPreprocessingRecord;
 
   const char *args[] = {"-x", "c++"}; // Always compile as C++
-  CXTranslationUnit unit = clang_parseTranslationUnit(index, path_.c_str(), args, 2, nullptr, 0, options);
+  CXTranslationUnit unit = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options);
 
   if (unit)
   {
@@ -523,17 +414,17 @@ vector<string> File::getInclusions(const Registry &reg) const
     // Compare with libraries map to extract flags
     for (const auto &inc : found_includes)
     {
-      for (const auto &package : reg.getPackages())
+      for (const auto &package : pkgs)
       {
-        if (inc.find(package.name_ + "/") == 0 || inc == package.name_ + ".h" ||
-            inc == package.name_ + ".hh" || inc == package.name_ + ".hpp")
+        if (inc.find(package.name + "/") == 0 || inc == package.name + ".h" || inc == package.name + ".hh" ||
+            inc == package.name + ".hpp")
         {
           bool already_present = std::any_of(
-              required_libs.begin(), required_libs.end(), [&](const auto &p) { return p == package.name_; }
+              required_libs.begin(), required_libs.end(), [&](const auto &p) { return p == package.name; }
           );
 
           if (!already_present)
-            required_libs.push_back(package.binary_);
+            required_libs.push_back(package.binary);
         }
       }
     }
@@ -545,7 +436,48 @@ vector<string> File::getInclusions(const Registry &reg) const
   return required_libs;
 }
 
-void File::copy(const File &file) const
+nlohmann::json parseJsonFile(const std::filesystem::path &file_path)
 {
-  write(file.read());
+  nlohmann::json parsed_json;
+
+  if (!std::filesystem::exists(file_path))
+    throw ZCError(ZC_CONFIG_NOT_FOUND, "The JSON file was not found: " + file_path.string());
+
+  std::ifstream input(file_path);
+  if (!input.is_open())
+    throw ZCError(ZC_CONFIG_READING_ERROR, "The JSON file couldn't be read: " + file_path.string());
+
+  try
+  {
+    input >> parsed_json;
+  }
+  catch (const nlohmann::json::parse_error &e)
+  {
+    throw ZCError(
+        ZC_CONFIG_PARSING_ERROR, "The JSON file couldn't be parsed: " + file_path.string() + ": " + e.what()
+    );
+  }
+
+  return parsed_json;
+}
+
+void writeJsonFile(const nlohmann::json &json, const std::filesystem::path &file_path)
+{
+  ofstream output(file_path);
+  if (!output.is_open())
+    throw ZCError(ZC_CONFIG_WRITING_ERROR, "The JSON file couldn't be written: " + file_path.string());
+
+  output << json.dump(2);
+  output.close();
+}
+
+string read(const std::filesystem::path &file)
+{
+  ifstream stream(file);
+
+  if (!stream.is_open())
+    return "";
+  stringstream buffer;
+  buffer << stream.rdbuf();
+  return buffer.str();
 }

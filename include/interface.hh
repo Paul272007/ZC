@@ -119,6 +119,8 @@ void info(const std::string &msg);
  */
 void warning(const std::string &msg);
 
+void error(const std::string &msg);
+
 /**
  * @brief Ask the user and return the user's answer
  *

@@ -3,28 +3,19 @@
 
 using namespace std;
 
-ZCError::ZCError() : code_(SUCCESS), message_("Feature not implemented yet!")
-{
-}
-
 ZCError::ZCError(const ErrorCode code, const string &message) : code_(code), message_(message)
 {
 }
 
-void ZCError::display(ostream &stream) const
+ostream &operator<<(ostream &stream, const ZCError &error)
 {
   stream << RED << "[ERROR]   " << COLOR_RESET;
 
 #ifdef DEBUG_MODE
-  stream << "(exit code: " << code_ << ") ";
+  stream << "(exit code: " << error.code_ << ") ";
 #endif
 
-  stream << message_;
-}
-
-ostream &operator<<(ostream &stream, const ZCError &error)
-{
-  error.display(stream);
+  stream << error.message_;
   return stream;
 }
 

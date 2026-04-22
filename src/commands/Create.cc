@@ -1,24 +1,21 @@
 #include <filesystem>
+#include <fstream>
 #include <sstream>
-#include <string>
-#include <unordered_set>
-#include <vector>
 
-#include <commands/Command.hh>
-#include <commands/Create.hh>
-#include <interface.hh>
-#include <objects/File.hh>
-#include <objects/Settings.hh>
-#include <objects/ZCError.hh>
+#include "commands/Create.hh"
+#include "files.hh"
+#include "objects/Controller.hh"
+#include "objects/GlobalController.hh"
+#include "objects/ZCError.hh"
 
 using namespace std;
 namespace fs = std::filesystem;
 
 Create::Create(
-    const vector<string> &files, const bool force, const bool quiet, const vector<string> &input_files,
-    const bool edit
+    bool force, bool quiet, bool edit, const std::vector<std::string> &files,
+    const std::vector<std::string> &input_files
 )
-    : Command(force, quiet), edit_(edit), settings_(GlobalSettings::getInstance())
+    : Command(force, quiet), edit_(edit), g_(logger_, force)
 {
   for (const auto &f : files)
     files_.emplace_back(f);
@@ -26,74 +23,62 @@ Create::Create(
     input_files_.emplace_back(i);
 }
 
-std::vector<File> Create::getTemplates() const
-{
-  vector<File> file_list;
-  try
-  {
-    if (fs::exists(templates_path_) && fs::is_directory(templates_path_))
-      for (const auto &entry : fs::directory_iterator(templates_path_))
-        if (entry.is_regular_file())
-          file_list.emplace_back(entry.path());
-  }
-  catch (const fs::filesystem_error &e)
-  {
-    throw ZCError(ZC_INTERNAL_ERROR, e.what());
-  }
-  return file_list;
-}
-
 int Create::operator()()
 {
-  const vector<File> templates = getTemplates();
+  const vector<fs::path> templates = g_.getTemplates();
   vector<string> files_to_edit;
   for (const auto &f : files_)
   {
     // Check if file already exists
-    if (f.exists() && !force_)
-      if (!ask("The file " + f.getPath().string() + " already exists. Do you want to replace it ?"))
+    if (fs::exists(f) && !force_)
+      if (!ask("The file '" + f.string() + "' already exists. Do you want to replace it ?"))
         continue;
     // If file is a C header
-    if (f.getLanguage() == H && !input_files_.empty())
+    if (f.extension() == ".h" && !input_files_.empty())
     {
       for (const auto &i_f : input_files_)
       {
-        if (!i_f.exists())
-          throw ZCError(ZC_NOT_FOUND, "Input file " + i_f.getPath().string() + " not found.");
-        if (i_f.getLanguage() != C && i_f.getLanguage() != CPP)
+        if (!fs::exists(i_f))
+          throw ZCError(ZC_NOT_FOUND, "Input file " + i_f.string() + " not found.");
+        if (i_f.extension() != ".c" && !isCpp(i_f))
           throw ZCError(
-              ZC_UNSUPPORTED_LANGUAGE,
-              "Input file " + i_f.getPath().string() + " has an unsupported file type."
+              ZC_UNSUPPORTED_LANGUAGE, "Input file " + i_f.string() + " has an unsupported file type."
           );
       }
       writeCDecls(f);
-      log_success("File written: " + f.getPath().string());
+      logger_(LogLevel::SUCCESS, "fs::path written: " + f.string());
     }
-    // Else use a template
-    else
+    else // Else use a template
     {
       bool found = false;
       for (const auto &t : templates)
       {
-        if (f.getExt() == t.getExt() || (f.getLanguage() != OTHER && f.getLanguage() == t.getLanguage()))
+        if (f.extension() == t.extension() || isCpp(f) && isCpp(t))
         {
-          f.copy(t);
-          log_success("File written: " + f.getPath().string());
+          ifstream t_file(t);
+          if (!t_file.is_open())
+            throw ZCError(ZC_READING_ERROR, "Could not read " + t.string());
+
+          ofstream file(f);
+          if (!file.is_open())
+            throw ZCError(ZC_WRITING_ERROR, "Could not write into " + f.string());
+
+          file << t_file.rdbuf();
+
+          logger_(LogLevel::SUCCESS, "fs::path written: " + f.string());
           found = true;
           break;
         }
       }
       if (!found)
-        throw ZCError(
-            ZC_UNSUPPORTED_LANGUAGE, "No template is available for the file: " + f.getPath().string()
-        );
+        throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "No template is available for the file: " + f.string());
     }
-    files_to_edit.push_back(f.getPath());
+    files_to_edit.push_back(f);
   }
-  if ((settings_.edit_on_create_ || edit_) && !files_to_edit.empty())
+  if ((g_.gc_->edit_on_create_ || edit_) && !files_to_edit.empty())
   {
     stringstream cmd;
-    cmd << settings_.editor_;
+    cmd << g_.gc_->editor_;
     for (const auto &f : files_to_edit)
       cmd << " " << f;
     return system(cmd.str().c_str());
@@ -101,7 +86,7 @@ int Create::operator()()
   return 0;
 }
 
-void Create::writeCDecls(const File &f) const
+void Create::writeCDecls(const fs::path &f) const
 {
   Declarations all_decls;
   auto merge_decls = [&](const vector<string> &src, vector<string> &dest)
@@ -121,7 +106,7 @@ void Create::writeCDecls(const File &f) const
 
   for (const auto &file : input_files_)
   {
-    unique_ptr<Declarations> d = file.parse();
+    unique_ptr<Declarations> d = parse(file);
     merge_decls((*d)["includes"], all_decls["includes"]);
     merge_decls((*d)["macros"], all_decls["macros"]);
     merge_decls((*d)["globals"], all_decls["globals"]);
@@ -131,5 +116,5 @@ void Create::writeCDecls(const File &f) const
     merge_decls((*d)["structs"], all_decls["structs"]);
     merge_decls((*d)["unions"], all_decls["unions"]);
   }
-  f.writeDeclarations(all_decls);
+  writeDeclarations(all_decls, f);
 }
