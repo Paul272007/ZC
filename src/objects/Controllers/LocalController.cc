@@ -6,6 +6,7 @@
 #include "interface.hh"
 #include "nlohmann/json.hpp"
 #include "objects/Configs/LocalConfig.hh"
+#include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/Controllers/LocalController.hh"
 #include "objects/Registries/LocalRegistry.hh"
@@ -16,7 +17,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 LocalController::LocalController(Logger log, bool force, const std::filesystem::path &root)
-    : Controller(log, force, root), build_dir_(root_dir_ / BUILD_DIR)
+    : Controller(log, force, root), build_dir_(root_dir_ / BUILD_DIR), cmakelists_(root_dir_ / CMAKELISTS)
 {
   bin_dir_ = root_dir_ / EXTERNAL / BIN_DIR;
   lib_dir_ = root_dir_ / EXTERNAL / LIB_DIR;
@@ -33,15 +34,15 @@ LocalController::LocalController(Logger log, bool force, const std::filesystem::
 
 void LocalController::cleanProject()
 {
-  if (fs::exists(root_dir_ / "CMakeLists.txt"))
-    if (fs::remove(root_dir_ / "CMakeLists.txt"))
+  if (fs::exists(cmakelists_) && fs::is_regular_file(cmakelists_))
+    if (fs::remove(cmakelists_))
       log_(LogLevel::INFO, "Cleaned CMakeLists.txt");
 
-  if (fs::exists(root_dir_ / ".cache"))
+  if (fs::exists(root_dir_ / ".cache") && fs::is_directory(root_dir_ / ".cache"))
     if (fs::remove_all(root_dir_ / ".cache") > 0)
       log_(LogLevel::INFO, "Cleaned .cache/");
 
-  if ((lc_->type_ == Type::BIN || force_) && fs::exists(build_dir_))
+  if ((lc_->type_ == Type::BIN || force_) && fs::exists(build_dir_) && fs::is_directory(build_dir_))
     if (fs::remove_all(build_dir_) > 0)
       log_(LogLevel::INFO, "Cleaned build/");
 }
@@ -53,7 +54,7 @@ void LocalController::buildProject(bool quiet)
 
   const char *quiet_cmd = (quiet ? " &/dev/null" : "");
   // CMake configuration
-  if (!fs::exists("CMakeLists.txt") || force_)
+  if (!fs::exists(cmakelists_) || force_)
   {
     log_(LogLevel::INFO, "Generating build configuration...");
 
@@ -87,7 +88,7 @@ void LocalController::buildProject(bool quiet)
 
 void LocalController::generateCMakeLists() const
 {
-  ofstream cmake(root_dir_ / "CMakeLists.txt");
+  ofstream cmake(cmakelists_);
   if (!cmake.is_open())
     throw ZCError(ZC_WRITING_ERROR, "Could not write CMakeLists.txt");
 
@@ -120,7 +121,7 @@ void LocalController::generateCMakeLists() const
   }
 
   // Sources
-  fs::path src = fs::relative(lc_->src_folder_, root_dir_);
+  fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
   if (fs::exists(src))
   {
     vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
@@ -128,7 +129,7 @@ void LocalController::generateCMakeLists() const
       ext = " \"" + src.string() + "/*." + ext + '"';
     cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
   }
-  fs::path include = fs::relative(lc_->include_folder_, root_dir_);
+  fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
   if (fs::exists(include))
   {
     vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
@@ -174,10 +175,9 @@ void LocalController::generateCMakeLists() const
   {
     // Includes
     cmake << "target_include_directories(" << output << " PRIVATE\n";
-    cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";  // Local include folder
-    cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n"; // Global include folder
-    cmake << "  \"${CMAKE_SOURCE_DIR}/" << fs::relative(lc_->include_folder_, root_dir_).string()
-          << "\"\n"; // Project include folder
+    cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";                                    // Local include folder
+    cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n";                                   // Global include folder
+    cmake << "  \"${CMAKE_SOURCE_DIR}/" << lc_->include_folder_.string() << "\"\n"; // Project include folder
     cmake << ")\n\n";
 
     // Libraries
@@ -222,9 +222,9 @@ void LocalController::generateCMakeLists() const
   cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";
   cmake << "set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)\n\n";
   cmake << "if(APPLE)\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" << EXTERNAL << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" EXTERNAL "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "else()\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" << EXTERNAL << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" EXTERNAL "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
   cmake << "endif()\n";
 
   cmake.close();
@@ -315,14 +315,13 @@ bool LocalController::addDependency(const std::string &target)
 
 void LocalController::checkFolderNames() const
 {
-  vector<std::string> invalid_names{"external",       "build",         ".cache",
-                                    "CMakeLists.txt", "registry.json", "zc.json"};
+  vector<string> invalid_names{"external", "build", ".cache", "CMakeLists.txt", "registry.json", "zc.json"};
 
-  std::string src_str = lc_->src_folder_.filename().string();
-  std::string inc_str = lc_->include_folder_.filename().string();
+  string src_str = lc_->src_folder_.filename().string();
+  string inc_str = lc_->include_folder_.filename().string();
 
-  bool is_src_invalid = std::ranges::find(invalid_names, src_str) != invalid_names.end();
-  bool is_inc_invalid = std::ranges::find(invalid_names, inc_str) != invalid_names.end();
+  bool is_src_invalid = ranges::find(invalid_names, src_str) != invalid_names.end();
+  bool is_inc_invalid = ranges::find(invalid_names, inc_str) != invalid_names.end();
 
   if (is_src_invalid)
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Source folder has a forbidden name");

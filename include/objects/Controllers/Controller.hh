@@ -17,6 +17,7 @@
 #define INDEX                    "index.json"
 #define CONFIG                      "zc.json"
 #define REGISTRY              "registry.json"
+#define CMAKELISTS           "CMakeLists.txt"
 #define EXTERNAL                   "external"
 #define INCLUDE_DIR                 "include"
 #define LIB_DIR                         "lib"

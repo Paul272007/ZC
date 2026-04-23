@@ -24,4 +24,5 @@ private:
   void checkFolderNames() const;
 
   std::filesystem::path build_dir_;
+  std::filesystem::path cmakelists_;
 };

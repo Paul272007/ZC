@@ -277,18 +277,21 @@ bool Controller::removePackage(const std::string &pkg_name)
     return false;
   }
 
-  if (p.is_exec)
+  if (p.is_installed_locally)
   {
-    if (fs::exists(bin_dir_ / p.binary))
-      fs::remove(bin_dir_ / p.binary);
-  }
-  else
-  {
-    if (fs::exists(include_dir_ / pkg_name))
-      fs::remove_all(include_dir_ / pkg_name);
+    if (p.is_exec)
+    {
+      if (fs::exists(bin_dir_ / p.binary))
+        fs::remove(bin_dir_ / p.binary);
+    }
+    else
+    {
+      if (fs::exists(include_dir_ / pkg_name))
+        fs::remove_all(include_dir_ / pkg_name);
 
-    if (fs::exists(lib_dir_ / pkg_name))
-      fs::remove_all(lib_dir_ / pkg_name);
+      if (fs::exists(lib_dir_ / pkg_name))
+        fs::remove_all(lib_dir_ / pkg_name);
+    }
   }
   return true;
 }

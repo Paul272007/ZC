@@ -48,10 +48,10 @@ void LocalConfig::write() const
   root["target"] = target_;
   root["type"] = type_ == Type::BIN ? "bin" : (type_ == Type::LIB) ? "lib" : "";
 
-  if (src_folder_ != "src")
+  if (src_folder_.filename().string() != "src")
     root["srcFolder"] = src_folder_;
 
-  if (include_folder_ != "include")
+  if (include_folder_.filename().string() != "include")
     root["includeFolder"] = include_folder_;
 
   if (version_)
