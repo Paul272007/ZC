@@ -23,5 +23,5 @@ private:
   void generateCMakeLists() const;
   void checkFolderNames() const;
 
-  std::filesystem::path build_dir_ = root_dir_ / BUILD_DIR;
+  std::filesystem::path build_dir_;
 };

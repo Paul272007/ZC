@@ -1,6 +1,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string>
 
 #include "interface.hh"
 #include "nlohmann/json.hpp"
@@ -15,7 +16,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 LocalController::LocalController(Logger log, bool force, const std::filesystem::path &root)
-    : Controller(log, force, root)
+    : Controller(log, force, root), build_dir_(root_dir_ / BUILD_DIR)
 {
   bin_dir_ = root_dir_ / EXTERNAL / BIN_DIR;
   lib_dir_ = root_dir_ / EXTERNAL / LIB_DIR;
@@ -40,21 +41,25 @@ void LocalController::cleanProject()
     if (fs::remove_all(root_dir_ / ".cache") > 0)
       log_(LogLevel::INFO, "Cleaned .cache/");
 
-  if ((lc_->type_ == Type::BIN || !force_) && fs::exists(build_dir_))
+  if ((lc_->type_ == Type::BIN || force_) && fs::exists(build_dir_))
     if (fs::remove_all(build_dir_) > 0)
       log_(LogLevel::INFO, "Cleaned build/");
 }
 
 void LocalController::buildProject(bool quiet)
 {
+  if (fs::exists(build_dir_) && force_)
+    cleanProject();
+
+  const char *quiet_cmd = (quiet ? " &/dev/null" : "");
   // CMake configuration
   if (!fs::exists("CMakeLists.txt") || force_)
   {
     log_(LogLevel::INFO, "Generating build configuration...");
 
     generateCMakeLists();
-    const string config_cmd = "cmake " + root_dir_.string() + " -B " + root_dir_.string() +
-                              "/" BUILD_DIR " -DCMAKE_BUILD_TYPE=Debug" + (quiet ? " &>/dev/null" : "");
+    const string config_cmd = "cmake " + root_dir_.string() + " -B " + build_dir_.string() +
+                              " -DCMAKE_BUILD_TYPE=Debug" + quiet_cmd;
 
 #ifdef DEBUG_MODE
     log_(LogLevel::DEBUG, config_cmd);
@@ -66,8 +71,7 @@ void LocalController::buildProject(bool quiet)
       throw ZCError(ZC_CMAKE_ERROR, "CMake configuration failed");
   }
   // Build
-  const string build_cmd =
-      "cmake --build " + root_dir_.string() + "/" BUILD_DIR + (quiet ? " &>/dev/null" : "");
+  const string build_cmd = "cmake --build " + build_dir_.string() + quiet_cmd;
 
 #ifdef DEBUG_MODE
   log_(LogLevel::DEBUG, build_cmd);
@@ -78,7 +82,7 @@ void LocalController::buildProject(bool quiet)
   if (system(build_cmd.c_str()) != 0)
     throw ZCError(ZC_COMPILATION_ERROR, "Build failed");
 
-  log_(LogLevel::SUCCESS, "Project was built successfully in build/");
+  log_(LogLevel::SUCCESS, "Project was built successfully in " + build_dir_.string());
 }
 
 void LocalController::generateCMakeLists() const
@@ -112,22 +116,27 @@ void LocalController::generateCMakeLists() const
   if (lc_->add_std_)
   {
     cmake << "set(CMAKE_CXX_STANDARD " << (lc_->cpp_std_.substr(3)) << ")\n";
-    cmake << "set(CMAKE_gc_->TANDARD " << (lc_->c_std_.substr(1)) << ")\n\n";
+    cmake << "set(CMAKE_C_STANDARD " << (lc_->c_std_.substr(1)) << ")\n\n";
   }
 
   // Sources
-  vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
-  vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
+  fs::path src = fs::relative(lc_->src_folder_, root_dir_);
+  if (fs::exists(src))
+  {
+    vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
+    for (auto &ext : c_extensions)
+      ext = " \"" + src.string() + "/*." + ext + '"';
+    cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
+  }
+  fs::path include = fs::relative(lc_->include_folder_, root_dir_);
+  if (fs::exists(include))
+  {
+    vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
+    for (auto &ext : h_extensions)
+      ext = " \"" + include.string() + "/*." + ext + '"';
 
-  string src = fs::relative(lc_->src_folder_, root_dir_);
-  string include = fs::relative(lc_->include_folder_, root_dir_);
-  for (auto &ext : c_extensions)
-    ext = " \"" + src + "/*." + ext + '"';
-  for (auto &ext : h_extensions)
-    ext = " \"" + include + "/*." + ext + '"';
-
-  cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
-  cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
+    cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
+  }
 
   // Source code
   vector<string> outputs;
@@ -229,9 +238,8 @@ void LocalController::publishProject()
 
   string archive_url = input("Enter the public URL of your .tar.gz archive (e.g., GitHub Release): ");
 
-  const fs::path tmp_dir = getZCRootDir() / TMP_DIR;
-  const fs::path archive_path = tmp_dir / "temp_publish.tar.gz";
-  fs::create_directories(tmp_dir);
+  const fs::path archive_path = tmp_dir_ / "temp_publish.tar.gz";
+  fs::create_directories(tmp_dir_);
 
   log_(LogLevel::INFO, "Downloading archive to calculate SHA-256 hash...");
 

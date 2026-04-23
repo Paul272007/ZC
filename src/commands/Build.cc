@@ -1,12 +1,15 @@
-#include "commands/Build.hh"
-#include "objects/Controllers/Controller.hh"
 #include <string>
+
+#include "commands/Build.hh"
+#include "helpers.hh"
+#include "objects/Controllers/Controller.hh"
 
 using namespace std;
 namespace fs = std::filesystem;
 
 Build::Build(const bool force, const bool quiet, const bool clean, const std::string &path)
-    : Command(force, quiet), clean_(clean), path_(path), l_(logger_, force, path_), g_(logger_, force)
+    : Command(force, quiet), clean_(clean), path_(path),
+      l_(logger_, force, path_.empty() ? getProjectRoot() : fs::path(path)), g_(logger_, force)
 {
 }
 

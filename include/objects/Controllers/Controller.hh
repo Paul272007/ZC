@@ -46,11 +46,7 @@ class LocalController;
 class Controller
 {
 public:
-  std::filesystem::path root_dir_;
-  Config *c_ = nullptr;
-  Registry *r_ = nullptr;
   virtual ~Controller();
-
   bool removePackage(const std::string &pkg_name);
   [[nodiscard]] bool isInstalled(const std::string &pkg);
   void saveRegistry();
@@ -62,10 +58,13 @@ public:
   static Targets parsePackages(const std::vector<std::string> &targets);
   [[nodiscard]] Table packagesTable() const;
 
+  std::filesystem::path root_dir_;
   std::filesystem::path bin_dir_;
   std::filesystem::path lib_dir_;
   std::filesystem::path include_dir_;
   std::filesystem::path tmp_dir_ = getZCRootDir() / TMP_DIR;
+  Config *c_ = nullptr;
+  Registry *r_ = nullptr;
 
 protected:
   Controller(Logger &log, bool force, const std::filesystem::path &root)

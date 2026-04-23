@@ -13,9 +13,10 @@ namespace fs = std::filesystem;
 
 GlobalController::GlobalController(Logger log, bool force) : Controller(log, force, getZCRootDir())
 {
-  std::filesystem::path bin_dir_ = root_dir_ / BIN_DIR;
-  std::filesystem::path lib_dir_ = root_dir_ / LIB_DIR;
-  std::filesystem::path include_dir_ = root_dir_ / INCLUDE_DIR;
+  bin_dir_ = root_dir_ / BIN_DIR;
+  lib_dir_ = root_dir_ / LIB_DIR;
+  include_dir_ = root_dir_ / INCLUDE_DIR;
+
   gc_ = new GlobalConfig(root_dir_ / CONFIG);
   c_ = gc_;
   r_ = new GlobalRegistry(root_dir_ / REGISTRY);

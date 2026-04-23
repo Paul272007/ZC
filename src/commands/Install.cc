@@ -36,7 +36,7 @@ int Install::operator()()
   else
     c_->installFromJson(quiet_); // Both path and targets empty : install from registry.json
 
-  c_->r_->write();
+  c_->saveRegistry();
   delete c_;
   return 0;
 }
