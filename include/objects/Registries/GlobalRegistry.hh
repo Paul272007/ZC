@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/Registry.hh"
+#include "Registry.hh"
 
 class GlobalRegistry : public Registry
 {

@@ -2,9 +2,9 @@
 
 #include <filesystem>
 
+#include "Controller.hh"
 #include "helpers.hh"
-#include "objects/Controller.hh"
-#include "objects/LocalConfig.hh"
+#include "objects/Configs/LocalConfig.hh"
 
 class LocalController : public Controller
 {
@@ -15,7 +15,7 @@ public:
   void cleanProject();
   void buildProject(bool quiet);
   void publishProject();
-  void addDependency(Package &p);
+  bool addDependency(const std::string &target);
 
   LocalConfig *lc_;
 

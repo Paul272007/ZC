@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <optional>
 
-#include "objects/Config.hh"
+#include "Config.hh"
 #include "objects/Version.hh"
 
 enum class Type

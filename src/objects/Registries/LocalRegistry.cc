@@ -1,7 +1,7 @@
 #include <filesystem>
 
-#include "objects/LocalRegistry.hh"
-#include "objects/Registry.hh"
+#include "objects/Registries/LocalRegistry.hh"
+#include "objects/Registries/Registry.hh"
 
 using namespace std;
 namespace fs = std::filesystem;

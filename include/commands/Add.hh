@@ -4,8 +4,7 @@
 #include <vector>
 
 #include "commands/Command.hh"
-#include "objects/GlobalController.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/LocalController.hh"
 
 class Add : public Command
 {
@@ -17,5 +16,4 @@ public:
 private:
   const std::vector<std::string> targets_;
   LocalController l_;
-  GlobalController g_;
 };

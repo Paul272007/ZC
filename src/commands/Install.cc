@@ -1,7 +1,7 @@
 #include "commands/Install.hh"
-#include "objects/Controller.hh"
-#include "objects/GlobalController.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/Controller.hh"
+#include "objects/Controllers/GlobalController.hh"
+#include "objects/Controllers/LocalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;

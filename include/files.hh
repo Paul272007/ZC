@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "nlohmann/json_fwd.hpp"
-#include "objects/Registry.hh"
+#include "objects/Registries/Registry.hh"
 
 using Declarations = std::map<std::string, std::vector<std::string>>;
 

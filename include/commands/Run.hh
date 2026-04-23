@@ -3,7 +3,7 @@
 #include <filesystem>
 
 #include "commands/Command.hh"
-#include "objects/GlobalController.hh"
+#include "objects/Controllers/GlobalController.hh"
 
 enum class Mode
 {

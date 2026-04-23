@@ -3,8 +3,8 @@
 #include <filesystem>
 
 #include "commands/Command.hh"
-#include "objects/GlobalController.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/GlobalController.hh"
+#include "objects/Controllers/LocalController.hh"
 
 class Build : public Command
 {

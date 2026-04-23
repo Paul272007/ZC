@@ -7,8 +7,8 @@
 #include "helpers.hh"
 #include "interface.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Controller.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/Controller.hh"
+#include "objects/Controllers/LocalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -313,4 +313,19 @@ Controller::parsePackages(const std::vector<std::string> &targets)
 bool Controller::isInstalled(const std::string &pkg)
 {
   return r_->pkgExists(pkg);
+}
+
+Table Controller::packagesTable() const
+{
+  vector<vector<string>> str_pkgs{{"Package name", "Target", "Origin", "Version", "Type"}};
+
+  for (const auto &[name_, binary_, origin_, version_, is_bin_, _] : r_->getPackages())
+    str_pkgs.push_back({name_, binary_, origin_, version_.string(), is_bin_ ? "Executable" : "Library"});
+
+  return {static_cast<int>(str_pkgs.size()), 5, false, true, str_pkgs};
+}
+
+void Controller::saveRegistry()
+{
+  r_->write();
 }

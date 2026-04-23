@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/Registry.hh"
+#include "Registry.hh"
 
 class LocalRegistry : public Registry
 {

@@ -8,8 +8,9 @@
 #include <vector>
 
 #include "helpers.hh"
-#include "objects/Config.hh"
-#include "objects/Registry.hh"
+#include "objects/Configs/Config.hh"
+#include "objects/Registries/Registry.hh"
+#include "objects/Table.hh"
 
 // clang-format off
 #define ROOT_DIR                        ".zc"
@@ -50,14 +51,16 @@ public:
   Registry *r_ = nullptr;
   virtual ~Controller();
 
-  bool isInstalled(const std::string &pkg);
   bool removePackage(const std::string &pkg_name);
+  [[nodiscard]] bool isInstalled(const std::string &pkg);
+  void saveRegistry();
   void installFromJson(bool quiet);
   void installFromJson(bool quiet, Visited &visited);
   void installFromPath(const std::filesystem::path &root, bool quiet);
   void installFromServer(Targets &targets, bool quiet);
   void installFromServer(Targets &targets, bool quiet, Visited &visited);
   static Targets parsePackages(const std::vector<std::string> &targets);
+  [[nodiscard]] Table packagesTable() const;
 
   std::filesystem::path bin_dir_;
   std::filesystem::path lib_dir_;

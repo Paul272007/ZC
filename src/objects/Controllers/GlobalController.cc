@@ -3,10 +3,10 @@
 
 #include "helpers.hh"
 #include "interface.hh"
-#include "objects/Controller.hh"
-#include "objects/GlobalConfig.hh"
-#include "objects/GlobalController.hh"
-#include "objects/GlobalRegistry.hh"
+#include "objects/Configs/GlobalConfig.hh"
+#include "objects/Controllers/Controller.hh"
+#include "objects/Controllers/GlobalController.hh"
+#include "objects/Registries/GlobalRegistry.hh"
 #include "objects/ZCError.hh"
 
 namespace fs = std::filesystem;

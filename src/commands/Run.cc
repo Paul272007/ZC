@@ -5,8 +5,8 @@
 #include "commands/Run.hh"
 #include "files.hh"
 #include "helpers.hh"
-#include "objects/Controller.hh"
-#include "objects/GlobalController.hh"
+#include "objects/Controllers/Controller.hh"
+#include "objects/Controllers/GlobalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -173,7 +173,7 @@ void Run::buildCommand()
 
   // Source files
   for (const auto &file : files_)
-    cmd << file << " ";
+    cmd << escape_shell_arg(file.string()) << " ";
 
   // Output
   cmd << "-o " << escape_shell_arg(output_name_) << " ";

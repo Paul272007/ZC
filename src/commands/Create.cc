@@ -4,8 +4,7 @@
 
 #include "commands/Create.hh"
 #include "files.hh"
-#include "objects/Controller.hh"
-#include "objects/GlobalController.hh"
+#include "objects/Controllers/GlobalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;

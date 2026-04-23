@@ -4,9 +4,8 @@
 #include <string>
 
 #include "commands/Command.hh"
-#include "objects/GlobalController.hh"
-#include "objects/LocalConfig.hh"
-#include "objects/LocalController.hh"
+#include "objects/Configs/LocalConfig.hh"
+#include "objects/Controllers/GlobalController.hh"
 
 class Init : public Command
 {
@@ -28,6 +27,5 @@ private:
   std::string template_;
   std::filesystem::path path_;
   std::vector<std::string> project_templates_;
-  LocalController l_;
   GlobalController g_;
 };

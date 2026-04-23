@@ -1,7 +1,7 @@
 #pragma once
 
 #include "commands/Command.hh"
-#include "objects/Controller.hh"
+#include "objects/Controllers/Controller.hh"
 
 class Install : public Command
 {

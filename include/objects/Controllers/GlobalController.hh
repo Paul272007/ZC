@@ -2,8 +2,8 @@
 
 #include <filesystem>
 
-#include "objects/Controller.hh"
-#include "objects/GlobalConfig.hh"
+#include "Controller.hh"
+#include "objects/Configs/GlobalConfig.hh"
 #include "objects/Table.hh"
 
 class GlobalController : public Controller

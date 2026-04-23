@@ -1,5 +1,5 @@
 #include "helpers.hh"
-#include "objects/Controller.hh"
+#include "objects/Controllers/Controller.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;

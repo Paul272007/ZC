@@ -1,7 +1,7 @@
-#include "objects/GlobalConfig.hh"
+#include "objects/Configs/GlobalConfig.hh"
 #include "files.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Config.hh"
+#include "objects/Configs/Config.hh"
 
 GlobalConfig::GlobalConfig(const std::filesystem::path &file) : Config(file)
 {

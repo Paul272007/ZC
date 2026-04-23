@@ -4,7 +4,7 @@
 #include <string>
 
 #include "interface.hh"
-#include "objects/Controller.hh"
+#include "objects/Controllers/Controller.hh"
 
 class Command
 {

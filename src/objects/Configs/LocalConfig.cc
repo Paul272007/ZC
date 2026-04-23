@@ -1,8 +1,8 @@
-#include "objects/LocalConfig.hh"
+#include "objects/Configs/LocalConfig.hh"
 #include "files.hh"
 #include "helpers.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Config.hh"
+#include "objects/Configs/Config.hh"
 #include "objects/ZCError.hh"
 
 LocalConfig::LocalConfig(const std::filesystem::path &file) : Config(file)

@@ -4,7 +4,7 @@
 
 #include "files.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Registry.hh"
+#include "objects/Registries/Registry.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;

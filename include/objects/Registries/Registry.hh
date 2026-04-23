@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "objects/Table.hh"
 #include "objects/Version.hh"
 
 struct Package
@@ -28,12 +27,8 @@ public:
   void write() const;
   void indexPackage(const Package &package);
   Package unindexPackage(const std::string &pkg_name);
-
-  [[nodiscard]] const Package &getPackage(const std::string &pkg_name) const;
-
   [[nodiscard]] bool pkgExists(const std::string &pkg_name) const;
-
-  [[nodiscard]] Table packagesTable() const;
+  [[nodiscard]] const Package &getPackage(const std::string &pkg_name) const;
   [[nodiscard]] const std::vector<Package> &getPackages() const;
 
 protected:

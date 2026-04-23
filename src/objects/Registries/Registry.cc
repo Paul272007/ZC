@@ -2,7 +2,7 @@
 
 #include "files.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Registry.hh"
+#include "objects/Registries/Registry.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -82,16 +82,6 @@ bool Registry::pkgExists(const std::string &pkg_name) const
 {
   const auto it = ranges::find_if(pkgs_, [&](const Package &p) { return p.name == pkg_name; });
   return it != pkgs_.end();
-}
-
-Table Registry::packagesTable() const
-{
-  vector<vector<string>> str_pkgs{{"Package name", "Version", "Target", "Origin", "Type"}};
-
-  for (const auto &[name_, binary_, origin_, version_, is_bin_, _] : pkgs_)
-    str_pkgs.push_back({name_, binary_, origin_, version_.string(), is_bin_ ? "Executable" : "Library"});
-
-  return {static_cast<int>(str_pkgs.size()), 5, false, true, str_pkgs};
 }
 
 const Package &Registry::getPackage(const std::string &pkg_name) const

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "commands/Command.hh"
-#include "objects/GlobalController.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/GlobalController.hh"
 
 class List : public Command
 {
@@ -15,6 +14,5 @@ private:
   const bool templates_;
   const bool p_templates_;
   const bool global_;
-  LocalController l_;
   GlobalController g_;
 };

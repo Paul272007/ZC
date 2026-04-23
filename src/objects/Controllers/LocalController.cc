@@ -4,11 +4,11 @@
 
 #include "interface.hh"
 #include "nlohmann/json.hpp"
-#include "objects/Controller.hh"
-#include "objects/LocalConfig.hh"
-#include "objects/LocalController.hh"
-#include "objects/LocalRegistry.hh"
-#include "objects/Registry.hh"
+#include "objects/Configs/LocalConfig.hh"
+#include "objects/Controllers/GlobalController.hh"
+#include "objects/Controllers/LocalController.hh"
+#include "objects/Registries/LocalRegistry.hh"
+#include "objects/Registries/Registry.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -277,11 +277,32 @@ void LocalController::publishProject()
   log_(LogLevel::INFO, "Just scroll down and click 'Propose new file'!");
 }
 
-void LocalController::addDependency(Package &p)
+bool LocalController::addDependency(const std::string &target)
 {
-  p.is_installed_locally = false;
-  r_->indexPackage(p);
-  log_(LogLevel::SUCCESS, "Added dependency: " + p.name);
+  GlobalController g(log_, force_);
+  Package p;
+
+  if (isInstalled(target) && !force_)
+  {
+    log_(LogLevel::WARNING, "Skipped package '" + target + "' already installed locally.");
+    return false;
+  }
+  else
+  {
+    try
+    {
+      p = g.r_->getPackage(target);
+      p.is_installed_locally = false;
+      r_->indexPackage(p);
+      log_(LogLevel::SUCCESS, "Added dependency: " + p.name);
+      return true;
+    }
+    catch (const ZCError &z)
+    {
+      log_(LogLevel::ERROR, "Skipped package '" + target + "' not installed globally.");
+      return false;
+    }
+  }
 }
 
 void LocalController::checkFolderNames() const

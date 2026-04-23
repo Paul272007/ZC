@@ -1,5 +1,5 @@
 #include "commands/Publish.hh"
-#include "objects/LocalController.hh"
+#include "objects/Controllers/LocalController.hh"
 
 using namespace std;
 using json = nlohmann::json;

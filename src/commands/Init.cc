@@ -1,6 +1,9 @@
+#include <filesystem>
+
 #include "commands/Init.hh"
-#include "objects/Controller.hh"
-#include "objects/LocalConfig.hh"
+#include "objects/Configs/LocalConfig.hh"
+#include "objects/Controllers/Controller.hh"
+#include "objects/Controllers/LocalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -11,7 +14,7 @@ Init::Init(
     const std::string &project_template, const std::string &name, const std::string &type
 )
     : Command(force, quiet), path_(fs::current_path()), type_(Type::UNDEF), edit_(edit), git_(git),
-      l_(logger_, force), g_(logger_, force)
+      g_(logger_, force)
 {
   if (!force_ && fs::exists(CONFIG))
     if (!ask(
@@ -48,7 +51,7 @@ int Init::operator()()
 {
   if (!template_.empty())
   {
-    g_.initializeWithTemplate(l_.root_dir_, template_);
+    g_.initializeWithTemplate(fs::current_path(), template_);
   }
 
   if (git_)
@@ -59,12 +62,13 @@ int Init::operator()()
   }
 
   // Create configuration file with empty version
-  l_.lc_->name_ = name_;
-  l_.lc_->author_ = author_;
-  l_.lc_->target_ = target_;
-  l_.lc_->add_std_ = g_.gc_->add_std_;
-  l_.lc_->type_ = type_;
-  l_.lc_->write();
+  LocalController l(logger_, force_);
+  l.lc_->name_ = name_;
+  l.lc_->author_ = author_;
+  l.lc_->target_ = target_;
+  l.lc_->add_std_ = g_.gc_->add_std_;
+  l.lc_->type_ = type_;
+  l.lc_->write();
 
   if (g_.gc_->edit_on_init_ || edit_)
     return system(string(g_.gc_->editor_ + " " + path_.string()).c_str());

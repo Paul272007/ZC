@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "objects/Config.hh"
+#include "Config.hh"
 
 class GlobalConfig : public Config
 {
