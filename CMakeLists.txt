@@ -20,6 +20,7 @@ FetchContent_MakeAvailable(json)
 # We search for the header packages first
 find_package(LLVM REQUIRED)
 find_package(Clang REQUIRED)
+find_package(CURL REQUIRED)
 
 message(STATUS "LLVM found: ${LLVM_PACKAGE_VERSION}")
 
@@ -61,6 +62,7 @@ target_include_directories(zc PRIVATE include)
 target_link_libraries(zc PRIVATE
   nlohmann_json::nlohmann_json
   ${CLANG_LIB}
+  CURL::libcurl
   # Sometimes necessary under Linux for LLVM :
   pthread
   dl

@@ -36,7 +36,7 @@ void LocalController::cleanProject()
 {
   if (fs::exists(cmakelists_) && fs::is_regular_file(cmakelists_))
     if (fs::remove(cmakelists_))
-      log_(LogLevel::INFO, "Cleaned CMakeLists.txt");
+      log_(LogLevel::INFO, "Cleaned " + cmakelists_.filename().string());
 
   if (fs::exists(root_dir_ / ".cache") && fs::is_directory(root_dir_ / ".cache"))
     if (fs::remove_all(root_dir_ / ".cache") > 0)
@@ -44,7 +44,7 @@ void LocalController::cleanProject()
 
   if ((lc_->type_ == Type::BIN || force_) && fs::exists(build_dir_) && fs::is_directory(build_dir_))
     if (fs::remove_all(build_dir_) > 0)
-      log_(LogLevel::INFO, "Cleaned build/");
+      log_(LogLevel::INFO, "Cleaned " + build_dir_.filename().string());
 }
 
 void LocalController::buildProject(bool quiet)
@@ -240,7 +240,7 @@ void LocalController::publishProject()
   log_(LogLevel::INFO, "Downloading archive to calculate SHA-256 hash...");
 
   // Download user archive
-  downloadArchive(archive_url, archive_path);
+  net_.download(archive_url, archive_path);
 
   // Calculate archive hash
   string sha256 = "";

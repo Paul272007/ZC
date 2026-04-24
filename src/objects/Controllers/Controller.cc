@@ -87,8 +87,9 @@ void Controller::updateFromJson(bool quiet)
 void Controller::updateFromJson(bool quiet, Visited &visited)
 {
   fs::create_directories(tmp_dir_);
-  downloadIndex();
-  json index = parseJsonFile(tmp_dir_ / INDEX);
+  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  net_.download(INDEX_URL, index_);
+  json index = parseJsonFile(index_);
   Targets targets;
   const std::vector<Package> pkgs = r_->getPackages();
 
@@ -119,8 +120,9 @@ void Controller::updateFromServer(Targets &targets, bool quiet)
 {
   Visited visited;
   fs::create_directories(tmp_dir_);
-  downloadIndex();
-  json index = parseJsonFile(tmp_dir_ / INDEX);
+  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  net_.download(INDEX_URL, index_);
+  json index = parseJsonFile(index_);
   updateFromServer(targets, quiet, index, visited);
 }
 
@@ -170,31 +172,13 @@ void Controller::updatePackageFromServer(
   const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
   const fs::path extract_path = tmp_dir_ / name;
 
-  downloadArchive(url, archive_path);
+  net_.download(url, archive_path);
 
   verifyPackageHash(
       archive_path, index["packages"][name]["versions"][target_version].value("sha256", "SKIP")
   );
 
   extractAndInstall(archive_path, extract_path, quiet, v, true);
-}
-
-void Controller::downloadIndex()
-{
-  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
-
-  const fs::path index_path = tmp_dir_ / INDEX;
-  string curl_cmd = "curl -sfL " INDEX_URL " -o " + index_path.string();
-
-  if (system(curl_cmd.c_str()) != 0)
-    throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download registry index.");
-}
-
-void Controller::downloadArchive(const std::string &url, const std::filesystem::path &path)
-{
-  string download_cmd = "curl -sfL " + escape_shell_arg(url) + " -o " + escape_shell_arg(path.string());
-  if (system(download_cmd.c_str()) != 0)
-    throw ZCError(ZC_NETWORK_ERROR, "Network error: Failed to download archive " + url);
 }
 
 void Controller::extractAndInstall(
@@ -259,12 +243,12 @@ void Controller::installPackageFromServer(
 )
 {
   string url = resolvePackageUrl(name, version, index);
-  log_(LogLevel::INFO, "Downloading " + name + "...");
+  log_(LogLevel::INFO, "Downloading " + url + "...");
 
   const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
   const fs::path extract_path = tmp_dir_ / name;
 
-  downloadArchive(url, archive_path);
+  net_.download(url, archive_path);
 
   string version_key = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
   verifyPackageHash(archive_path, index["packages"][name]["versions"][version_key]["sha256"]);
@@ -281,8 +265,9 @@ void Controller::installFromServer(Targets &targets, bool quiet)
 void Controller::installFromServer(Targets &targets, bool quiet, Visited &visited)
 {
   fs::create_directories(tmp_dir_);
-  downloadIndex();
-  json index = parseJsonFile(tmp_dir_ / INDEX);
+  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  net_.download(INDEX_URL, index_);
+  json index = parseJsonFile(index_);
 
   for (const auto &[name, version] : targets)
   {
