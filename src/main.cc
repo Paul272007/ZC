@@ -67,6 +67,7 @@ int main(const int argc, char *argv[])
   // zc list
   bool templates = false;
   bool p_templates = false;
+  bool simple = false;
 
   // zc build
   bool clean_after_build = false;
@@ -139,8 +140,9 @@ int main(const int argc, char *argv[])
   list->add_flag("--global,-g", global, "List global libraries instead of local libraries");
   list->add_flag("--templates,-t", templates, "List templates instead of libraries");
   list->add_flag("--project-templates,-p", p_templates, "List project templates instead of libraries");
+  list->add_flag("--simple,-s", simple, "Do not display using a table");
 
-  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates); });
+  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates, simple); });
 
   // ========================== BUILD ===============================
 

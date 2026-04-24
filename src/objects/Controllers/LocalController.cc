@@ -291,7 +291,7 @@ bool LocalController::addDependency(const std::string &target)
   {
     try
     {
-      p = g.r_->getPackage(target);
+      p = g.getPackage(target);
       p.is_installed_locally = false;
       r_->indexPackage(p);
       log_(LogLevel::SUCCESS, "Added dependency: " + p.name);

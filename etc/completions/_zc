@@ -28,6 +28,13 @@ _zc() {
     esac
 }
 
+_zc_get_templates() {
+    local type="$1"
+    local -a templates
+    templates=(${(f)"$(zc list -s $type --quiet 2>/dev/null)"})
+    _describe 'template' templates
+}
+
 _zc_subcommands() {
     local subcommands
     subcommands=(
@@ -64,7 +71,7 @@ _zc_run() {
 _zc_create() {
     _arguments \
         '*:file to create:_files' \
-        '(-i --input)'{-i,--input}'[Files to use as basis]:fichier:_files' \
+        '(-i --input)'{-i,--input}'[Files to use as basis]:file:_files' \
         '(-f --force)'{-f,--force}'[Force writing even if files already exist]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-e --edit)'{-e,--edit}'[Edit files once created]'
@@ -73,7 +80,7 @@ _zc_create() {
 _zc_init() {
     _arguments \
         '(-a --author)'{-a,--author}'[Project author]:author' \
-        '(-t --template)'{-t,--template}'[Template to use as basis]:template' \
+        '(-t --template)'{-t,--template}'[Template to use as basis]:template:_zc_get_templates -p' \
         '(-n --name)'{-n,--name}'[Package name]:name' \
         '(-s --src-folder)'{-s,--src-folder}'[Source folder]:folder:_directories' \
         '(-i --include-folder)'{-i,--include-folder}'[Include folder]:folder:_directories' \
@@ -89,7 +96,8 @@ _zc_list() {
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-g --global)'{-g,--global}'[List global libraries instead of local libraries]' \
         '(-t --templates)'{-t,--templates}'[List templates instead of libraries]' \
-        '(-p --project-templates)'{-p,--project-templates}'[List project templates instead of libraries]'
+        '(-p --project-templates)'{-p,--project-templates}'[List project templates instead of libraries]' \
+        '(-s --simple)'{-s,--simple}'[Do not display using a table]'
 }
 
 _zc_build() {

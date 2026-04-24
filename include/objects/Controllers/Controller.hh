@@ -52,7 +52,9 @@ public:
   bool removePackage(const std::string &pkg_name);
   [[nodiscard]] bool isInstalled(const std::string &pkg);
   [[nodiscard]] Table packagesTable() const;
-  static Targets parsePackages(const std::vector<std::string> &targets);
+  [[nodiscard]] std::vector<Package> getPackages() const;
+  [[nodiscard]] Package getPackage(const std::string &pkg) const;
+  [[nodiscard]] static Targets parsePackages(const std::vector<std::string> &targets);
 
   void installFromJson(bool quiet);
   void installFromJson(bool quiet, Visited &visited);
@@ -76,7 +78,6 @@ public:
   std::filesystem::path include_dir_;
   std::filesystem::path tmp_dir_ = getZCRootDir() / TMP_DIR;
   Config *c_ = nullptr;
-  Registry *r_ = nullptr;
 
 protected:
   Controller(const Controller &) = delete;
@@ -91,6 +92,7 @@ protected:
 
   Logger log_;
   bool force_;
+  Registry *r_ = nullptr;
 
 private:
   void installExecutable(LocalController &pc);

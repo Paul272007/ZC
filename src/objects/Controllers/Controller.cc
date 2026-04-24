@@ -460,3 +460,13 @@ void Controller::saveRegistry()
 {
   r_->write();
 }
+
+vector<Package> Controller::getPackages() const
+{
+  return r_->getPackages();
+}
+
+Package Controller::getPackage(const std::string &pkg) const
+{
+  return r_->getPackage(pkg);
+}

@@ -32,7 +32,7 @@ fi
 
 echo -e "${BLUE}[1/5] Setting up user environment...${NC}"
 ZC_DIR="$HOME/.zc"
-CONFIG_FILE="$ZC_DIR/config.json"
+CONFIG_FILE="$ZC_DIR/zc.json"
 CONFIG_EXISTS=false
 
 if [ -f "$CONFIG_FILE" ]; then
@@ -48,7 +48,7 @@ fi
 for item in etc/*; do
   item_name=$(basename "$item")
 
-  if [ "$item_name" == "config.json" ] && [ "$CONFIG_EXISTS" == "true" ]; then
+  if [ "$item_name" == "zc.json" ] && [ "$CONFIG_EXISTS" == "true" ]; then
     continue
   fi
 
@@ -66,7 +66,7 @@ cp -r etc/completions "$ZC_DIR"
 if [ "$CONFIG_EXISTS" == "false" ]; then
   echo -e "\n${GREEN}>>> ZC Initial configuration <<<${NC}"
   echo "Type Enter to accept default values"
-  echo "You can always change your configuration by editing ~/.zc/config.json"
+  echo "You can always change your configuration by editing ~/.zc/zc.json"
 
   prompt_str() {
     local msg=$1

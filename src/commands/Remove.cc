@@ -24,7 +24,7 @@ int Remove::operator()()
     else
       logger_(LogLevel::SUCCESS, "Package " + pkg + " removed successfully.");
   }
-  c_->r_->write();
+  c_->saveRegistry();
   delete c_;
   return 0;
 }

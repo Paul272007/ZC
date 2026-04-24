@@ -207,7 +207,7 @@ vector<string> Run::getInclusions() const
 
   for (const auto &f : files_)
   {
-    for (vector<string> includes = getFileInclusions(f, g_.r_->getPackages()); const auto &include : includes)
+    for (vector<string> includes = getFileInclusions(f, g_.getPackages()); const auto &include : includes)
     {
       const bool already_present =
           std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
