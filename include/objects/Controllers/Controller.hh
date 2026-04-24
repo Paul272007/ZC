@@ -48,16 +48,27 @@ class Controller
 {
 public:
   virtual ~Controller();
+  void saveRegistry();
   bool removePackage(const std::string &pkg_name);
   [[nodiscard]] bool isInstalled(const std::string &pkg);
-  void saveRegistry();
+  [[nodiscard]] Table packagesTable() const;
+  static Targets parsePackages(const std::vector<std::string> &targets);
+
   void installFromJson(bool quiet);
   void installFromJson(bool quiet, Visited &visited);
+
+  void updateFromJson(bool quiet);
+  void updateFromJson(bool quiet, Visited &visited);
+
   void installFromPath(const std::filesystem::path &root, bool quiet);
+
+  void updateFromPath(const std::filesystem::path &root, bool quiet);
+
   void installFromServer(Targets &targets, bool quiet);
   void installFromServer(Targets &targets, bool quiet, Visited &visited);
-  static Targets parsePackages(const std::vector<std::string> &targets);
-  [[nodiscard]] Table packagesTable() const;
+
+  void updateFromServer(Targets &targets, bool quiet, nlohmann::json &index, Visited &visited);
+  void updateFromServer(Targets &targets, bool quiet);
 
   std::filesystem::path root_dir_;
   std::filesystem::path bin_dir_;
@@ -76,8 +87,7 @@ protected:
   Controller &operator=(const Controller &) = delete;
 
   void clean();
-
-  void installPackageFromPath(LocalController &pc, bool quiet, const std::string &origin);
+  void buildAndIndex(LocalController &pc, bool quiet, const std::string &origin, bool isUpdate);
 
   Logger log_;
   bool force_;
@@ -87,11 +97,15 @@ private:
   void installLibrary(LocalController &pc);
   void downloadIndex();
   void downloadArchive(const std::string &url, const std::filesystem::path &path);
-  void processPackage(
+  void installPackageFromServer(
+      const std::string &name, const std::string &version, const nlohmann::json &index, bool quiet, Visited &v
+  );
+  void updatePackageFromServer(
       const std::string &name, const std::string &version, const nlohmann::json &index, bool quiet, Visited &v
   );
   void extractAndInstall(
-      const std::filesystem::path &archive, const std::filesystem::path &dest, bool quiet, Visited &v
+      const std::filesystem::path &archive, const std::filesystem::path &dest, bool quiet, Visited &v,
+      bool isUpdate
   );
   std::string
   resolvePackageUrl(const std::string &name, const std::string &version, const nlohmann::json &index);

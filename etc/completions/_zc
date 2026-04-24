@@ -23,6 +23,7 @@ _zc() {
                 add)     _zc_add     ;;
                 publish) _zc_publish ;;
                 clean)   _zc_clean   ;;
+                update)  _zc_update  ;;
             esac
     esac
 }
@@ -35,11 +36,12 @@ _zc_subcommands() {
         'init:Initialize empty project'
         'list:List all globally installed libraries'
         'build:Build project'
-        'install:Install package'
+        'install:Install packages'
         'remove:Remove package'
         'add:Add dependency from global registry'
         'publish:Publish package to server'
         'clean:Clean temporary files and directories'
+        'update:Update given packages'
     )
     _describe 'subcommand' subcommands
 }
@@ -120,14 +122,23 @@ _zc_add() {
 }
 
 _zc_publish() {
-  _arguments \
-    '(-q --quiet)'{-q, --quiet}'[Do not show any messages]'
+    _arguments \
+        '(-q --quiet)'{-q, --quiet}'[Do not show any messages]'
 }
 
 _zc_clean() {
-  _arguments \
-    '(-q --quiet)'{-q, --quiet}'[Do not show any messages]' \
-    '(-f --force)'{-f, --force}'[Force cleaning build directory]'
+    _arguments \
+        '(-q --quiet)'{-q, --quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f, --force}'[Force cleaning build directory]'
+}
+
+_zc_update() {
+    _arguments \
+        '*:package:' \
+        '(-p --path)'{-p,--path}'[Update package from local path instead of remote]:path:_directories' \
+        '(-g --global)'{-g,--global}'[Update globally installed package]' \
+        '(-f --force)'{-f,--force}'[Force updating the package even if already installed at latest version]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc "$@"

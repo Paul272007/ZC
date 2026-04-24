@@ -8,6 +8,7 @@ For the moment ZC is only available for Linux.
 
 - Clang and LLVM
 - Cmake >= 3.12 and Make
+- Git
 
 ## Installation
 

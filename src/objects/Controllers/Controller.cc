@@ -9,6 +9,8 @@
 #include "nlohmann/json.hpp"
 #include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/LocalController.hh"
+#include "objects/Registries/Registry.hh"
+#include "objects/Version.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -24,7 +26,21 @@ Controller::~Controller()
 void Controller::installFromPath(const std::filesystem::path &root, bool quiet)
 {
   LocalController pc(log_, force_, root);
-  installPackageFromPath(pc, quiet, "local");
+  buildAndIndex(pc, quiet, "local", false);
+}
+
+void Controller::updateFromPath(const std::filesystem::path &root, bool quiet)
+{
+  LocalController pc(log_, force_, root);
+  // Throws error is package is not found
+  Package p = r_->getPackage(pc.lc_->name_);
+  if (p.version >= pc.lc_->version_ && !force_)
+    throw ZCError(
+        ZC_BAD_COMMAND,
+        "The version of the locally installed package is equal or higher. Use --force to override."
+    );
+
+  buildAndIndex(pc, quiet, "local", true);
 }
 
 void Controller::clean()
@@ -45,11 +61,15 @@ void Controller::installFromJson(bool quiet, Visited &visited)
 
   for (const auto &p : pkgs)
   {
-    // On ne rajoute que ce qui n'est pas standard ET pas encore visité
-    if (p.origin != "std" && visited.find(p.name) == visited.end())
+    if (p.origin != "std" && p.origin != "local" && visited.find(p.name) == visited.end())
     {
+      if (isInstalled(p.name))
+      {
+        log_(LogLevel::INFO, "Package " + p.name + " already installed");
+        continue;
+      }
       targets.push_back({p.name, p.version.string()});
-      visited.insert(p.name); // On le marque comme "à traiter / traité"
+      visited.insert(p.name);
     }
   }
 
@@ -57,6 +77,107 @@ void Controller::installFromJson(bool quiet, Visited &visited)
   {
     installFromServer(targets, quiet, visited);
   }
+}
+
+void Controller::updateFromJson(bool quiet)
+{
+  Visited v;
+  updateFromJson(quiet, v);
+}
+
+void Controller::updateFromJson(bool quiet, Visited &visited)
+{
+  fs::create_directories(tmp_dir_);
+  downloadIndex();
+  json index = parseJsonFile(tmp_dir_ / INDEX);
+  Targets targets;
+  const std::vector<Package> pkgs = r_->getPackages();
+
+  for (const auto &p : pkgs)
+  {
+    if (p.origin != "std" && p.origin != "local" && visited.find(p.name) == visited.end())
+    {
+      Version latest(index["packages"][p.name]["latest"].get<std::string>());
+      if (latest == p.version)
+      {
+        log_(LogLevel::INFO, "Package " + p.name + " is already installed at latest version.");
+      }
+      else
+      {
+        targets.emplace_back(p.name, p.version.string());
+        visited.insert(p.name);
+      }
+    }
+  }
+
+  if (!targets.empty())
+  {
+    updateFromServer(targets, quiet, index, visited);
+  }
+}
+
+void Controller::updateFromServer(Targets &targets, bool quiet)
+{
+  Visited visited;
+  fs::create_directories(tmp_dir_);
+  downloadIndex();
+  json index = parseJsonFile(tmp_dir_ / INDEX);
+  updateFromServer(targets, quiet, index, visited);
+}
+
+void Controller::updateFromServer(Targets &targets, bool quiet, nlohmann::json &index, Visited &visited)
+{
+  for (const auto &[name, version] : targets)
+  {
+    try
+    {
+      if (!isInstalled(name))
+        throw ZCError(ZC_PACKAGE_NOT_FOUND, "Package " + name + " is not installed");
+
+      updatePackageFromServer(name, version, index, quiet, visited);
+    }
+    catch (const ZCError &e)
+    {
+      log_(LogLevel::ERROR, e.what());
+    }
+  }
+  clean();
+}
+
+void Controller::updatePackageFromServer(
+    const std::string &name, const std::string &version, const nlohmann::json &index, bool quiet, Visited &v
+)
+{
+  if (!index.contains("packages") || !index["packages"].contains(name))
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "Package '" + name + "' not found.");
+
+  string target_version = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
+
+  if (isInstalled(name))
+  {
+    Package installed_pkg = r_->getPackage(name);
+    if (installed_pkg.version.string() == target_version && !force_)
+    {
+      log_(LogLevel::INFO, "Skipped package " + name + " (already up-to-date at v" + target_version + ")");
+      return;
+    }
+  }
+
+  if (!index["packages"][name]["versions"].contains(target_version))
+    throw ZCError(ZC_BAD_PACKAGE_DECLARATION, "Version " + target_version + " missing from remote registry.");
+
+  string url = index["packages"][name]["versions"][target_version].value("url", "");
+
+  const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
+  const fs::path extract_path = tmp_dir_ / name;
+
+  downloadArchive(url, archive_path);
+
+  verifyPackageHash(
+      archive_path, index["packages"][name]["versions"][target_version].value("sha256", "SKIP")
+  );
+
+  extractAndInstall(archive_path, extract_path, quiet, v, true);
 }
 
 void Controller::downloadIndex()
@@ -74,17 +195,19 @@ void Controller::downloadArchive(const std::string &url, const std::filesystem::
 {
   string download_cmd = "curl -sfL " + url + " -o " + escape_shell_arg(path.string());
   if (system(download_cmd.c_str()) != 0)
-    throw ZCError(ZC_INTERNAL_ERROR, "Network error: Failed to download archive " + url);
+    throw ZCError(ZC_NETWORK_ERROR, "Network error: Failed to download archive " + url);
 }
 
-void Controller::extractAndInstall(const fs::path &archive, const fs::path &dest, bool quiet, Visited &v)
+void Controller::extractAndInstall(
+    const fs::path &archive, const fs::path &dest, bool quiet, Visited &v, bool isUpdate
+)
 {
   fs::create_directories(dest);
   string tar_cmd =
       "tar -xzf " + escape_shell_arg(archive.string()) + " -C " + escape_shell_arg(dest.string());
 
   if (system(tar_cmd.c_str()) != 0)
-    throw ZCError(ZC_INTERNAL_ERROR, "Extraction failed.");
+    throw ZCError(ZC_TAR_ERROR, "Extraction failed.");
 
   fs::path project_root = dest;
   for (const auto &entry : fs::directory_iterator(dest))
@@ -98,19 +221,19 @@ void Controller::extractAndInstall(const fs::path &archive, const fs::path &dest
 
   LocalController pc(log_, force_, project_root);
   pc.installFromJson(quiet, v);
-  installPackageFromPath(pc, quiet, "main");
+  buildAndIndex(pc, quiet, "main", isUpdate);
 }
 
 string Controller::resolvePackageUrl(const string &name, const string &version, const json &index)
 {
   if (!index.contains("packages") || !index["packages"].contains(name))
-    throw ZCError(ZC_BAD_COMMAND, "Package '" + name + "' not found.");
+    throw ZCError(ZC_PACKAGE_NOT_FOUND, "Package '" + name + "' not found.");
 
   string version_to_install =
       version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
 
   if (!index["packages"][name]["versions"].contains(version_to_install))
-    throw ZCError(ZC_BAD_COMMAND, "Version " + version_to_install + " missing.");
+    throw ZCError(ZC_BAD_PACKAGE_DECLARATION, "Version " + version_to_install + " missing.");
 
   return index["packages"][name]["versions"][version_to_install].value("url", "");
 }
@@ -127,12 +250,12 @@ void Controller::verifyPackageHash(const fs::path &archive, const string &expect
   if (actual != expected)
   {
     fs::remove(archive);
-    throw ZCError(ZC_INTERNAL_ERROR, "SECURITY ALERT: Hash mismatch!");
+    throw ZCError(ZC_HASH_ERROR, "SECURITY ALERT: Hash mismatch!");
   }
   log_(LogLevel::SUCCESS, "Hash is correct");
 }
 
-void Controller::processPackage(
+void Controller::installPackageFromServer(
     const string &name, const string &version, const json &index, bool quiet, Visited &v
 )
 {
@@ -147,7 +270,7 @@ void Controller::processPackage(
   string version_key = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
   verifyPackageHash(archive_path, index["packages"][name]["versions"][version_key]["sha256"]);
 
-  extractAndInstall(archive_path, extract_path, quiet, v);
+  extractAndInstall(archive_path, extract_path, quiet, v, false);
 }
 
 void Controller::installFromServer(Targets &targets, bool quiet)
@@ -166,7 +289,7 @@ void Controller::installFromServer(Targets &targets, bool quiet, Visited &visite
   {
     try
     {
-      processPackage(name, version, index, quiet, visited);
+      installPackageFromServer(name, version, index, quiet, visited);
     }
     catch (const ZCError &e)
     {
@@ -176,10 +299,10 @@ void Controller::installFromServer(Targets &targets, bool quiet, Visited &visite
   clean();
 }
 
-void Controller::installPackageFromPath(LocalController &pc, bool quiet, const std::string &origin)
+void Controller::buildAndIndex(LocalController &pc, bool quiet, const std::string &origin, bool isUpdate)
 {
   // Parameter = Controller for the project that is being installed
-  if (r_->pkgExists(pc.lc_->name_) && !force_)
+  if (!isUpdate && r_->pkgExists(pc.lc_->name_) && !force_)
     if (!ask(
             "The package '" + pc.lc_->name_ + "' seems to be already installed. Do you want to reinstall it?"
         ))
@@ -189,6 +312,10 @@ void Controller::installPackageFromPath(LocalController &pc, bool quiet, const s
 #ifdef DEBUG_MODE
   log_(LogLevel::DEBUG, "Project compiled");
 #endif
+
+  // Clean before update
+  if (isUpdate && r_->pkgExists(pc.lc_->name_))
+    removePackage(pc.lc_->name_);
 
   bool is_bin = false;
   switch (pc.lc_->type_)
@@ -201,7 +328,7 @@ void Controller::installPackageFromPath(LocalController &pc, bool quiet, const s
     installExecutable(pc);
     is_bin = true;
     break;
-  case Type::UNDEF:
+  case Type::UNDEF: // Should never happen since already checked in pc.buildProject()
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "The project type must be 'lib' or 'bin'");
   }
 

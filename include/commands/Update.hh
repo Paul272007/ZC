@@ -1,11 +1,12 @@
 #pragma once
 
 #include "commands/Command.hh"
+#include <memory>
 
-class Install : public Command
+class Update : public Command
 {
 public:
-  Install(
+  Update(
       bool force, bool quiet, bool global, const std::string &path, const std::vector<std::string> &targets
   );
 

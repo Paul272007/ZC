@@ -4,7 +4,7 @@
 #include <ostream>
 #include <string>
 
-enum ErrorCode
+enum ReturnCode
 {
   // No errors
   ZC_SUCCESS = 0,
@@ -28,16 +28,21 @@ enum ErrorCode
   ZC_BAD_COMMAND = 40,
   ZC_UNSUPPORTED_LANGUAGE = 41,
   ZC_INCOMPATIBLE_FLAGS = 42,
+  // Network errors
+  ZC_NETWORK_ERROR = 50,
   // Internal errors
   ZC_INTERNAL_ERROR = 60,
   // Package errors
   ZC_PACKAGE_NOT_FOUND = 70,
+  ZC_BAD_PACKAGE_DECLARATION = 71,
+  ZC_HASH_ERROR = 72,
   // Build errors
   ZC_NO_SOURCE_FILES = 80,
   ZC_NOT_A_ZC_PROJECT = 81,
   // External errors
   ZC_GIT_ERROR = 90,
   ZC_CMAKE_ERROR = 91,
+  ZC_TAR_ERROR = 92,
   // Project errors
   ZC_PROJECT_NOT_FOUND = 101,
   // User errors
@@ -60,7 +65,7 @@ public:
    * @param code The code corresponding to the error type
    * @param message A message that explains the error
    */
-  ZCError(ErrorCode code, const std::string &message);
+  ZCError(ReturnCode code, const std::string &message);
 
   /**
    * @brief << overload for ZCError
@@ -78,6 +83,6 @@ public:
   int getCode_() const;
 
 private:
-  ErrorCode code_ = ZC_SUCCESS;
+  ReturnCode code_ = ZC_SUCCESS;
   std::string message_ = "Feature not implemented";
 };

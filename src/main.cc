@@ -15,6 +15,7 @@
 #include <commands/Publish.hh>
 #include <commands/Remove.hh>
 #include <commands/Run.hh>
+#include <commands/Update.hh>
 #include <interface.hh>
 #include <objects/ZCError.hh>
 
@@ -80,11 +81,12 @@ int main(const int argc, char *argv[])
   const auto init    = app.add_subcommand("init",    "Initialize empty project");
   const auto list    = app.add_subcommand("list",    "List all globally installed libraries");
   const auto build   = app.add_subcommand("build",   "Build project");
-  const auto install = app.add_subcommand("install", "Install package");
+  const auto install = app.add_subcommand("install", "Install packages");
   const auto remove  = app.add_subcommand("remove",  "Remove package");
   const auto add     = app.add_subcommand("add",     "Add dependency from global registry");
   const auto publish = app.add_subcommand("publish", "Publish package to server");
   const auto clean   = app.add_subcommand("clean",   "Clean all temporary files and directories");
+  const auto update  = app.add_subcommand("update",  "Update given targets");
 
   // ========================== RUN ===============================
 
@@ -191,6 +193,17 @@ int main(const int argc, char *argv[])
   clean->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   clean->callback([&]() { command = make_unique<Clean>(force, quiet); });
+
+  // ========================== UPDATE ===============================
+
+  update->add_option("targets", targets, "The packages to be updated");
+  update->add_option("--path,-p", path, "Update package from local path instead of remote");
+
+  update->add_flag("--global,-g", global, "Update globally installed package");
+  update->add_flag("--force,-f", force, "Force updating the package even if already installed at latest version");
+  update->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  update->callback([&]() { command = make_unique<Update>(force, quiet, global, path, targets); });
 
   // clang-format on
   /* ========================================================= *

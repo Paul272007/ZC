@@ -122,22 +122,19 @@ void LocalController::generateCMakeLists() const
 
   // Sources
   fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
-  if (fs::exists(src))
-  {
-    vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
-    for (auto &ext : c_extensions)
-      ext = " \"" + src.string() + "/*." + ext + '"';
-    cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
-  }
-  fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
-  if (fs::exists(include))
-  {
-    vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
-    for (auto &ext : h_extensions)
-      ext = " \"" + include.string() + "/*." + ext + '"';
+  if (!fs::exists(src))
+    throw ZCError(ZC_NO_SOURCE_FILES, src.string() + " folder does not exist.");
 
-    cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
-  }
+  fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
+  if (!fs::exists(include))
+    throw ZCError(ZC_NOT_FOUND, include.string() + " folder does not exist.");
+
+  vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
+  vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
+  for (auto &ext : c_extensions) ext = " \"" + src.string() + "/*." + ext + '"';
+  for (auto &ext : h_extensions) ext = " \"" + include.string() + "/*." + ext + '"';
+  cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
+  cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
 
   // Source code
   vector<string> outputs;
@@ -204,8 +201,7 @@ void LocalController::generateCMakeLists() const
 
       // Linking dependencies
       cmake << "target_link_libraries(" << output << " PRIVATE\n";
-      for (const auto dep : r_->getPackages())
-        cmake << "  " << dep.binary << "\n";
+      for (const auto dep : r_->getPackages()) cmake << "  " << dep.binary << "\n";
       cmake << ")\n\n";
     }
 

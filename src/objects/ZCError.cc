@@ -3,7 +3,7 @@
 
 using namespace std;
 
-ZCError::ZCError(const ErrorCode code, const string &message) : code_(code), message_(message)
+ZCError::ZCError(const ReturnCode code, const string &message) : code_(code), message_(message)
 {
 }
 
