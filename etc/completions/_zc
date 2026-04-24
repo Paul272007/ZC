@@ -123,13 +123,13 @@ _zc_add() {
 
 _zc_publish() {
     _arguments \
-        '(-q --quiet)'{-q, --quiet}'[Do not show any messages]'
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc_clean() {
     _arguments \
-        '(-q --quiet)'{-q, --quiet}'[Do not show any messages]' \
-        '(-f --force)'{-f, --force}'[Force cleaning build directory]'
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force cleaning build directory]'
 }
 
 _zc_update() {
