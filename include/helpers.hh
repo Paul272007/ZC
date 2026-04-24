@@ -34,8 +34,6 @@
  */
 [[nodiscard]] std::string escape_shell_arg(const std::string &arg);
 
-[[nodiscard]] std::vector<std::string> split(const std::string &s, char delimiter);
-
 /**
  * @brief Join all vector elements with the separator
  *

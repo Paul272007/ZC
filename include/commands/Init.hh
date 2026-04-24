@@ -11,7 +11,7 @@ class Init : public Command
 {
 public:
   Init(
-      bool force, bool quiet, bool edit, bool git, const std::string &author,
+      bool force, bool quiet, bool edit, bool git, const std::string &path, const std::string &author,
       const std::string &project_template, const std::string &name, const std::string &type
   );
 

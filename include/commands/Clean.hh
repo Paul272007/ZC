@@ -6,7 +6,7 @@
 class Clean : public Command
 {
 public:
-  Clean(bool force, bool quiet);
+  Clean(bool force, bool quiet, const std::string &path);
 
   int operator()() override;
 

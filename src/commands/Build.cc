@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 Build::Build(const bool force, const bool quiet, const bool clean, const std::string &path)
     : Command(force, quiet), clean_(clean), path_(path),
-      l_(logger_, force, path_.empty() ? getProjectRoot() : fs::path(path)), g_(logger_, force)
+      l_(logger_, force, path_.empty() ? getProjectRoot() : getProjectRoot(path)), g_(logger_, force)
 {
 }
 

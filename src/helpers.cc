@@ -74,18 +74,6 @@ string join(const vector<string> &v, const string &separator)
   return s.str();
 }
 
-vector<string> split(const string &s, const char delimiter)
-{
-  vector<string> tokens;
-  string token;
-  istringstream tokenStream(s);
-  while (getline(tokenStream, token, delimiter))
-  {
-    tokens.push_back(token);
-  }
-  return tokens;
-}
-
 std::string upper(const std::string &s)
 {
   std::string output;

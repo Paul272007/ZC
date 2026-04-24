@@ -6,7 +6,7 @@
 class Publish : public Command
 {
 public:
-  Publish(const bool force, const bool quiet);
+  Publish(const bool force, const bool quiet, const std::string &path);
   int operator()() override;
 
 private:

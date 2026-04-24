@@ -79,6 +79,7 @@ _zc_create() {
 
 _zc_init() {
     _arguments \
+        ':path:_directories' \
         '(-a --author)'{-a,--author}'[Project author]:author' \
         '(-t --template)'{-t,--template}'[Template to use as basis]:template:_zc_get_templates -p' \
         '(-n --name)'{-n,--name}'[Package name]:name' \
@@ -93,6 +94,7 @@ _zc_init() {
 
 _zc_list() {
     _arguments \
+        ':path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-g --global)'{-g,--global}'[List global libraries instead of local libraries]' \
         '(-t --templates)'{-t,--templates}'[List templates instead of libraries]' \
@@ -102,6 +104,7 @@ _zc_list() {
 
 _zc_build() {
     _arguments \
+        ':path:_directories' \
         '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-c --clean)'{-c,--clean}'[Clean after compiling]'
@@ -131,11 +134,14 @@ _zc_add() {
 
 _zc_publish() {
     _arguments \
+        ':path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc_clean() {
     _arguments \
+        ':path:_directories' \
+        '(-p --path)'{-p,--path}'[Path to the project to clean]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-f --force)'{-f,--force}'[Force cleaning build directory]'
 }

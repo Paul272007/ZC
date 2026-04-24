@@ -11,11 +11,12 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Init::Init(
-    bool force, bool quiet, bool edit, bool git, const std::string &author,
+    bool force, bool quiet, bool edit, bool git, const std::string &path, const std::string &author,
     const std::string &project_template, const std::string &name, const std::string &type
 )
     : Command(force, quiet), edit_(edit), git_(git), author_(author), template_(project_template),
-      name_(name), path_(fs::current_path()), type_(Type::UNDEF), g_(logger_, force)
+      name_(name), path_(path.empty() ? fs::current_path() : fs::path(path)), type_(Type::UNDEF),
+      g_(logger_, force)
 {
   if (!force_ && fs::exists(CONFIG))
     if (!ask(

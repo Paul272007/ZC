@@ -107,7 +107,7 @@ int main(const int argc, char *argv[])
   run->callback([&]() { command = make_unique<Run>(force, quiet, run_keep, run_plus, run_E, run_S, run_c, std, static_compile, input_files, run_args); });
 
   // ========================== CREATE ===============================
-  
+
   create->add_option("files", output_files, "The files to be created")->required();
   create->add_option("--input,-i", input_files, "Files to be used as basis to write the new files");
 
@@ -119,6 +119,7 @@ int main(const int argc, char *argv[])
 
   // ========================== INIT ===============================
 
+  init->add_option("path", path, "Path to the project root");
   init->add_option("--author,-a", author, "Specify the project's author");
   init->add_option("--template,-t", project_template, "Specify template to use as basis");
   init->add_option("--name,-n", name, "Specify package name");
@@ -131,9 +132,11 @@ int main(const int argc, char *argv[])
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--git,-g", git, "Create empty git repository");
 
-  init->callback([&]() { command = make_unique<Init>(force, quiet, edit, git, author, project_template, name, type); });
+  init->callback([&]() { command = make_unique<Init>(force, quiet, edit, git, path, author, project_template, name, type); });
 
   // ========================== LIST ===============================
+
+  list->add_option("path", path, "Path to the project root");
 
   // list->add_flag("--force,-f", force, "Force");
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
@@ -142,7 +145,7 @@ int main(const int argc, char *argv[])
   list->add_flag("--project-templates,-p", p_templates, "List project templates instead of libraries");
   list->add_flag("--simple,-s", simple, "Do not display using a table");
 
-  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates, simple); });
+  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates, simple, path); });
 
   // ========================== BUILD ===============================
 
@@ -185,16 +188,20 @@ int main(const int argc, char *argv[])
 
   // ========================== PUBLISH ===============================
 
+  publish->add_option("path", path, "Path to project to build");
+
   publish->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
-  publish->callback([&]() { command = make_unique<Publish>(false, quiet); });
+  publish->callback([&]() { command = make_unique<Publish>(false, quiet, path); });
 
   // ========================== CLEAN ===============================
+
+  clean->add_option("path", path, "Path to the project to clean");
 
   clean->add_flag("--force,-f", force, "Force cleaning build directory");
   clean->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
-  clean->callback([&]() { command = make_unique<Clean>(force, quiet); });
+  clean->callback([&]() { command = make_unique<Clean>(force, quiet, path); });
 
   // ========================== UPDATE ===============================
 

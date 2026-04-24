@@ -6,7 +6,10 @@
 class List : public Command
 {
 public:
-  List(bool force, bool quiet, bool global, bool templates, bool p_templates, bool simple);
+  List(
+      bool force, bool quiet, bool global, bool templates, bool p_templates, bool simple,
+      const std::string &path
+  );
 
   int operator()() override;
 
@@ -15,5 +18,6 @@ private:
   const bool templates_;
   const bool p_templates_;
   const bool simple_;
+  const std::string path_;
   GlobalController g_;
 };
