@@ -79,15 +79,15 @@ public:
   Registry *r_ = nullptr;
 
 protected:
+  Controller(const Controller &) = delete;
+  Controller &operator=(const Controller &) = delete;
   Controller(Logger &log, bool force, const std::filesystem::path &root)
       : log_(log), force_(force), root_dir_(root)
   {
   }
-  Controller(const Controller &) = delete;
-  Controller &operator=(const Controller &) = delete;
-
   void clean();
   void buildAndIndex(LocalController &pc, bool quiet, const std::string &origin, bool isUpdate);
+  void downloadArchive(const std::string &url, const std::filesystem::path &path);
 
   Logger log_;
   bool force_;
@@ -96,7 +96,6 @@ private:
   void installExecutable(LocalController &pc);
   void installLibrary(LocalController &pc);
   void downloadIndex();
-  void downloadArchive(const std::string &url, const std::filesystem::path &path);
   void installPackageFromServer(
       const std::string &name, const std::string &version, const nlohmann::json &index, bool quiet, Visited &v
   );

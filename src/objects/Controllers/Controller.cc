@@ -192,7 +192,7 @@ void Controller::downloadIndex()
 
 void Controller::downloadArchive(const std::string &url, const std::filesystem::path &path)
 {
-  string download_cmd = "curl -sfL " + url + " -o " + escape_shell_arg(path.string());
+  string download_cmd = "curl -sfL " + escape_shell_arg(url) + " -o " + escape_shell_arg(path.string());
   if (system(download_cmd.c_str()) != 0)
     throw ZCError(ZC_NETWORK_ERROR, "Network error: Failed to download archive " + url);
 }
@@ -351,13 +351,12 @@ void Controller::installLibrary(LocalController &pc)
   const fs::path dest_include = include_dir_ / pc.lc_->name_;
   const fs::path dest_lib = lib_dir_ / pc.lc_->name_;
 
+  const fs::path src_include = pc.root_dir_ / pc.lc_->include_folder_;
+
   pc.log_(LogLevel::INFO, "Installing headers...");
 
   fs::create_directories(dest_include);
-  fs::copy(
-      pc.lc_->include_folder_, dest_include,
-      fs::copy_options::recursive | fs::copy_options::overwrite_existing
-  );
+  fs::copy(src_include, dest_include, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
 
   pc.log_(LogLevel::INFO, "Installing libraries...");
 

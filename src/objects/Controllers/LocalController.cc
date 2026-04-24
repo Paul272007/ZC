@@ -240,10 +240,7 @@ void LocalController::publishProject()
   log_(LogLevel::INFO, "Downloading archive to calculate SHA-256 hash...");
 
   // Download user archive
-  string curl_cmd =
-      "curl -sfL " + escape_shell_arg(archive_url) + " -o " + escape_shell_arg(archive_path.string());
-  if (system(curl_cmd.c_str()) != 0)
-    throw ZCError(ZC_INTERNAL_ERROR, "Failed to download the archive. Check the URL.");
+  downloadArchive(archive_url, archive_path);
 
   // Calculate archive hash
   string sha256 = "";
@@ -251,7 +248,6 @@ void LocalController::publishProject()
   {
     string hash_cmd = "shasum -a 256 " + escape_shell_arg(archive_path.string()) + " | awk '{ print $1 }'";
     sha256 = execAndGetOutput(hash_cmd.c_str());
-
     sha256.erase(sha256.find_last_not_of(" \n\r\t") + 1);
   }
   catch (...)
