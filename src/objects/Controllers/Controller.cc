@@ -87,7 +87,7 @@ void Controller::updateFromJson(bool quiet)
 void Controller::updateFromJson(bool quiet, Visited &visited)
 {
   fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  log_(LogLevel::INFO, "Fetching registry index...");
   net_.download(INDEX_URL, index_);
   json index = parseJsonFile(index_);
   Targets targets;
@@ -120,7 +120,7 @@ void Controller::updateFromServer(Targets &targets, bool quiet)
 {
   Visited visited;
   fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  log_(LogLevel::INFO, "Fetching registry index...");
   net_.download(INDEX_URL, index_);
   json index = parseJsonFile(index_);
   updateFromServer(targets, quiet, index, visited);
@@ -169,9 +169,9 @@ void Controller::updatePackageFromServer(
 
   string url = index["packages"][name]["versions"][target_version].value("url", "");
 
+  log_(LogLevel::INFO, "Downloading " + url + "...");
   const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
   const fs::path extract_path = tmp_dir_ / name;
-
   net_.download(url, archive_path);
 
   verifyPackageHash(
@@ -186,10 +186,9 @@ void Controller::extractAndInstall(
 )
 {
   fs::create_directories(dest);
-  string tar_cmd =
-      "tar -xzf " + escape_shell_arg(archive.string()) + " -C " + escape_shell_arg(dest.string());
 
-  if (system(tar_cmd.c_str()) != 0)
+  log_(LogLevel::INFO, "Extracting archive...");
+  if (!extract_archive(archive, dest))
     throw ZCError(ZC_TAR_ERROR, "Extraction failed.");
 
   fs::path project_root = dest;
@@ -226,16 +225,23 @@ void Controller::verifyPackageHash(const fs::path &archive, const string &expect
   if (expected == "SKIP")
     return;
 
-  string cmd = "shasum -a 256 " + escape_shell_arg(archive.string()) + " | awk '{ print $1 }'";
-  string actual = execAndGetOutput(cmd.c_str());
-  actual.erase(actual.find_last_not_of(" \n\r\t") + 1);
-
-  if (actual != expected)
+  try
   {
-    fs::remove(archive);
-    throw ZCError(ZC_HASH_ERROR, "SECURITY ALERT: Hash mismatch!");
+    string actual = calculate_sha256(archive);
+
+    if (actual != expected)
+    {
+      fs::remove(archive);
+      throw ZCError(
+          ZC_HASH_ERROR, "SECURITY ALERT: Hash mismatch!\nExpected: " + expected + "\nActual:   " + actual
+      );
+    }
+    log_(LogLevel::SUCCESS, "Hash is correct");
   }
-  log_(LogLevel::SUCCESS, "Hash is correct");
+  catch (const ZCError &e)
+  {
+    throw ZCError(ZC_INTERNAL_ERROR, "Failed to compute hash: " + std::string(e.what()));
+  }
 }
 
 void Controller::installPackageFromServer(
@@ -244,10 +250,8 @@ void Controller::installPackageFromServer(
 {
   string url = resolvePackageUrl(name, version, index);
   log_(LogLevel::INFO, "Downloading " + url + "...");
-
   const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
   const fs::path extract_path = tmp_dir_ / name;
-
   net_.download(url, archive_path);
 
   string version_key = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
@@ -265,7 +269,7 @@ void Controller::installFromServer(Targets &targets, bool quiet)
 void Controller::installFromServer(Targets &targets, bool quiet, Visited &visited)
 {
   fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index from " INDEX_URL "...");
+  log_(LogLevel::INFO, "Fetching registry index...");
   net_.download(INDEX_URL, index_);
   json index = parseJsonFile(index_);
 

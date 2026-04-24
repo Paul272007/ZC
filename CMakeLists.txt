@@ -21,6 +21,8 @@ FetchContent_MakeAvailable(json)
 find_package(LLVM REQUIRED)
 find_package(Clang REQUIRED)
 find_package(CURL REQUIRED)
+find_package(LibArchive REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 message(STATUS "LLVM found: ${LLVM_PACKAGE_VERSION}")
 
@@ -60,9 +62,11 @@ target_include_directories(zc PRIVATE include)
 
 # Link
 target_link_libraries(zc PRIVATE
-  nlohmann_json::nlohmann_json
   ${CLANG_LIB}
+  nlohmann_json::nlohmann_json
   CURL::libcurl
+  LibArchive::LibArchive
+  OpenSSL::Crypto
   # Sometimes necessary under Linux for LLVM :
   pthread
   dl

@@ -30,6 +30,13 @@ void error(const string &msg)
   cout << RED << "[ERROR]   " << COLOR_RESET << msg << endl;
 }
 
+void clear_screen()
+{
+  // \033[2J = clear screen
+  // \033[1;1H = set cursor at the top left corner
+  std::cout << "\033[2J\033[1;1H" << std::flush;
+}
+
 bool ask(const string &question)
 {
   string line;

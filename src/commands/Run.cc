@@ -79,10 +79,7 @@ int Run::operator()()
 
   // 4. Execute program
   if (g_.gc_->clear_before_run_)
-  {
-    if (const int clear_res = system("clear"); clear_res != 0)
-      throw ZCError(ZC_INTERNAL_ERROR, "Unexpected terminal clearing error");
-  }
+    clear_screen();
 
   logger_(LogLevel::INFO, "Executing program...");
   string exec_cmd = fs::absolute(output_name_).string();

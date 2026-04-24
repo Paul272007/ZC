@@ -144,3 +144,5 @@ std::string input(const std::string &question);
  * @return the user's answer
  */
 std::string input(const std::string &question, const std::string &default_answer);
+
+void clear_screen();

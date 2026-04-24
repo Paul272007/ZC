@@ -54,3 +54,7 @@
 [[nodiscard]] std::string urlEncode(const std::string &s);
 
 void checkPackageName(const std::string &name);
+
+bool extract_archive(const std::string &filename, const std::string &dest);
+
+std::string calculate_sha256(const std::filesystem::path &path);
