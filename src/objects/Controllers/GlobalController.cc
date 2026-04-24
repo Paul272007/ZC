@@ -26,17 +26,19 @@ void GlobalController::initializeWithTemplate(
     const std::filesystem::path &root, const std::string &template_to_use
 ) const
 {
-  if (!fs::exists(templates_dir_))
+  const fs::path t_path = p_templates_dir_ / template_to_use;
+  if (!fs::exists(t_path))
     throw ZCError(ZC_NOT_FOUND, "The following template was not found: " + template_to_use);
 
-  for (const auto &entry : fs::recursive_directory_iterator(templates_dir_))
+  for (const auto &entry : fs::recursive_directory_iterator(t_path))
   {
-    // For each entry in the template, check if it already exists here
     const fs::path &src_path = entry.path();
+    fs::path rel_path = fs::relative(src_path, t_path);
 
-    fs::path rel_path = fs::relative(src_path, templates_dir_);
+    if (rel_path.empty() || rel_path == ".")
+      continue;
+
     fs::path dest_path = root / rel_path;
-
     if (fs::exists(dest_path) && !force_)
       if (!ask("The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"))
         continue;

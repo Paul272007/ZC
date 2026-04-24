@@ -71,11 +71,11 @@ _zc_create() {
 _zc_init() {
     _arguments \
         '(-a --author)'{-a,--author}'[Project author]:author' \
-        '(-b --basis)'{-b,--basis}'[Template to use as basis]:template' \
+        '(-t --template)'{-t,--template}'[Template to use as basis]:template' \
         '(-n --name)'{-n,--name}'[Package name]:name' \
         '(-s --src-folder)'{-s,--src-folder}'[Source folder]:folder:_directories' \
         '(-i --include-folder)'{-i,--include-folder}'[Include folder]:folder:_directories' \
-        '(-t --type)'{-t,--type}'[Project type]:type' \
+        '(-T --type)'{-T,--type}'[Project type]:type' \
         '(-f --force)'{-f,--force}'[Force even if project already exists]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-e --edit)'{-e,--edit}'[Open project in editor once initialized]' \

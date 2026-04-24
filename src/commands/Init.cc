@@ -1,9 +1,10 @@
 #include <filesystem>
 
 #include "commands/Init.hh"
+#include "files.hh"
+#include "nlohmann/json.hpp"
 #include "objects/Configs/LocalConfig.hh"
 #include "objects/Controllers/Controller.hh"
-#include "objects/Controllers/LocalController.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -13,8 +14,8 @@ Init::Init(
     bool force, bool quiet, bool edit, bool git, const std::string &author,
     const std::string &project_template, const std::string &name, const std::string &type
 )
-    : Command(force, quiet), path_(fs::current_path()), type_(Type::UNDEF), edit_(edit), git_(git),
-      g_(logger_, force)
+    : Command(force, quiet), edit_(edit), git_(git), author_(author), template_(project_template),
+      name_(name), path_(fs::current_path()), type_(Type::UNDEF), g_(logger_, force)
 {
   if (!force_ && fs::exists(CONFIG))
     if (!ask(
@@ -24,15 +25,15 @@ Init::Init(
       exit(0);
 
   // Ask if not precised (default option for the package is the current directory)
-  if (name.empty())
+  if (name_.empty())
     name_ = input("Package name: ", fs::current_path().filename().string());
 
   target_ = input("Package target: ", fs::current_path().filename().string());
 
-  if (author.empty())
+  if (author_.empty())
     author_ = input("Project author: ");
 
-  if (project_template.empty())
+  if (template_.empty())
     template_ = input("Template to use to initialize project: ");
 
   // std::string type = input("Project type: (lib/bin)");
@@ -50,9 +51,7 @@ Init::Init(
 int Init::operator()()
 {
   if (!template_.empty())
-  {
-    g_.initializeWithTemplate(fs::current_path(), template_);
-  }
+    g_.initializeWithTemplate(path_, template_);
 
   if (git_)
   {
@@ -61,14 +60,13 @@ int Init::operator()()
       throw ZCError(ZC_GIT_ERROR, "Git init failed");
   }
 
-  // Create configuration file with empty version
-  LocalController l(logger_, force_);
-  l.lc_->name_ = name_;
-  l.lc_->author_ = author_;
-  l.lc_->target_ = target_;
-  l.lc_->add_std_ = g_.gc_->add_std_;
-  l.lc_->type_ = type_;
-  l.lc_->write();
+  nlohmann::json base_config;
+  base_config["name"] = name_;
+  base_config["author"] = author_;
+  base_config["target"] = target_;
+  base_config["add_std"] = g_.gc_->add_std_;
+  base_config["type"] = type_ == Type::LIB ? "lib" : (type_ == Type::BIN ? "bin" : "undef");
+  writeJsonFile(base_config, fs::current_path() / CONFIG);
 
   if (g_.gc_->edit_on_init_ || edit_)
     return system(string(g_.gc_->editor_ + " " + path_.string()).c_str());

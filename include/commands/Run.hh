@@ -25,7 +25,7 @@ public:
 private:
   static Mode getMode(bool preprocess, bool compile, bool assemble);
 
-  bool isCppAndCheckExtensions() const;
+  bool compileAsCpp() const;
 
   void buildCommand();
 

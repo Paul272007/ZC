@@ -20,12 +20,11 @@ Run::Run(
       mode_(getMode(preprocess, compile, assemble)), args_(args), static_(static_compile), g_(logger_, force)
 {
   // Fill files_
-  for (const auto &f : files)
-    files_.emplace_back(f);
+  for (const auto &f : files) files_.emplace_back(f);
 
   // Check if C++ was given
   if (!plus_)
-    plus_ = isCppAndCheckExtensions();
+    plus_ = compileAsCpp();
 }
 
 int Run::operator()()
@@ -33,22 +32,23 @@ int Run::operator()()
   // 1. Check that all files exist (file extensions were already checked before)
   for (const auto &f : files_)
     if (!fs::exists(f))
-      throw ZCError(ZC_NOT_FOUND, "File not found: " + escape_shell_arg(f.string()));
+      throw ZCError(ZC_NOT_FOUND, "File not found: " + f.string());
 
   // 2. Build the compiling command following the given options
+  fs::path out = files_[0];
   switch (mode_)
   {
   case Mode::PREPROCESS:
-    output_name_ = files_[0].replace_extension(".i").string();
+    output_name_ = out.replace_extension(".i").string();
     break;
   case Mode::COMPILE:
-    output_name_ = files_[0].replace_extension(".s").string();
+    output_name_ = out.replace_extension(".s").string();
     break;
   case Mode::ASSEMBLE:
-    output_name_ = files_[0].replace_extension(".o").string();
+    output_name_ = out.replace_extension(".o").string();
     break;
   case Mode::FULL:
-    output_name_ = files_[0].replace_extension().string();
+    output_name_ = out.replace_extension().string();
     break;
   }
 
@@ -87,8 +87,7 @@ int Run::operator()()
   logger_(LogLevel::INFO, "Executing program...");
   string exec_cmd = fs::absolute(output_name_).string();
 
-  for (const auto &arg : args_)
-    exec_cmd += " " + escape_shell_arg(arg);
+  for (const auto &arg : args_) exec_cmd += " " + escape_shell_arg(arg);
 
   const int run_res = system(exec_cmd.c_str());
 
@@ -96,6 +95,8 @@ int Run::operator()()
   {
     fs::remove(output_name_);
 #ifdef DEBUG_MODE
+    if (!quiet_)
+      cout << endl;
     logger_(LogLevel::DEBUG, "Temporary file removed: " + output_name_);
 #endif
   }
@@ -132,22 +133,12 @@ Mode Run::getMode(const bool preprocess, const bool compile, const bool assemble
   return mode;
 }
 
-bool Run::isCppAndCheckExtensions() const
+bool Run::compileAsCpp() const
 {
-  bool found = false;
   for (const auto &f : files_)
-  {
     if (isCpp(f))
-    {
-      found = true;
-      continue;
-    }
-    auto ext = f.extension().string();
-    if (ext == ".c" || ext == ".i" || ext == ".o" || ext == ".s" || ext == ".asm")
-      continue;
-    throw ZCError(ZC_UNSUPPORTED_LANGUAGE, "File has an unknown extension: " + f.string());
-  }
-  return found;
+      return true;
+  return false;
 }
 
 void Run::buildCommand()
@@ -168,12 +159,10 @@ void Run::buildCommand()
   }
 
   // User flags
-  for (const auto &f : g_.gc_->flags_)
-    cmd << escape_shell_arg(f) << " ";
+  for (const auto &f : g_.gc_->flags_) cmd << escape_shell_arg(f) << " ";
 
   // Source files
-  for (const auto &file : files_)
-    cmd << escape_shell_arg(file.string()) << " ";
+  for (const auto &file : files_) cmd << escape_shell_arg(file.string()) << " ";
 
   // Output
   cmd << "-o " << escape_shell_arg(output_name_) << " ";
