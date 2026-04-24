@@ -20,7 +20,7 @@ void from_json(const json &j, Package &p)
     throw ZCError(ZC_CONFIG_TYPE_ERROR, "Incorrect data types in package declaration.");
 
   j.at(0).get_to(p.name);
-  p.version = j.at(1);
+  p.version = j.at(1).get<std::string>();
   j.at(2).get_to(p.binary);
   j.at(3).get_to(p.origin);
   j.at(4).get_to(p.is_exec);

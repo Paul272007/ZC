@@ -6,14 +6,13 @@
 class Version
 {
 public:
-  // TODO add semver flags such as -alpha etc
+  // TODO : add semver flags such as -alpha etc
   Version(int major, int minor, int patch);
-  explicit Version(const std::string &v);
+  Version(const std::string &v);
 
   std::tuple<int, int, int> to_tuple() const;
   std::string string() const;
 
-  Version operator=(const std::string &s) const;
   bool operator==(const Version &other) const;
   bool operator!=(const Version &other) const;
   bool operator<(const Version &other) const;

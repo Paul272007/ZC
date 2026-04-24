@@ -17,8 +17,7 @@ Version::Version(const std::string &v_str)
   std::vector<int> parts;
 
   // Get 3 first numbers in string
-  while (std::getline(ss, segment, '.'))
-    parts.push_back(std::stoi(segment));
+  while (std::getline(ss, segment, '.')) parts.push_back(std::stoi(segment));
 
   if (parts.size() >= 1)
     major_ = parts[0];
@@ -38,11 +37,6 @@ std::string Version::string() const
   std::stringstream s;
   s << major_ << "." << minor_ << "." << patch_;
   return s.str();
-}
-
-Version Version::operator=(const std::string &s) const
-{
-  return Version(s);
 }
 
 std::ostream &operator<<(std::ostream &os, const Version &v)

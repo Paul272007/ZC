@@ -36,8 +36,7 @@ void Controller::updateFromPath(const std::filesystem::path &root, bool quiet)
   Package p = r_->getPackage(pc.lc_->name_);
   if (p.version >= pc.lc_->version_ && !force_)
     throw ZCError(
-        ZC_BAD_COMMAND,
-        "The version of the locally installed package is equal or higher. Use --force to override."
+        ZC_BAD_COMMAND, "The version of the installed package is equal or higher. Use --force to override."
     );
 
   buildAndIndex(pc, quiet, "local", true);
@@ -341,7 +340,10 @@ void Controller::buildAndIndex(LocalController &pc, bool quiet, const std::strin
           .is_exec = is_bin
       }
   );
-  log_(LogLevel::SUCCESS, "Package " + pc.lc_->name_ + " installed successfully.");
+  if (isUpdate)
+    log_(LogLevel::SUCCESS, "Package " + pc.lc_->name_ + " updated successfully.");
+  else
+    log_(LogLevel::SUCCESS, "Package " + pc.lc_->name_ + " installed successfully.");
 }
 
 void Controller::installLibrary(LocalController &pc)

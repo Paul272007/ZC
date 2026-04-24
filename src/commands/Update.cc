@@ -25,15 +25,13 @@ Update::Update(
 
 int Update::operator()()
 {
-  if (!targets_.empty() && !path_.empty())
-    throw ZCError(ZC_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local path at the same time");
-
-  else if (path_.empty() && !targets_.empty())
-    c_->updateFromServer(targets_, quiet_); // Only path is empty : update targets from server
-
-  else if (path_.empty() && targets_.empty())
-    c_->updateFromJson(quiet_); // Both path and targets empty : install from registry.json
-
+  if (path_.empty())
+  {
+    if (targets_.empty())
+      c_->updateFromJson(quiet_); // Both path and targets empty : install from registry.json
+    else
+      c_->updateFromServer(targets_, quiet_); // Only path is empty : update targets from server
+  }
   else
     c_->updateFromPath(path_, quiet_); // Only targets is empty : update from path
 
