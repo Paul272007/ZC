@@ -13,7 +13,7 @@ public:
   ~LocalController() = default;
 
   void cleanProject();
-  void buildProject(bool quiet);
+  void buildProject(bool quiet, bool release_mode);
   void publishProject();
   bool addDependency(const std::string &target);
 

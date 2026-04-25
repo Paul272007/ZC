@@ -15,16 +15,15 @@ echo -e "${BLUE}[0/5] Installing dependencies...${NC}"
 if [ -f /etc/debian_version ]; then
   echo "Detected Debian-based system."
   sudo apt-get update -qq
-  sudo apt-get install -y clang libclang-dev llvm-dev cmake make git libz-dev libcurl4-openssl-dev
-elif [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then
+  sudo apt-get install -y clang libclang-dev llvm-dev cmake make git libz-dev libcurl4-openssl-dev libarchive-dev libssl-dev
   echo "Detected Red Hat-based system."
-  sudo dnf install -y clang clang-devel cmake make git libcurl-devel zlib-devel
+  sudo dnf install -y clang clang-devel cmake make git libcurl-devel zlib-devel libarchive-devel openssl-devel
 elif [ -f /etc/arch-release ]; then
   echo "Detected Arch-based system."
-  sudo pacman -S --needed --noconfirm clang cmake make git llvm libedit
+  sudo pacman -S --needed --noconfirm clang cmake make git llvm libedit libarchive openssl curl
 elif [ -f /etc/os-release ] && grep -q "suse" /etc/os-release; then
   echo "Installation for openSUSE..."
-  sudo zypper install -y clang clang-devel cmake make git zlib-devel libcurl-devel
+  sudo zypper install -y clang clang-devel cmake make git zlib-devel libcurl-devel libarchive-devel libopenssl-devel
 else
   echo -e "${RED}Error: Unsupported operating system.${NC}"
   exit 1

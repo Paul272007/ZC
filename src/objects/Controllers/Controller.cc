@@ -295,7 +295,7 @@ void Controller::buildAndIndex(LocalController &pc, bool quiet, const std::strin
             "The package '" + pc.lc_->name_ + "' seems to be already installed. Do you want to reinstall it?"
         ))
       return;
-  pc.buildProject(quiet);
+  pc.buildProject(quiet, true);
 
 #ifdef DEBUG_MODE
   log_(LogLevel::DEBUG, "Project compiled");

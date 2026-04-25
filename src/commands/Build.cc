@@ -15,7 +15,7 @@ Build::Build(const bool force, const bool quiet, const bool clean, const std::st
 
 int Build::operator()()
 {
-  l_.buildProject(quiet_);
+  l_.buildProject(quiet_, false);
 
   if (g_.gc_->move_binary_to_current_path_ && l_.lc_->type_ == Type::BIN)
   {

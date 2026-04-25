@@ -47,7 +47,7 @@ void LocalController::cleanProject()
       log_(LogLevel::INFO, "Cleaned " + build_dir_.filename().string());
 }
 
-void LocalController::buildProject(bool quiet)
+void LocalController::buildProject(bool quiet, bool release_mode)
 {
   if (fs::exists(build_dir_) && force_)
     cleanProject();
@@ -60,7 +60,7 @@ void LocalController::buildProject(bool quiet)
 
     generateCMakeLists();
     const string config_cmd = "cmake " + root_dir_.string() + " -B " + build_dir_.string() +
-                              " -DCMAKE_BUILD_TYPE=Debug" + quiet_cmd;
+                              " -DCMAKE_BUILD_TYPE=" + (release_mode ? "Release " : "Debug ") + quiet_cmd;
 
 #ifdef DEBUG_MODE
     log_(LogLevel::DEBUG, config_cmd);
