@@ -31,8 +31,15 @@ _zc() {
 _zc_get_templates() {
     local type="$1"
     local -a templates
-    templates=(${(f)"$(zc list -s $type --quiet 2>/dev/null)"})
+    templates=(${(f)"$(zc list -sq $type 2>/dev/null)"})
     _describe 'template' templates
+}
+
+_zc_get_packages() {
+    local type="$1"
+    local -a packages
+    packages=(${(f)"$(zc list -sq $type 2>/dev/null)"})
+    _describe 'package' packages
 }
 
 _zc_subcommands() {
@@ -41,26 +48,26 @@ _zc_subcommands() {
         'run:Compile and execute C/C++ file(s)'
         'create:Create file based on template'
         'init:Initialize empty project'
-        'list:List all globally installed libraries'
+        'list:List installed libraries'
         'build:Build project'
         'install:Install packages'
-        'remove:Remove package'
-        'add:Add dependency from global registry'
+        'remove:Remove packages'
+        'add:Add dependencies from global registry'
         'publish:Publish package to server'
         'clean:Clean temporary files and directories'
-        'update:Update given packages'
+        'update:Update packages'
     )
     _describe 'subcommand' subcommands
 }
 
 _zc_run() {
     _arguments \
-        '*:source file:_files -g "*.{c,cc,cpp,cxx,C}"' \
+        '*:source file:_files -g "*.{c,cc,cpp,cxx,C,o,i,s,asm}"' \
         '(-a --args)'{-a,--args}'[Arguments passed to the program]:args' \
-        '(-k --keep)'{-k,--keep}'[Do not delete executable after run]' \
+        '(-f --force)'{-f,--force}'[Force compiling even if target already exists]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-k --keep)'{-k,--keep}'[Do not delete executable after being executed]' \
         '(-p --plus)'{-p,--plus}'[Force compilation as C++]' \
-        '(-q --quiet)'{-q,--quiet}'[Enable quiet mode]' \
-        '(-f --force)'{-f,--force}'[Force compiling even if target exists]' \
         '(-s --static)'{-s,--static}'[Compile using static libraries]' \
         '--std[Add C/C++ standard from config file]' \
         '-E[Preprocess only]' \
@@ -71,22 +78,22 @@ _zc_run() {
 _zc_create() {
     _arguments \
         '*:file to create:_files' \
-        '(-i --input)'{-i,--input}'[Files to use as basis]:file:_files' \
+        '(-i --input)'{-i,--input}'[Files to use as basis]:file:_files -g "*.{c,cc,cpp,cxx,C}"' \
         '(-f --force)'{-f,--force}'[Force writing even if files already exist]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-e --edit)'{-e,--edit}'[Edit files once created]'
+        '(-e --edit)'{-e,--edit}'[Open files in editor once created]'
 }
 
 _zc_init() {
     _arguments \
         ':path:_directories' \
         '(-a --author)'{-a,--author}'[Project author]:author' \
-        '(-t --template)'{-t,--template}'[Template to use as basis]:template:_zc_get_templates -p' \
+        '(-T --template)'{-T,--template}'[Template to use]:template:_zc_get_templates -p' \
         '(-n --name)'{-n,--name}'[Package name]:name' \
         '(-s --src-folder)'{-s,--src-folder}'[Source folder]:folder:_directories' \
         '(-i --include-folder)'{-i,--include-folder}'[Include folder]:folder:_directories' \
-        '(-T --type)'{-T,--type}'[Project type]:type' \
-        '(-f --force)'{-f,--force}'[Force even if project already exists]' \
+        '(-t --type)'{-t,--type}'[Project type]:type:((bin\:"Executable binary" lib\:"C/C++ Library"))' \
+        '(-f --force)'{-f,--force}'[Force initialization]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-e --edit)'{-e,--edit}'[Open project in editor once initialized]' \
         '(-g --git)'{-g,--git}'[Create empty git repository]'
@@ -96,10 +103,10 @@ _zc_list() {
     _arguments \
         ':path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-g --global)'{-g,--global}'[List global libraries instead of local libraries]' \
-        '(-t --templates)'{-t,--templates}'[List templates instead of libraries]' \
-        '(-p --project-templates)'{-p,--project-templates}'[List project templates instead of libraries]' \
-        '(-s --simple)'{-s,--simple}'[Do not display using a table]'
+        '(-g --global)'{-g,--global}'[List global libraries]' \
+        '(-t --templates)'{-t,--templates}'[List templates]' \
+        '(-p --project-templates)'{-p,--project-templates}'[List project templates]' \
+        '(-s --simple)'{-s,--simple}'[Simple display instead of table]'
 }
 
 _zc_build() {
@@ -107,7 +114,7 @@ _zc_build() {
         ':path:_directories' \
         '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-c --clean)'{-c,--clean}'[Clean after compiling]'
+        '(-c --clean)'{-c,--clean}'[Clean after building]'
         '(-r --release)'{-r,--release}'[Build in release mode]'
 }
 
@@ -115,21 +122,21 @@ _zc_install() {
     _arguments \
         '*:package:' \
         '(-p --path)'{-p,--path}'[Install from local path]:path:_directories' \
-        '(-g --global)'{-g,--global}'[Install the package globally]' \
         '(-f --force)'{-f,--force}'[Force installing even if already installed]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+        '(-g --global)'{-g,--global}'[Install the package globally]' \
 }
 
 _zc_remove() {
     _arguments \
         '*:package:' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-g --global)'{-g,--global}'[Remove globally installed package]'
+        '(-g --global)'{-g,--global}'[Remove globally installed packages]' \
 }
 
 _zc_add() {
     _arguments \
-        '*:package:' \
+        '*:package:{_zc_get_packages -g}' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
@@ -142,7 +149,6 @@ _zc_publish() {
 _zc_clean() {
     _arguments \
         ':path:_directories' \
-        '(-p --path)'{-p,--path}'[Path to the project to clean]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-f --force)'{-f,--force}'[Force cleaning build directory]'
 }
@@ -152,7 +158,7 @@ _zc_update() {
         '*:package:' \
         '(-p --path)'{-p,--path}'[Update package from local path instead of remote]:path:_directories' \
         '(-g --global)'{-g,--global}'[Update globally installed package]' \
-        '(-f --force)'{-f,--force}'[Force updating the package even if already installed at latest version]' \
+        '(-f --force)'{-f,--force}'[Force updating the package even if already at latest version]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 

@@ -69,5 +69,5 @@ vcpkg_installed/
 Testing/
 .cache/
 
-# editors
+# Code editors
 .idea/

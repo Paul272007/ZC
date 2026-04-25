@@ -7,27 +7,27 @@ using namespace std;
 
 void success(const string &msg)
 {
-  cout << GREEN << "[SUCCESS] " << COLOR_RESET << msg << endl;
+  cout << "[" GREEN "SUCCESS" COLOR_RESET "] " << msg << endl;
 }
 
 void debug(const string &msg)
 {
-  cout << CYAN << "[DEBUG]   " << COLOR_RESET << msg << endl;
+  cout << "[" CYAN "DEBUG" COLOR_RESET "]   " << msg << endl;
 }
 
 void warning(const string &msg)
 {
-  cout << YELLOW << "[WARNING] " << COLOR_RESET << msg << endl;
+  cout << "[" YELLOW "WARNING" COLOR_RESET "] " << msg << endl;
 }
 
 void info(const string &msg)
 {
-  cout << BLUE << "[INFO]    " << COLOR_RESET << msg << endl;
+  cout << "[" BLUE "INFO" COLOR_RESET "]    " << msg << endl;
 }
 
 void error(const string &msg)
 {
-  cout << RED << "[ERROR]   " << COLOR_RESET << msg << endl;
+  cerr << "[" RED "ERROR" COLOR_RESET "]   " << msg << endl;
 }
 
 void clear_screen()

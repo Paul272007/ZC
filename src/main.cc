@@ -81,24 +81,24 @@ int main(const int argc, char *argv[])
   const auto run     = app.add_subcommand("run",     "Compile and execute C/C++ file(s)");
   const auto create  = app.add_subcommand("create",  "Create file based on template");
   const auto init    = app.add_subcommand("init",    "Initialize empty project");
-  const auto list    = app.add_subcommand("list",    "List all globally installed libraries");
+  const auto list    = app.add_subcommand("list",    "List installed libraries");
   const auto build   = app.add_subcommand("build",   "Build project");
   const auto install = app.add_subcommand("install", "Install packages");
-  const auto remove  = app.add_subcommand("remove",  "Remove package");
-  const auto add     = app.add_subcommand("add",     "Add dependency from global registry");
+  const auto remove  = app.add_subcommand("remove",  "Remove packages");
+  const auto add     = app.add_subcommand("add",     "Add dependencies from global registry");
   const auto publish = app.add_subcommand("publish", "Publish package to server");
   const auto clean   = app.add_subcommand("clean",   "Clean all temporary files and directories");
-  const auto update  = app.add_subcommand("update",  "Update given targets");
+  const auto update  = app.add_subcommand("update",  "Update packages");
 
   // ========================== RUN ===============================
 
   run->add_option("files", input_files, "The files to be compiled (and executed)")->required();
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
 
+  run->add_flag("--force,-f", force, "Force compiling even if target already exists");
+  run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
   run->add_flag("--keep,-k", run_keep, "Do not delete the executable after program ends");
   run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
-  run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
-  run->add_flag("--force,-f", force, "Force compiling even if target already exists");
   run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_compile, "Compile using static libraries");
   run->add_flag("-E", run_E, "Preprocess only");
@@ -112,9 +112,9 @@ int main(const int argc, char *argv[])
   create->add_option("files", output_files, "The files to be created")->required();
   create->add_option("--input,-i", input_files, "Files to be used as basis to write the new files");
 
-  create->add_flag("--force,-f", force, "Force writing into the files even if they already exist");
+  create->add_flag("--force,-f", force, "Force writing even if files already exist");
   create->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  create->add_flag("--edit,-e", edit, "Edit the files once created");
+  create->add_flag("--edit,-e", edit, "Open files in editor once created");
 
   create->callback([&]() { command = make_unique<Create>(force, quiet, edit, output_files, input_files); });
 
@@ -122,11 +122,11 @@ int main(const int argc, char *argv[])
 
   init->add_option("path", path, "Path to the project root");
   init->add_option("--author,-a", author, "Specify the project's author");
-  init->add_option("--template,-t", project_template, "Specify template to use as basis");
+  init->add_option("--template,-T", project_template, "Specify template to use as basis");
   init->add_option("--name,-n", name, "Specify package name");
   init->add_option("--src-folder,-s", src_folder, "Specify source folder");
   init->add_option("--include-folder,-i", include_folder, "Specify include folder");
-  init->add_option("--type,-T", type, "Specify package type");
+  init->add_option("--type,-t", type, "Specify package type");
 
   init->add_flag("--force,-f", force, "Force creating project even if one was already created in selected directory");
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");
@@ -164,9 +164,9 @@ int main(const int argc, char *argv[])
   install->add_option("targets", targets, "The packages to be installed");
   install->add_option("--path,-p", path, "Install from local path instead of remote");
 
-  install->add_flag("--global,-g", global, "Install the package globally");
   install->add_flag("--force,-f", force, "Force installing the package even if already installed");
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  install->add_flag("--global,-g", global, "Install the package globally");
 
   install->callback([&]() { command = make_unique<Install>(force, quiet, global, path, targets); });
 
