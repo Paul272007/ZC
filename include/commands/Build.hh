@@ -9,12 +9,13 @@
 class Build : public Command
 {
 public:
-  Build(bool force, bool quiet, bool clean, const std::string &path);
+  Build(bool force, bool quiet, bool clean, bool release, const std::string &path);
 
   int operator()() override;
 
 private:
   const bool clean_;
+  const bool release_;
   const std::filesystem::path path_;
   LocalController l_;
   GlobalController g_;

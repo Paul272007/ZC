@@ -7,15 +7,17 @@
 using namespace std;
 namespace fs = std::filesystem;
 
-Build::Build(const bool force, const bool quiet, const bool clean, const std::string &path)
-    : Command(force, quiet), clean_(clean), path_(path),
+Build::Build(
+    const bool force, const bool quiet, const bool clean, const bool release, const std::string &path
+)
+    : Command(force, quiet), clean_(clean), release_(release), path_(path),
       l_(logger_, force, path_.empty() ? getProjectRoot() : getProjectRoot(path)), g_(logger_, force)
 {
 }
 
 int Build::operator()()
 {
-  l_.buildProject(quiet_, false);
+  l_.buildProject(quiet_, release_);
 
   if (g_.gc_->move_binary_to_current_path_ && l_.lc_->type_ == Type::BIN)
   {

@@ -108,6 +108,7 @@ _zc_build() {
         '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-c --clean)'{-c,--clean}'[Clean after compiling]'
+        '(-r --release)'{-r,--release}'[Build in release mode]'
 }
 
 _zc_install() {

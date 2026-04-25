@@ -71,6 +71,7 @@ int main(const int argc, char *argv[])
 
   // zc build
   bool clean_after_build = false;
+  bool release = false;
 
   /* ========================================================= *
    *                         SUBCOMMANDS                       *
@@ -154,8 +155,9 @@ int main(const int argc, char *argv[])
   build->add_flag("--force,-f", force, "Force regenerating CMakeLists.txt");
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_after_build, "Clean after building");
+  build->add_flag("--release,-r", release, "Build in release mode instead of debug mode");
 
-  build->callback([&]() { command = make_unique<Build>(force, quiet, clean_after_build, path); });
+  build->callback([&]() { command = make_unique<Build>(force, quiet, clean_after_build, release, path); });
 
   // ========================== INSTALL ===============================
 
