@@ -1,8 +1,12 @@
 #include "objects/Network.hh"
+#include "files.hh"
+#include "helpers.hh"
+#include "nlohmann/json.hpp"
 #include "objects/ZCError.hh"
 
 using namespace std;
 namespace fs = std::filesystem;
+using json = nlohmann::json;
 
 size_t Network::write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
@@ -10,7 +14,7 @@ size_t Network::write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
   return written;
 }
 
-void Network::download(const std::string &url, const std::filesystem::path &dest)
+void Network::download(const std::string &url, const std::filesystem::path &dest) const
 {
   CURL *curl;
   FILE *fp;
@@ -50,4 +54,12 @@ void Network::download(const std::string &url, const std::filesystem::path &dest
   }
 
   curl_easy_cleanup(curl);
+}
+
+json Network::getIndex(const Logger &log) const
+{
+  log(LogLevel::INFO, "Fetching registry index...");
+  fs::create_directories(tmp_dir_);
+  download(INDEX_URL, index_);
+  return parseJsonFile(index_);
 }

@@ -106,7 +106,8 @@ _zc_list() {
         '(-g --global)'{-g,--global}'[List global libraries]' \
         '(-t --templates)'{-t,--templates}'[List templates]' \
         '(-p --project-templates)'{-p,--project-templates}'[List project templates]' \
-        '(-s --simple)'{-s,--simple}'[Simple display instead of table]'
+        '(-s --simple)'{-s,--simple}'[Simple display instead of table]' \
+        '(-r --remote)'{-r,--remote}'[Display remote available packages]'
 }
 
 _zc_build() {
@@ -114,24 +115,24 @@ _zc_build() {
         ':path:_directories' \
         '(-f --force)'{-f,--force}'[Force regenerating CMakeLists.txt]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-c --clean)'{-c,--clean}'[Clean after building]'
+        '(-c --clean)'{-c,--clean}'[Clean after building]' \
         '(-r --release)'{-r,--release}'[Build in release mode]'
 }
 
 _zc_install() {
     _arguments \
-        '*:package:' \
+        '*:package:{_zc_get_packages -r}' \
         '(-p --path)'{-p,--path}'[Install from local path]:path:_directories' \
         '(-f --force)'{-f,--force}'[Force installing even if already installed]' \
-        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
-        '(-g --global)'{-g,--global}'[Install the package globally]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-g --global)'{-g,--global}'[Install the package globally]'
 }
 
 _zc_remove() {
     _arguments \
         '*:package:' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '(-g --global)'{-g,--global}'[Remove globally installed packages]' \
+        '(-g --global)'{-g,--global}'[Remove globally installed packages]'
 }
 
 _zc_add() {

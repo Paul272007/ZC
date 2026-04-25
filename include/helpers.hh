@@ -1,10 +1,40 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
+
+// clang-format off
+#define ROOT_DIR                        ".zc"
+#define INDEX                    "index.json"
+#define CONFIG                      "zc.json"
+#define REGISTRY              "registry.json"
+#define CMAKELISTS           "CMakeLists.txt"
+#define EXTERNAL                   "external"
+#define INCLUDE_DIR                 "include"
+#define LIB_DIR                         "lib"
+#define BIN_DIR                         "bin"
+#define BUILD_DIR                     "build"
+#define TMP_DIR                         "tmp"
+#define TEMPLATES                 "templates"
+#define PROJECT_TEMPLATES "project_templates"
+#define GH_REPO      "Paul272007/ZC-Registry"
+#define INDEX_URL    "https://paul272007.github.io/ZC-Registry/index.json"
+// clang-format on
+
+enum class LogLevel
+{
+  INFO,
+  SUCCESS,
+  WARNING,
+  ERROR,
+  DEBUG
+};
+
+using Logger = std::function<void(LogLevel, const std::string &)>;
 
 /**
  * @brief Returns the root directory of ZC

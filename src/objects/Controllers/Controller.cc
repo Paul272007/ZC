@@ -3,7 +3,6 @@
 #include <utility>
 #include <vector>
 
-#include "files.hh"
 #include "helpers.hh"
 #include "interface.hh"
 #include "nlohmann/json.hpp"
@@ -42,7 +41,7 @@ void Controller::updateFromPath(const std::filesystem::path &root, bool quiet)
   buildAndIndex(pc, quiet, "local", true);
 }
 
-void Controller::clean()
+void Controller::clean() const
 {
   fs::remove_all(tmp_dir_);
 }
@@ -86,10 +85,7 @@ void Controller::updateFromJson(bool quiet)
 
 void Controller::updateFromJson(bool quiet, Visited &visited)
 {
-  fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index...");
-  net_.download(INDEX_URL, index_);
-  json index = parseJsonFile(index_);
+  json index = net_.getIndex(log_);
   Targets targets;
   const std::vector<Package> pkgs = r_->getPackages();
 
@@ -119,10 +115,7 @@ void Controller::updateFromJson(bool quiet, Visited &visited)
 void Controller::updateFromServer(Targets &targets, bool quiet)
 {
   Visited visited;
-  fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index...");
-  net_.download(INDEX_URL, index_);
-  json index = parseJsonFile(index_);
+  json index = net_.getIndex(log_);
   updateFromServer(targets, quiet, index, visited);
 }
 
@@ -268,10 +261,7 @@ void Controller::installFromServer(Targets &targets, bool quiet)
 
 void Controller::installFromServer(Targets &targets, bool quiet, Visited &visited)
 {
-  fs::create_directories(tmp_dir_);
-  log_(LogLevel::INFO, "Fetching registry index...");
-  net_.download(INDEX_URL, index_);
-  json index = parseJsonFile(index_);
+  json index = net_.getIndex(log_);
 
   for (const auto &[name, version] : targets)
   {
@@ -445,6 +435,15 @@ Table Controller::packagesTable() const
   return {static_cast<int>(str_pkgs.size()), 5, false, true, str_pkgs};
 }
 
+Table Controller::remotePackagesTable() const
+{
+  vector<vector<string>> str_pkgs{{"Package name"}};
+
+  for (const auto &p : getRemotePackages()) str_pkgs.push_back({p});
+
+  return {static_cast<int>(str_pkgs.size()), 1, false, true, str_pkgs};
+}
+
 void Controller::saveRegistry()
 {
   r_->write();
@@ -458,4 +457,15 @@ vector<Package> Controller::getPackages() const
 Package Controller::getPackage(const std::string &pkg) const
 {
   return r_->getPackage(pkg);
+}
+
+std::vector<std::string> Controller::getRemotePackages() const
+{
+  json index = net_.getIndex(log_);
+  vector<std::string> v;
+  if (index.contains("packages") && index["packages"].is_object())
+    for (auto it = index["packages"].begin(); it != index["packages"].end(); ++it) v.push_back(it.key());
+
+  clean();
+  return v;
 }

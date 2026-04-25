@@ -1,4 +1,5 @@
 #include "commands/Install.hh"
+#include "helpers.hh"
 #include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/Controllers/LocalController.hh"
@@ -31,7 +32,7 @@ int Install::operator()()
     c_->installFromServer(targets_, quiet_); // Only path is empty : install targets from server
 
   else if (targets_.empty() && !path_.empty())
-    c_->installFromPath(path_, quiet_); // Only targets is empty : install from path
+    c_->installFromPath(getProjectRoot(path_), quiet_); // Only targets is empty : install from path
 
   else
     c_->installFromJson(quiet_); // Both path and targets empty : install from registry.json

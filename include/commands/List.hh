@@ -7,7 +7,7 @@ class List : public Command
 {
 public:
   List(
-      bool force, bool quiet, bool global, bool templates, bool p_templates, bool simple,
+      bool force, bool quiet, bool global, bool templates, bool p_templates, bool simple, bool remote,
       const std::string &path
   );
 
@@ -18,6 +18,7 @@ private:
   const bool templates_;
   const bool p_templates_;
   const bool simple_;
+  const bool remote_;
   const std::string path_;
   GlobalController g_;
 };

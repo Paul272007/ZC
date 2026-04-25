@@ -46,14 +46,13 @@ int main(const int argc, char *argv[])
   vector<string> targets;
 
   // zc run
-  bool run_keep = false;
-  bool run_plus = false;
-  bool run_std = false;
+  bool keep = false;
+  bool plus = false;
+  bool std = false;
+  bool static_compile = false;
   bool run_c = false;
   bool run_S = false;
   bool run_E = false;
-  bool std = false;
-  bool static_compile = false;
   vector<string> run_args;
 
   // zc init
@@ -68,6 +67,7 @@ int main(const int argc, char *argv[])
   bool templates = false;
   bool p_templates = false;
   bool simple = false;
+  bool remote = false;
 
   // zc build
   bool clean_after_build = false;
@@ -97,15 +97,15 @@ int main(const int argc, char *argv[])
 
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
   run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
-  run->add_flag("--keep,-k", run_keep, "Do not delete the executable after program ends");
-  run->add_flag("--plus,-p", run_plus, "Force compilation as C++");
+  run->add_flag("--keep,-k", keep, "Do not delete the executable after program ends");
+  run->add_flag("--plus,-p", plus, "Force compilation as C++");
   run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_compile, "Compile using static libraries");
   run->add_flag("-E", run_E, "Preprocess only");
   run->add_flag("-S", run_S, "Compile, but do not assemble or link");
   run->add_flag("-c", run_c, "Compile and assemble, but do not link");
 
-  run->callback([&]() { command = make_unique<Run>(force, quiet, run_keep, run_plus, run_E, run_S, run_c, std, static_compile, input_files, run_args); });
+  run->callback([&]() { command = make_unique<Run>(force, quiet, keep, plus, run_E, run_S, run_c, std, static_compile, input_files, run_args); });
 
   // ========================== CREATE ===============================
 
@@ -145,8 +145,9 @@ int main(const int argc, char *argv[])
   list->add_flag("--templates,-t", templates, "List templates instead of libraries");
   list->add_flag("--project-templates,-p", p_templates, "List project templates instead of libraries");
   list->add_flag("--simple,-s", simple, "Do not display using a table");
+  list->add_flag("--remote,-r", remote, "Display remote available packages");
 
-  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates, simple, path); });
+  list->callback([&]() { command = make_unique<List>(false, quiet, global, templates, p_templates, simple, remote, path); });
 
   // ========================== BUILD ===============================
 

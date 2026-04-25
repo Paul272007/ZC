@@ -9,7 +9,7 @@ ZCError::ZCError(const ReturnCode code, const string &message) : code_(code), me
 
 ostream &operator<<(ostream &stream, const ZCError &error)
 {
-  stream << RED << "[ERROR]   " << COLOR_RESET;
+  stream << "[" RED "ERROR" COLOR_RESET "]   ";
 
 #ifdef DEBUG_MODE
   stream << "(exit code: " << error.code_ << ") ";

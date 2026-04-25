@@ -3,6 +3,7 @@
 
 #include "commands/Command.hh"
 #include "commands/Update.hh"
+#include "helpers.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/Controllers/LocalController.hh"
 #include "objects/ZCError.hh"
@@ -33,7 +34,7 @@ int Update::operator()()
       c_->updateFromServer(targets_, quiet_); // Only path is empty : update targets from server
   }
   else
-    c_->updateFromPath(path_, quiet_); // Only targets is empty : update from path
+    c_->updateFromPath(getProjectRoot(path_), quiet_); // Only targets is empty : update from path
 
   c_->saveRegistry();
   return 0;
