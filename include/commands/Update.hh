@@ -6,9 +6,7 @@
 class Update : public Command
 {
 public:
-  Update(
-      bool force, bool quiet, bool global, const std::string &path, const std::vector<std::string> &targets
-  );
+  Update(bool force, bool quiet, bool global, const std::string &path, std::vector<std::string> &targets);
 
   int operator()() override;
 

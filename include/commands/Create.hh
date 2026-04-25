@@ -11,7 +11,7 @@ class Create : public Command
 {
 public:
   Create(
-      bool force, bool quiet, bool edit, const std::vector<std::string> &files,
+      bool force, bool quiet, bool edit, std::vector<std::string> &files,
       const std::vector<std::string> &input_files
   );
 

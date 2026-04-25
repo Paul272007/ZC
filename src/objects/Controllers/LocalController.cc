@@ -52,7 +52,7 @@ void LocalController::buildProject(bool quiet, bool release_mode)
   if (fs::exists(build_dir_) && force_)
     cleanProject();
 
-  const char *quiet_cmd = (quiet ? " &/dev/null" : "");
+  const char *quiet_cmd = (quiet ? " &>/dev/null" : "");
   // CMake configuration
   if (!fs::exists(cmakelists_) || force_)
   {
@@ -129,11 +129,11 @@ void LocalController::generateCMakeLists() const
 
   // Sources
   fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
-  if (!fs::exists(src))
+  if (!fs::exists(root_dir_ / lc_->include_folder_))
     throw ZCError(ZC_NO_SOURCE_FILES, src.string() + " folder does not exist.");
 
   fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
-  if (!fs::exists(include))
+  if (!fs::exists(root_dir_ / lc_->include_folder_))
     throw ZCError(ZC_NOT_FOUND, include.string() + " folder does not exist.");
 
   vector<string> c_extensions{"c", "cc", "cxx", "cpp"};

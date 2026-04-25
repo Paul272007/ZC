@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "commands/Remove.hh"
+#include "helpers.hh"
 #include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/Controllers/LocalController.hh"
@@ -13,6 +14,8 @@ Remove::Remove(bool force, bool quiet, bool global, const std::vector<std::strin
     c_ = new GlobalController(logger_, force);
   else
     c_ = new LocalController(logger_, force);
+
+  removeDuplicates(targets_);
 }
 
 int Remove::operator()()

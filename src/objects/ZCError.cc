@@ -23,3 +23,8 @@ int ZCError::getCode_() const
 {
   return (int)code_;
 }
+
+const char *ZCError::what() const noexcept
+{
+  return message_.c_str();
+}

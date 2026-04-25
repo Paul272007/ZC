@@ -8,7 +8,7 @@
 using namespace std;
 
 Install::Install(
-    bool force, bool quiet, bool global, const std::string &path, const std::vector<std::string> &targets
+    bool force, bool quiet, bool global, const std::string &path, std::vector<std::string> &targets
 )
     : Command(force, quiet), path_(path)
 {
@@ -20,6 +20,7 @@ Install::Install(
   else
     c_ = make_unique<LocalController>(logger_, force);
 
+  removeDuplicates(targets);
   targets_ = Controller::parsePackages(targets);
 }
 

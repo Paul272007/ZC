@@ -82,6 +82,8 @@ public:
    */
   int getCode_() const;
 
+  const char *what() const noexcept override;
+
 private:
   ReturnCode code_ = ZC_SUCCESS;
   std::string message_ = "Feature not implemented";

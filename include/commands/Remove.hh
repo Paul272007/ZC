@@ -13,6 +13,6 @@ public:
   int operator()() override;
 
 private:
-  const std::vector<std::string> targets_;
+  std::vector<std::string> targets_;
   Controller *c_ = nullptr;
 };

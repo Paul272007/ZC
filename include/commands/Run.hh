@@ -17,7 +17,7 @@ class Run : public Command
 {
 public:
   Run(bool force, bool quiet, bool keep, bool plus, bool preprocess, bool compile, bool assemble,
-      bool add_std, bool static_compile, const std::vector<std::string> &files,
+      bool add_std, bool static_compile, std::vector<std::string> &files,
       const std::vector<std::string> &args);
 
   int operator()() override;

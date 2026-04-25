@@ -5,7 +5,6 @@
 #include "commands/Run.hh"
 #include "files.hh"
 #include "helpers.hh"
-#include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/ZCError.hh"
 
@@ -14,11 +13,12 @@ namespace fs = std::filesystem;
 
 Run::Run(
     bool force, bool quiet, bool keep, bool plus, bool preprocess, bool compile, bool assemble, bool add_std,
-    bool static_compile, const std::vector<std::string> &files, const std::vector<std::string> &args
+    bool static_compile, std::vector<std::string> &files, const std::vector<std::string> &args
 )
     : Command(force, quiet), add_std_(add_std), keep_(keep), plus_(plus),
       mode_(getMode(preprocess, compile, assemble)), args_(args), static_(static_compile), g_(logger_, force)
 {
+  removeDuplicates(files);
   // Fill files_
   for (const auto &f : files) files_.emplace_back(f);
 

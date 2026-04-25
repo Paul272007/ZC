@@ -5,9 +5,7 @@
 class Install : public Command
 {
 public:
-  Install(
-      bool force, bool quiet, bool global, const std::string &path, const std::vector<std::string> &targets
-  );
+  Install(bool force, bool quiet, bool global, const std::string &path, std::vector<std::string> &targets);
 
   int operator()() override;
 

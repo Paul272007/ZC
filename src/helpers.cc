@@ -1,10 +1,11 @@
+#include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
 #include <fstream>
 #include <openssl/evp.h>
+#include <unordered_set>
 
 #include "helpers.hh"
-#include "objects/Controllers/Controller.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -218,4 +219,13 @@ std::string calculate_sha256(const fs::path &path)
     ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
   }
   return ss.str();
+}
+
+void removeDuplicates(std::vector<std::string> &v)
+{
+  std::unordered_set<std::string> seen;
+  auto new_end =
+      std::remove_if(v.begin(), v.end(), [&](const std::string &s) { return !seen.insert(s).second; });
+
+  v.erase(new_end, v.end());
 }

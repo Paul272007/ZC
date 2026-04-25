@@ -9,7 +9,7 @@
 #include "objects/ZCError.hh"
 
 Update::Update(
-    bool force, bool quiet, bool global, const std::string &path, const std::vector<std::string> &targets
+    bool force, bool quiet, bool global, const std::string &path, std::vector<std::string> &targets
 )
     : Command(force, quiet), path_(path)
 {
@@ -21,6 +21,7 @@ Update::Update(
   else
     c_ = make_unique<LocalController>(logger_, force);
 
+  removeDuplicates(targets);
   targets_ = Controller::parsePackages(targets);
 }
 

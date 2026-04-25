@@ -4,6 +4,7 @@
 
 #include "commands/Create.hh"
 #include "files.hh"
+#include "helpers.hh"
 #include "objects/Controllers/GlobalController.hh"
 #include "objects/ZCError.hh"
 
@@ -11,15 +12,14 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Create::Create(
-    bool force, bool quiet, bool edit, const std::vector<std::string> &files,
+    bool force, bool quiet, bool edit, std::vector<std::string> &files,
     const std::vector<std::string> &input_files
 )
     : Command(force, quiet), edit_(edit), g_(logger_, force)
 {
-  for (const auto &f : files)
-    files_.emplace_back(f);
-  for (const auto &i : input_files)
-    input_files_.emplace_back(i);
+  removeDuplicates(files);
+  for (const auto &f : files) files_.emplace_back(f);
+  for (const auto &i : input_files) input_files_.emplace_back(i);
 }
 
 int Create::operator()()
@@ -78,8 +78,7 @@ int Create::operator()()
   {
     stringstream cmd;
     cmd << g_.gc_->editor_;
-    for (const auto &f : files_to_edit)
-      cmd << " " << f;
+    for (const auto &f : files_to_edit) cmd << " " << f;
     return system(cmd.str().c_str());
   }
   return 0;
