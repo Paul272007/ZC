@@ -10,9 +10,17 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}========== ZC Installation ==========${NC}"
 
-# Detect OS
+# Detect OS and install dependencies
 echo -e "${BLUE}[0/5] Installing dependencies...${NC}"
-if [ -f /etc/debian_version ]; then
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "Detected macOS."
+  if ! command -v brew &>/dev/null; then
+    echo "Homebrew not found. Please install it first at https://brew.sh/"
+    exit 1
+  fi
+  brew install cmake git libarchive openssl curl
+elif [ -f /etc/debian_version ]; then
   echo "Detected Debian-based system."
   sudo apt-get update -qq
   sudo apt-get install -y clang libclang-dev llvm-dev cmake make git libz-dev libcurl4-openssl-dev libarchive-dev libssl-dev

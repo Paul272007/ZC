@@ -11,7 +11,8 @@ Build::Build(
     const bool force, const bool quiet, const bool clean, const bool release, const std::string &path
 )
     : Command(force, quiet), clean_(clean), release_(release), path_(path),
-      l_(logger_, force, path_.empty() ? getProjectRoot() : getProjectRoot(path)), g_(logger_, force)
+      l_(logger_, force || release, path_.empty() ? getProjectRoot() : getProjectRoot(path)),
+      g_(logger_, force)
 {
 }
 

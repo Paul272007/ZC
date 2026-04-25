@@ -120,6 +120,13 @@ void LocalController::generateCMakeLists() const
     cmake << "set(CMAKE_C_STANDARD " << (lc_->c_std_.substr(1)) << ")\n\n";
   }
 
+  // Macro definitions for debug/release mode
+  cmake << "if(CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
+  cmake << "  add_definitions(-DZC_DEBUG)\n";
+  cmake << "else()\n";
+  cmake << "  add_definitions(-DZC_RELEASE)\n";
+  cmake << "endif()\n\n";
+
   // Sources
   fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
   if (!fs::exists(src))

@@ -368,7 +368,7 @@ void Controller::installExecutable(LocalController &pc)
   const fs::path exe_dest = bin_dir_ / pc.lc_->target_;
   const fs::path exe_source = pc.root_dir_ / BUILD_DIR / pc.lc_->target_;
 
-  pc.log_(LogLevel::INFO, "Installing global binary...");
+  pc.log_(LogLevel::INFO, "Installing binary...");
 
   fs::create_directories(bin_dir_);
 
