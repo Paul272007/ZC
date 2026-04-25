@@ -24,6 +24,7 @@ void GlobalConfig::load()
   add_std_ = json_conf.value("auto_add_std", false);
 
   editor_ = json_conf.value("editor", "nvim");
+  default_author_ = json_conf.value("username", "");
 
   flags_ = json_conf.value<std::vector<std::string>>("flags", std::vector<std::string>{"-Wall", "-Wextra"});
 

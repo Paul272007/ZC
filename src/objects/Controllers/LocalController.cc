@@ -127,14 +127,9 @@ void LocalController::generateCMakeLists() const
   cmake << "  add_definitions(-DZC_RELEASE)\n";
   cmake << "endif()\n\n";
 
-  // Sources
+  // Sources (make sure the paths are relative to the root of the project)
   fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
-  if (!fs::exists(root_dir_ / lc_->include_folder_))
-    throw ZCError(ZC_NO_SOURCE_FILES, src.string() + " folder does not exist.");
-
   fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
-  if (!fs::exists(root_dir_ / lc_->include_folder_))
-    throw ZCError(ZC_NOT_FOUND, include.string() + " folder does not exist.");
 
   vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
   vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
@@ -314,6 +309,16 @@ bool LocalController::addDependency(const std::string &target)
 
 void LocalController::checkFolderNames() const
 {
+  if (!fs::exists(root_dir_ / lc_->src_folder_))
+    throw ZCError(
+        ZC_CONFIG_CONTENT_ERROR, "Source folder '" + lc_->src_folder_.string() + "' does not exist"
+    );
+
+  if (!fs::exists(root_dir_ / lc_->include_folder_))
+    throw ZCError(
+        ZC_CONFIG_CONTENT_ERROR, "Include folder '" + lc_->include_folder_.string() + "' does not exist"
+    );
+
   vector<string> invalid_names{"external", "build", ".cache", "CMakeLists.txt", "registry.json", "zc.json"};
 
   string src_str = lc_->src_folder_.filename().string();

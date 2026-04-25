@@ -17,6 +17,7 @@ public:
   bool edit_on_init_;
   bool edit_on_create_;
   std::string editor_;
+  std::string default_author_;
   std::vector<std::string> flags_;
 
 protected:

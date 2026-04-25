@@ -108,6 +108,7 @@ if [ "$CONFIG_EXISTS" == "false" ]; then
   prompt_str "C++ default standard" "c++20" VAL_CPP_STD
   prompt_str "Additionnal flags for compiling ?" "-Wall -Wextra" VAL_FLAGS
   prompt_str "Text editor to use" "${EDITOR:-nvim}" VAL_EDITOR
+  prompt_str "Username" "user" VAL_USERNAME
   prompt_bool "Always add standard flag ?" "false" VAL_AUTO_STD
   prompt_bool "Always clear terminal before using zc run ?" "false" VAL_CLEAR
   prompt_bool "Always keep binaries created by zc run ?" "false" VAL_KEEP
@@ -134,6 +135,7 @@ if [ "$CONFIG_EXISTS" == "false" ]; then
   "auto_add_std": $VAL_AUTO_STD,
   "flags": [$JSON_FLAGS],
   "editor": "$VAL_EDITOR",
+  "username": "$VAL_USERNAME",
   "clear_before_run": $VAL_CLEAR,
   "auto_keep": $VAL_KEEP,
   "edit_on_create": $VAL_EDIT_CREATE,

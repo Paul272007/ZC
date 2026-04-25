@@ -4,7 +4,6 @@
 #include "files.hh"
 #include "nlohmann/json.hpp"
 #include "objects/Configs/LocalConfig.hh"
-#include "objects/Controllers/Controller.hh"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -32,7 +31,7 @@ Init::Init(
   target_ = input("Package target: ", fs::current_path().filename().string());
 
   if (author_.empty())
-    author_ = input("Project author: ");
+    author_ = input("Project author: ", g_.gc_->default_author_);
 
   if (template_.empty())
     template_ = input("Template to use to initialize project: ");
