@@ -82,7 +82,7 @@ int Run::operator()()
     clear_screen();
 
   logger_(LogLevel::INFO, "Executing program...");
-  string exec_cmd = fs::absolute(output_name_).string();
+  string exec_cmd = escape_shell_arg(fs::absolute(output_name_).string());
 
   for (const auto &arg : args_) exec_cmd += " " + escape_shell_arg(arg);
 
@@ -177,7 +177,7 @@ void Run::buildCommand()
     cmd << "-c ";
     break;
   default:
-    cmd << "-I" << g_.include_dir_.string() << " "; // Path to headers
+    cmd << "-I" << escape_shell_arg(g_.include_dir_.string()) << " "; // Path to headers
     for (const vector<string> libs = getInclusions(); const auto lib : libs)
     {
       fs::path lib_dir = (g_.lib_dir_ / lib);

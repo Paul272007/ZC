@@ -271,6 +271,9 @@ int Table::getSize() const
 
 void Table::draw()
 {
+  if (n_rows_ == 0 || n_cols_ == 0)
+    return;
+
   getWidths();
   getChars();
 

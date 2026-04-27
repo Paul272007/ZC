@@ -11,9 +11,9 @@ Remove::Remove(bool force, bool quiet, bool global, const std::vector<std::strin
     : Command(force, quiet), targets_(targets)
 {
   if (global)
-    c_ = new GlobalController(logger_, force);
+    c_ = std::make_unique<GlobalController>(logger_, force);
   else
-    c_ = new LocalController(logger_, force);
+    c_ = std::make_unique<LocalController>(logger_, force);
 
   removeDuplicates(targets_);
 }
@@ -28,6 +28,5 @@ int Remove::operator()()
       logger_(LogLevel::SUCCESS, "Package " + pkg + " removed successfully.");
   }
   c_->saveRegistry();
-  delete c_;
   return 0;
 }

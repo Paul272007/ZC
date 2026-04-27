@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -51,7 +52,7 @@ public:
   std::filesystem::path lib_dir_;
   std::filesystem::path include_dir_;
   std::filesystem::path tmp_dir_ = getZCRootDir() / TMP_DIR;
-  Config *c_ = nullptr;
+  std::unique_ptr<Config> c_;
 
 protected:
   Controller(const Controller &) = delete;
@@ -66,7 +67,7 @@ protected:
   Logger log_;
   Network net_;
   bool force_;
-  Registry *r_ = nullptr;
+  std::unique_ptr<Registry> r_;
 
 private:
   void installExecutable(LocalController &pc);

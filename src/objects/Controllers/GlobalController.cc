@@ -19,9 +19,10 @@ GlobalController::GlobalController(Logger log, bool force) : Controller(log, for
   lib_dir_ = root_dir_ / LIB_DIR;
   include_dir_ = root_dir_ / INCLUDE_DIR;
 
-  gc_ = new GlobalConfig(root_dir_ / CONFIG);
-  c_ = gc_;
-  r_ = new GlobalRegistry(root_dir_ / REGISTRY);
+  auto global_config = std::make_unique<GlobalConfig>(root_dir_ / CONFIG);
+  gc_ = global_config.get();
+  c_ = std::move(global_config);
+  r_ = std::make_unique<GlobalRegistry>(root_dir_ / REGISTRY);
 }
 
 void GlobalController::initializeWithTemplate(

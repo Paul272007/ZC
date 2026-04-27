@@ -2,6 +2,7 @@
 
 #include "commands/Init.hh"
 #include "files.hh"
+#include "helpers.hh"
 #include "nlohmann/json.hpp"
 #include "objects/Configs/LocalConfig.hh"
 #include "objects/ZCError.hh"
@@ -69,7 +70,7 @@ int Init::operator()()
   writeJsonFile(base_config, fs::current_path() / CONFIG);
 
   if (g_.gc_->edit_on_init_ || edit_)
-    return system(string(g_.gc_->editor_ + " " + path_.string()).c_str());
+    return system(string(escape_shell_arg(g_.gc_->editor_) + " " + escape_shell_arg(path_.string())).c_str());
 
   return 0;
 }

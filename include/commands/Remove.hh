@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -14,5 +15,5 @@ public:
 
 private:
   std::vector<std::string> targets_;
-  Controller *c_ = nullptr;
+  std::unique_ptr<Controller> c_;
 };

@@ -138,13 +138,13 @@ void checkPackageName(const std::string &name)
 
   if (name.at(0) == '-')
     throw ZCError(ZC_CONFIG_CONTENT_ERROR, "The name of the package begin with '-'");
-
   for (char c : forbidden_chars)
   {
     size_t pos = name.find(c);
     if (pos != string::npos)
       throw ZCError(
-          ZC_CONFIG_CONTENT_ERROR, &"The name of the package or target contains invalid character: "[c]
+          ZC_CONFIG_CONTENT_ERROR,
+          "The name of the package or target contains invalid character: " + std::string(1, c)
       );
   }
 }

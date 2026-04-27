@@ -24,9 +24,10 @@ LocalController::LocalController(Logger log, bool force, const std::filesystem::
   lib_dir_ = root_dir_ / EXTERNAL / LIB_DIR;
   include_dir_ = root_dir_ / EXTERNAL / INCLUDE_DIR;
 
-  lc_ = new LocalConfig(root_dir_ / CONFIG);
-  c_ = lc_;
-  r_ = new LocalRegistry(root_dir_ / REGISTRY);
+  auto local_config = std::make_unique<LocalConfig>(root_dir_ / CONFIG);
+  lc_ = local_config.get();
+  c_ = std::move(local_config);
+  r_ = std::make_unique<LocalRegistry>(root_dir_ / REGISTRY);
 
   checkPackageName(lc_->name_);
   checkPackageName(lc_->target_);
@@ -60,8 +61,9 @@ void LocalController::buildProject(bool quiet, bool release_mode)
     log_(LogLevel::INFO, "Generating build configuration...");
 
     generateCMakeLists();
-    const string config_cmd = "cmake " + root_dir_.string() + " -B " + build_dir_.string() +
-                              " -DCMAKE_BUILD_TYPE=" + (release_mode ? "Release " : "Debug ") + quiet_cmd;
+    const string config_cmd = "cmake " + escape_shell_arg(root_dir_.string()) + " -B " +
+                              escape_shell_arg(build_dir_.string()) + " -DCMAKE_BUILD_TYPE=" +
+                              (release_mode ? "Release " : "Debug ") + quiet_cmd;
 
 #ifdef DEBUG_MODE
     log_(LogLevel::DEBUG, config_cmd);
@@ -73,7 +75,7 @@ void LocalController::buildProject(bool quiet, bool release_mode)
       throw ZCError(ZC_CMAKE_ERROR, "CMake configuration failed");
   }
   // Build
-  const string build_cmd = "cmake --build " + build_dir_.string() + quiet_cmd;
+  const string build_cmd = "cmake --build " + escape_shell_arg(build_dir_.string()) + quiet_cmd;
 
 #ifdef DEBUG_MODE
   log_(LogLevel::DEBUG, build_cmd);

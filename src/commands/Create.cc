@@ -45,7 +45,7 @@ int Create::operator()()
           );
       }
       writeCDecls(f);
-      logger_(LogLevel::SUCCESS, "fs::path written: " + f.string());
+      logger_(LogLevel::SUCCESS, "File written: " + f.string());
     }
     else // Else use a template
     {
@@ -64,7 +64,7 @@ int Create::operator()()
 
           file << t_file.rdbuf();
 
-          logger_(LogLevel::SUCCESS, "fs::path written: " + f.string());
+          logger_(LogLevel::SUCCESS, "File written: " + f.string());
           found = true;
           break;
         }
@@ -78,7 +78,7 @@ int Create::operator()()
   {
     stringstream cmd;
     cmd << g_.gc_->editor_;
-    for (const auto &f : files_to_edit) cmd << " " << f;
+    for (const auto &f : files_to_edit) cmd << " " << escape_shell_arg(f);
     return system(cmd.str().c_str());
   }
   return 0;

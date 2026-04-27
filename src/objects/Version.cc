@@ -6,6 +6,8 @@
 
 #include <objects/Version.hh>
 
+#include <objects/ZCError.hh>
+
 Version::Version(int major, int minor, int patch) : major_(major), minor_(minor), patch_(patch)
 {
 }
@@ -16,8 +18,21 @@ Version::Version(const std::string &v_str)
   std::string segment;
   std::vector<int> parts;
 
-  // Get 3 first numbers in string
-  while (std::getline(ss, segment, '.')) parts.push_back(std::stoi(segment));
+  try
+  {
+    // Get 3 first numbers in string
+    while (std::getline(ss, segment, '.'))
+    {
+      if (!segment.empty())
+      {
+        parts.push_back(std::stoi(segment));
+      }
+    }
+  }
+  catch (const std::exception &e)
+  {
+    throw ZCError(ZC_CONFIG_CONTENT_ERROR, "Invalid version format: " + v_str);
+  }
 
   if (parts.size() >= 1)
     major_ = parts[0];

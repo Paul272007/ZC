@@ -18,8 +18,6 @@ namespace fs = std::filesystem;
 
 Controller::~Controller()
 {
-  delete c_;
-  delete r_;
 }
 
 void Controller::installFromPath(const std::filesystem::path &root, bool quiet)
