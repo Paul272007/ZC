@@ -12,8 +12,7 @@ For the moment ZC is only available for Linux.
 
 ## Installation
 
-Simply run `./install.sh` with root privileges from the repo root.
-Then you can also uninstall it using `./uninstall.sh`
+Quick install : `bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"`
 
 ## Usage
 
