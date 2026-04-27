@@ -147,12 +147,12 @@ void GlobalController::login()
   std::string verification_uri = json_resp["verification_uri"];
   int interval = json_resp["interval"];
 
-  nl();
-  log_(LogLevel::INFO, "=========================================================");
+  log_(LogLevel::INFO, "");
+  log_(LogLevel::INFO, "===============================================================");
   log_(LogLevel::INFO, "1. Open your browser and go to: " U_BLUE + verification_uri + COLOR_RESET);
   log_(LogLevel::INFO, "2. Enter the following code:    " B_WHITE + user_code + COLOR_RESET);
-  log_(LogLevel::INFO, "=========================================================");
-  nl();
+  log_(LogLevel::INFO, "===============================================================");
+  log_(LogLevel::INFO, "");
 
   log_(LogLevel::INFO, "Waiting for authorization (press Ctrl+C to abort)...");
   fl();

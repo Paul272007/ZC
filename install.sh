@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}========== ZC Installation ==========${NC}"
 
 # Detect OS and install dependencies
-echo -e "${BLUE}[0/5] Installing dependencies...${NC}"
+echo -e "${BLUE}[1/6] Installing dependencies...${NC}"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   echo "Detected macOS."
@@ -37,7 +37,7 @@ else
   exit 1
 fi
 
-echo -e "${BLUE}[1/5] Setting up user environment...${NC}"
+echo -e "${BLUE}[2/7] Setting up user environment...${NC}"
 ZC_DIR="$HOME/.zc"
 CONFIG_FILE="$ZC_DIR/zc.json"
 CONFIG_EXISTS=false
@@ -50,6 +50,7 @@ if [ ! -d "$ZC_DIR" ]; then
   mkdir -p "$ZC_DIR/lib"
   mkdir -p "$ZC_DIR/include"
   mkdir -p "$ZC_DIR/completions"
+  mkdir -p "$ZC_DIR/bin"
 fi
 
 for item in etc/*; do
@@ -68,6 +69,8 @@ done
 
 # Always force updating completions
 cp -r etc/completions "$ZC_DIR"
+# Ensure bin directory exists
+mkdir -p "$ZC_DIR/bin"
 
 # --- PROMPT FOR CONFIGURATION ---
 if [ "$CONFIG_EXISTS" == "false" ]; then
@@ -147,7 +150,7 @@ fi
 # ------------------------------------------
 
 # Build and copy source files, and clean up build artifacts
-echo -e "${BLUE}[2/5] Cleaning existing installation...${NC}"
+echo -e "${BLUE}[3/7] Cleaning existing installation...${NC}"
 
 BIN="/usr/local/bin/zc"
 # Clean up any existing installation
@@ -167,18 +170,18 @@ echo "Configuration..."
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DENABLE_DEBUG=OFF ..
 
 # Parallel compilation to compile faster
-echo -e "${BLUE}[3/5] Compiling source code...${NC}"
+echo -e "${BLUE}[4/7] Compiling source code...${NC}"
 cmake --build . --config Release --parallel "$(nproc)"
 
 # Installation
-echo -e "${BLUE}[4/5] Installing ZC...${NC}"
+echo -e "${BLUE}[5/7] Installing ZC...${NC}"
 if [ "$EUID" -ne 0 ]; then
   sudo cmake --install .
 else
   cmake --install .
 fi
 
-echo -e "${BLUE}[5/5] Configuring Clangd...${NC}"
+echo -e "${BLUE}[6/7] Configuring Clangd...${NC}"
 
 if [ -n "$SUDO_USER" ]; then
   REAL_USER="$SUDO_USER"
@@ -214,7 +217,66 @@ fi
 
 chown "$REAL_USER:$(id -gn "$REAL_USER")" "$CLANGD_CONFIG"
 
-echo -e "${GREEN}===== ZC installed successfully! =====${NC}"
+echo -e "${BLUE}[7/7] Updating shell configuration...${NC}"
 
-printf "You can now append 'export PATH=\"\$HOME/.zc/bin:\$PATH\"' to your ~/.bashrc or ~/.zshrc file to use commands installed via zc\n"
+# Helper to update RC files
+update_rc() {
+  local rc_file="$1"
+  local config_block="$2"
+  local check_string="$3"
+
+  if [ -f "$rc_file" ]; then
+    if ! grep -Fq "$check_string" "$rc_file"; then
+      echo -e "\n# ZC configuration\n$config_block" >>"$rc_file"
+      echo "Updated $rc_file"
+    else
+      echo "$rc_file already configured."
+    fi
+  fi
+}
+
+# Zsh configuration
+ZSH_RC="$REAL_HOME/.zshrc"
+ZSH_BLOCK="export PATH=\"\$HOME/.zc/bin:\$PATH\"
+fpath=(\$HOME/.zc/completions \$fpath)
+# In some cases, you might need to run 'rm -f ~/.zcompdump && compinit' if completions don't show up
+autoload -Uz compinit && compinit"
+update_rc "$ZSH_RC" "$ZSH_BLOCK" ".zc/completions"
+
+# Bash configuration
+BASH_RC="$REAL_HOME/.bashrc"
+BASH_BLOCK="export PATH=\"\$HOME/.zc/bin:\$PATH\""
+update_rc "$BASH_RC" "$BASH_BLOCK" ".zc/bin"
+
+# Global Profile configuration (for GUI sessions and login shells)
+PROFILE="$REAL_HOME/.profile"
+PROFILE_BLOCK="if [ -d \"\$HOME/.zc/bin\" ] ; then
+    PATH=\"\$HOME/.zc/bin:\$PATH\"
+fi"
+update_rc "$PROFILE" "$PROFILE_BLOCK" ".zc/bin"
+
+# Systemd environment configuration (for services like Waybar, systemd --user)
+ENV_D_DIR="$REAL_HOME/.config/environment.d"
+if [ ! -d "$ENV_D_DIR" ]; then
+  mkdir -p "$ENV_D_DIR"
+  chown "$REAL_USER:$(id -gn "$REAL_USER")" "$ENV_D_DIR"
+fi
+
+ENV_ZC_CONF="$ENV_D_DIR/60-zc.conf"
+ENV_BLOCK="PATH=\$HOME/.zc/bin:\$PATH"
+
+if [ ! -f "$ENV_ZC_CONF" ]; then
+  echo "$ENV_BLOCK" >"$ENV_ZC_CONF"
+  chown "$REAL_USER:$(id -gn "$REAL_USER")" "$ENV_ZC_CONF"
+  echo "Created $ENV_ZC_CONF for systemd user environment."
+else
+  if ! grep -Fq ".zc/bin" "$ENV_ZC_CONF"; then
+    echo "$ENV_BLOCK" >>"$ENV_ZC_CONF"
+    echo "Updated $ENV_ZC_CONF"
+  fi
+fi
+
+echo -e "${GREEN}===== ZC installed successfully! =====${NC}"
+echo -e "Changes detected for: zsh, bash, .profile and systemd environment."
+echo -e "Please log out and log back in to ensure all services (Waybar, etc.) see the new PATH."
 exit 0

@@ -24,6 +24,8 @@ _zc() {
                 publish) _zc_publish ;;
                 clean)   _zc_clean   ;;
                 update)  _zc_update  ;;
+                # login)   _zc_login   ;;
+                # logout)  _zc_logout  ;;
             esac
     esac
 }
@@ -56,6 +58,8 @@ _zc_subcommands() {
         'publish:Publish package to server'
         'clean:Clean temporary files and directories'
         'update:Update packages'
+        'login:Log into an account'
+        'logout:Log out'
     )
     _describe 'subcommand' subcommands
 }
