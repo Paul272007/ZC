@@ -12,7 +12,13 @@ For the moment ZC is only available for Linux.
 
 ## Installation
 
-Quick install : `bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"`
+### Arch Linux
+
+`yay -S zc-git` or `paru -S zc-git`
+
+### Quick install for other distributions
+
+`bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"`
 
 ## Usage
 
