@@ -21,8 +21,12 @@
 #define TMP_DIR                         "tmp"
 #define TEMPLATES                 "templates"
 #define PROJECT_TEMPLATES "project_templates"
+#define CLIENT_ID      "Ov23liDOGFHUp7VKXTJ7"
 #define GH_REPO      "Paul272007/ZC-Registry"
-#define INDEX_URL    "https://paul272007.github.io/ZC-Registry/index.json"
+
+#define DEVICE_CODE_URL "https://github.com/login/device/code"
+#define TOKEN_URL       "https://github.com/login/oauth/access_token"
+#define INDEX_URL       "https://paul272007.github.io/ZC-Registry/index.json"
 // clang-format on
 
 enum class LogLevel
@@ -90,3 +94,5 @@ bool extract_archive(const std::string &filename, const std::string &dest);
 std::string calculate_sha256(const std::filesystem::path &path);
 
 void removeDuplicates(std::vector<std::string> &v);
+
+std::string base64_encode(const std::string &in);

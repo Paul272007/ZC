@@ -19,7 +19,7 @@ ostream &operator<<(ostream &stream, const ZCError &error)
   return stream;
 }
 
-int ZCError::getCode_() const
+int ZCError::code() const
 {
   return (int)code_;
 }

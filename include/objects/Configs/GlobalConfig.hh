@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 #include "Config.hh"
@@ -17,6 +18,7 @@ public:
   bool edit_on_init_;
   bool edit_on_create_;
   std::string editor_;
+  std::string token_;
   std::string default_author_;
   std::vector<std::string> flags_;
 

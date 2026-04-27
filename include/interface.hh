@@ -146,3 +146,7 @@ std::string input(const std::string &question);
 std::string input(const std::string &question, const std::string &default_answer);
 
 void clear_screen();
+
+void fl();
+
+void nl();

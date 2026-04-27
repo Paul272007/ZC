@@ -97,3 +97,13 @@ string input(const std::string &question, const std::string &default_answer)
     return default_answer;
   return line;
 }
+
+void fl()
+{
+  std::cout << std::flush;
+}
+
+void nl()
+{
+  std::cout << '\n';
+}

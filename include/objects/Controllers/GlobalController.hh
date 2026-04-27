@@ -14,6 +14,8 @@ public:
   ~GlobalController() = default;
 
   void initializeWithTemplate(const std::filesystem::path &root, const std::string &template_to_use) const;
+  void login();
+  void logout();
   [[nodiscard]] std::vector<std::filesystem::path> getTemplates() const;
   [[nodiscard]] std::vector<std::filesystem::path> getProjectTemplates() const;
   [[nodiscard]] Table templatesTable() const;

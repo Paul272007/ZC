@@ -44,7 +44,10 @@ enum ReturnCode
   ZC_CMAKE_ERROR = 91,
   ZC_TAR_ERROR = 92,
   // Project errors
-  ZC_PROJECT_NOT_FOUND = 101,
+  ZC_PROJECT_NOT_FOUND = 100,
+  // Authentication errors
+  ZC_AUTHENTICATION_ERROR = 110,
+  ZC_EMPTY_TOKEN = 111,
   // User errors
   ZC_KEYBOARD_INTERRUPT = 130,
   ZC_OPERATIONS_ABORTED = 131,
@@ -80,7 +83,7 @@ public:
    *
    * @return code_ as an int
    */
-  int getCode_() const;
+  int code() const;
 
   const char *what() const noexcept override;
 

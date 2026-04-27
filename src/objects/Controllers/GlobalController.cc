@@ -1,8 +1,10 @@
 #include <filesystem>
 #include <string>
+#include <thread>
 
 #include "helpers.hh"
 #include "interface.hh"
+#include "nlohmann/json.hpp"
 #include "objects/Configs/GlobalConfig.hh"
 #include "objects/Controllers/Controller.hh"
 #include "objects/Controllers/GlobalController.hh"
@@ -103,8 +105,7 @@ Table GlobalController::projectTemplatesTable() const
 {
   std::vector<std::vector<std::string>> str_p_t = {{"Name"}};
   const auto templates = getProjectTemplates();
-  for (const auto &t_path : templates)
-    str_p_t.push_back({t_path.filename().string()});
+  for (const auto &t_path : templates) str_p_t.push_back({t_path.filename().string()});
 
   return {static_cast<int>(str_p_t.size()), 1, false, true, str_p_t};
 }
@@ -113,8 +114,95 @@ Table GlobalController::templatesTable() const
 {
   std::vector<std::vector<std::string>> str_t = {{"Template"}};
   const auto templates = getTemplates();
-  for (const auto &t_path : templates)
-    str_t.push_back({t_path.filename().string()});
+  for (const auto &t_path : templates) str_t.push_back({t_path.filename().string()});
 
   return {static_cast<int>(str_t.size()), 1, false, true, str_t};
+}
+
+void GlobalController::logout()
+{
+  gc_->token_ = "";
+  gc_->write();
+  log_(LogLevel::SUCCESS, "Successfully logged out.");
+}
+
+void GlobalController::login()
+{
+  log_(LogLevel::INFO, "Initiating GitHub authentication...");
+
+  std::string payload = "client_id=" CLIENT_ID "&scope=public_repo";
+
+  std::string response = net_.post(DEVICE_CODE_URL, payload);
+  auto json_resp = nlohmann::json::parse(response);
+
+  if (json_resp.contains("error"))
+  {
+    throw ZCError(
+        ZC_NETWORK_ERROR, "Failed to initiate login: " + json_resp["error_description"].get<std::string>()
+    );
+  }
+
+  std::string device_code = json_resp["device_code"];
+  std::string user_code = json_resp["user_code"];
+  std::string verification_uri = json_resp["verification_uri"];
+  int interval = json_resp["interval"];
+
+  nl();
+  log_(LogLevel::INFO, "=========================================================");
+  log_(LogLevel::INFO, "1. Open your browser and go to: " U_BLUE + verification_uri + COLOR_RESET);
+  log_(LogLevel::INFO, "2. Enter the following code:    " B_WHITE + user_code + COLOR_RESET);
+  log_(LogLevel::INFO, "=========================================================");
+  nl();
+
+  log_(LogLevel::INFO, "Waiting for authorization (press Ctrl+C to abort)...");
+  fl();
+
+  std::string token_payload = "client_id=" CLIENT_ID "&device_code=" + device_code +
+                              "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
+
+  while (true)
+  {
+    std::this_thread::sleep_for(std::chrono::seconds(interval));
+
+    std::string poll_resp = net_.post(TOKEN_URL, token_payload);
+    auto poll_json = nlohmann::json::parse(poll_resp);
+
+    if (poll_json.contains("error"))
+    {
+      std::string err = poll_json["error"];
+
+      if (err == "authorization_pending")
+      {
+        fl();
+        continue;
+      }
+      else if (err == "slow_down")
+      {
+        interval += 5;
+        continue;
+      }
+      else if (err == "expired_token")
+      {
+        throw ZCError(ZC_AUTHENTICATION_ERROR, "The code has expired. Please run 'zc login' again.");
+      }
+      else
+      {
+        throw ZCError(
+            ZC_NETWORK_ERROR, "Authorization failed: " + poll_json["error_description"].get<std::string>()
+        );
+      }
+    }
+    else if (poll_json.contains("access_token"))
+    {
+      nl();
+      std::string access_token = poll_json["access_token"];
+
+      gc_->token_ = access_token;
+      gc_->write();
+
+      log_(LogLevel::SUCCESS, "Successfully authenticated with GitHub!");
+      log_(LogLevel::INFO, "Your credentials have been securely saved to ~/.zc/zc.json");
+      break;
+    }
+  }
 }

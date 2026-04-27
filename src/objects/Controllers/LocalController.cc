@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 
+#include "helpers.hh"
 #include "interface.hh"
 #include "nlohmann/json.hpp"
 #include "objects/Configs/LocalConfig.hh"
@@ -233,50 +234,171 @@ void LocalController::publishProject()
   log_(
       LogLevel::INFO, "Preparing to publish package '" + lc_->name_ + "' v" + lc_->version_->string() + "..."
   );
+  if (lc_->name_.empty() || lc_->author_.empty() || !lc_->version_)
+    throw ZCError(ZC_CONFIG_MISSING_PROPERTY, "Project name, author, or version is missing in zc.json");
 
-  string archive_url = input("Enter the public URL of your .tar.gz archive (e.g., GitHub Release): ");
+  log_(LogLevel::WARNING, "This action is irreversible");
 
-  const fs::path archive_path = tmp_dir_ / "temp_publish.tar.gz";
-  fs::create_directories(tmp_dir_);
+  GlobalController gc(log_, force_);
+  std::string token = gc.gc_->token_;
+  if (token.empty())
+    throw ZCError(ZC_EMPTY_TOKEN, "Authentication error: token is empty. Please run 'zc login' first.");
 
-  log_(LogLevel::INFO, "Downloading archive to calculate SHA-256 hash...");
-
-  // Download user archive
-  net_.download(archive_url, archive_path);
-
-  // Calculate archive hash
-  string sha256 = "";
+  // 0. Verify identity: authenticated user must match project author
+  log_(LogLevel::INFO, "Verifying GitHub identity...");
   try
   {
-    string hash_cmd = "shasum -a 256 " + escape_shell_arg(archive_path.string()) + " | awk '{ print $1 }'";
-    sha256 = execAndGetOutput(hash_cmd.c_str());
-    sha256.erase(sha256.find_last_not_of(" \n\r\t") + 1);
+    string user_info_raw = net_.getAuth("https://api.github.com/user", token);
+    auto user_info = nlohmann::json::parse(user_info_raw);
+    string github_login = user_info["login"];
+
+    if (github_login != lc_->author_)
+    {
+      throw ZCError(
+          ZC_AUTHENTICATION_ERROR, "Identity mismatch: You are logged in as '" + github_login +
+                                       "' but the author in zc.json is '" + lc_->author_ +
+                                       "'. Publication blocked for security reasons."
+      );
+    }
+    log_(LogLevel::SUCCESS, "Authenticated as " + github_login);
   }
-  catch (...)
+  catch (const ZCError &e)
   {
-    throw ZCError(ZC_INTERNAL_ERROR, "Failed to calculate SHA-256 hash.");
+    if (e.code() == ZC_AUTHENTICATION_ERROR)
+      throw;
+    throw ZCError(ZC_AUTHENTICATION_ERROR, "Failed to verify GitHub identity. Your token might be expired.");
   }
 
+  string tag = "v" + lc_->version_->string();
+  string archive_url =
+      "https://github.com/" + lc_->author_ + "/" + lc_->name_ + "/archive/refs/tags/" + tag + ".tar.gz";
+
+  log_(LogLevel::INFO, "Expected archive URL: " + archive_url);
+  const fs::path archive_path = tmp_dir_ / (lc_->name_ + "_" + tag + ".tar.gz");
+  fs::create_directories(tmp_dir_);
+
+  // 1. Ensure the release exists on GitHub
+  string release_api_url =
+      "https://api.github.com/repos/" + lc_->author_ + "/" + lc_->name_ + "/releases/tags/" + tag;
+
+  bool release_exists = false;
+  try
+  {
+    log_(LogLevel::DEBUG, "Checking if release '" + tag + "' exists on GitHub...");
+    net_.getAuth(release_api_url, token);
+    release_exists = true;
+    log_(LogLevel::SUCCESS, "Release " + tag + " found!");
+  }
+  catch (const ZCError &)
+  {
+    log_(LogLevel::WARNING, "Release " + tag + " not found. Attempting to create it...");
+
+    if (!ask("Do you want to create tag " + tag + "?"))
+      return;
+
+    nlohmann::json release_payload;
+    release_payload["tag_name"] = tag;
+    release_payload["name"] = "Release " + tag;
+    release_payload["body"] = "Automated release by ZC build tool.";
+    release_payload["generate_release_notes"] = true;
+
+    string create_release_url =
+        "https://api.github.com/repos/" + lc_->author_ + "/" + lc_->name_ + "/releases";
+
+    try
+    {
+      net_.postAuth(create_release_url, release_payload.dump(), token);
+      log_(LogLevel::SUCCESS, "Release " + tag + " created successfully!");
+    }
+    catch (const ZCError &err)
+    {
+      throw ZCError(
+          ZC_NETWORK_ERROR, "Failed to create release. Ensure the tag exists or you have enough permissions."
+      );
+    }
+  }
+
+  // 2. Download and Hash
+  log_(LogLevel::INFO, "Downloading archive for verification...");
+  try
+  {
+    net_.download(archive_url, archive_path);
+  }
+  catch (const ZCError &e)
+  {
+    throw ZCError(
+        ZC_NETWORK_ERROR, "Failed to download the archive from GitHub. Check your internet connection."
+    );
+  }
+
+  string sha256 = calculate_sha256(archive_path);
+  log_(LogLevel::SUCCESS, "SHA-256 calculated: " + sha256);
   fs::remove(archive_path);
 
-  // Create recipe
+  // 3. Upload Recipe to Registry
   nlohmann::json recipe;
   recipe["name"] = lc_->name_;
   recipe["version"] = lc_->version_->string();
   recipe["url"] = archive_url;
   recipe["sha256"] = sha256;
+  recipe["owner"] = lc_->author_;
 
   string file_path = "packages/" + lc_->name_ + "/" + lc_->version_->string() + ".json";
+  nlohmann::json payload;
+  payload["message"] = "Publish " + lc_->name_ + " v" + lc_->version_->string();
+  payload["content"] = base64_encode(recipe.dump(2));
 
-  string magic_link =
-      "https://github.com/" GH_REPO "/new/main?filename=" + file_path + "&value=" + urlEncode(recipe.dump(2));
+  string api_url = "https://api.github.com/repos/" GH_REPO "/contents/" + file_path;
 
-  log_(LogLevel::SUCCESS, "Hash verified: " + sha256);
-  log_(LogLevel::INFO, "Your package is ready to be published!");
-  log_(LogLevel::INFO, "To submit it to the global registry, simply click this link:");
-  log_(LogLevel::INFO, U_BLUE + magic_link + COLOR_RESET);
-  log_(LogLevel::INFO, "GitHub will automatically format your Pull Request.");
-  log_(LogLevel::INFO, "Just scroll down and click 'Propose new file'!");
+  log_(LogLevel::INFO, "Uploading recipe to registry...");
+  try
+  {
+    // 3.1 Safety Check: Ensure the package owner doesn't change
+    string package_dir_url = "https://api.github.com/repos/" GH_REPO "/contents/packages/" + lc_->name_;
+    try
+    {
+      log_(LogLevel::DEBUG, "Verifying package ownership in registry...");
+      string dir_content_raw = net_.getAuth(package_dir_url, token);
+      auto dir_content = nlohmann::json::parse(dir_content_raw);
+
+      if (dir_content.is_array() && !dir_content.empty())
+      {
+        // Get the first file found to check the original owner
+        string first_version_url = dir_content[0]["download_url"];
+        string first_version_raw = net_.getAuth(first_version_url, token);
+        auto first_version_json = nlohmann::json::parse(first_version_raw);
+
+        if (first_version_json.contains("owner") && first_version_json["owner"] != lc_->author_)
+        {
+          throw ZCError(
+              ZC_AUTHENTICATION_ERROR, "Security Violation: This package is owned by '" +
+                                           first_version_json["owner"].get<string>() +
+                                           "'. You cannot publish a new version."
+          );
+        }
+      }
+    }
+    catch (const ZCError &e)
+    {
+      // 404 is fine, it means it's a new package
+      if (string(e.what()).find("404") == string::npos)
+        throw;
+    }
+
+    // 3.2 Upload the recipe
+    net_.put(api_url, payload.dump(), token);
+    log_(LogLevel::SUCCESS, "Your package has been successfully published to the registry!");
+  }
+  catch (const ZCError &e)
+  {
+    if (string(e.what()).find("422") != string::npos)
+    {
+      throw ZCError(
+          ZC_NETWORK_ERROR, "Version " + lc_->version_->string() + " already exists in the registry."
+      );
+    }
+    throw ZCError(ZC_NETWORK_ERROR, "Failed to upload recipe: " + string(e.what()));
+  }
 }
 
 bool LocalController::addDependency(const std::string &target)

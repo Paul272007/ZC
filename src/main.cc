@@ -12,6 +12,8 @@
 #include <commands/Init.hh>
 #include <commands/Install.hh>
 #include <commands/List.hh>
+#include <commands/Login.hh>
+#include <commands/Logout.hh>
 #include <commands/Publish.hh>
 #include <commands/Remove.hh>
 #include <commands/Run.hh>
@@ -89,6 +91,8 @@ int main(const int argc, char *argv[])
   const auto publish = app.add_subcommand("publish", "Publish package to server");
   const auto clean   = app.add_subcommand("clean",   "Clean all temporary files and directories");
   const auto update  = app.add_subcommand("update",  "Update packages");
+  const auto login   = app.add_subcommand("login",   "Log into an account");
+  const auto logout  = app.add_subcommand("logout",  "Log out");
 
   // ========================== RUN ===============================
 
@@ -217,6 +221,14 @@ int main(const int argc, char *argv[])
 
   update->callback([&]() { command = make_unique<Update>(force, quiet, global, path, targets); });
 
+  // ========================== LOGIN ===============================
+
+  login->callback([&]() { command = make_unique<Login>(); });
+
+  // ========================== LOGOUT ===============================
+
+  logout->callback([&]() { command = make_unique<Logout>(); });
+
   // clang-format on
   /* ========================================================= *
    *                          PARSING                          *
@@ -235,9 +247,9 @@ int main(const int argc, char *argv[])
   catch (const ZCError &e)
   {
     cerr << e << endl;
-    return e.getCode_();
+    return e.code();
   }
-  catch (exception &e)
+  catch (const exception &e)
   {
     cerr << RED << "Unexpected error: " << COLOR_RESET << e.what() << endl;
     return -1;
