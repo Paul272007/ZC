@@ -1,3 +1,15 @@
+// ZC: Version 0.1.0
+//
+//   ________  ________
+//  |\_____  \|\   ____\
+//   \|___/  /\ \  \___|
+//       /  / /\ \  \
+//      /  /_/__\ \  \____
+//     |\________\ \_______\
+//      \|_______|\|_______|
+//
+// Copyright (c) 2026 Paul Maillard. All Rights Reserved.
+
 #include <exception>
 #include <memory>
 #include <string>
