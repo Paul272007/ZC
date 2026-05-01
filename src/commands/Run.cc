@@ -164,6 +164,9 @@ void Run::buildCommand()
   // Output
   cmd << "-o " << escape_shell_arg(output_name_) << " ";
 
+  // Path to headers
+  cmd << "-I" << escape_shell_arg(g_.include_dir_.string()) << " ";
+
   // Mode and libraries for normal mode
   switch (mode_)
   {
@@ -177,7 +180,6 @@ void Run::buildCommand()
     cmd << "-c ";
     break;
   default:
-    cmd << "-I" << escape_shell_arg(g_.include_dir_.string()) << " "; // Path to headers
     for (const vector<string> libs = getInclusions(); const auto lib : libs)
     {
       fs::path lib_dir = (g_.lib_dir_ / lib);
@@ -194,7 +196,11 @@ void Run::buildCommand()
   // Color flags
   if (static_)
     cmd << "-static ";
+
   cmd << "-fdiagnostics-color=always";
+
+  if (quiet_)
+    cmd << " &>/dev/null";
   build_cmd_ = cmd.str();
 }
 
