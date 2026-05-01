@@ -6,7 +6,6 @@
 #include "objects/ZCError.hh"
 
 using namespace std;
-namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 void from_json(const json &j, Package &p)
@@ -38,10 +37,6 @@ void to_json(json &j, const Package &p)
 
 void Registry::load()
 {
-  // Global registry has to exist
-  if (!fs::exists(file_))
-    return; // no file = no installed libraries / dependencies
-
   json json_registry = parseJsonFile(file_);
 
   if (json_registry.contains("libraries") && json_registry["libraries"].is_array())

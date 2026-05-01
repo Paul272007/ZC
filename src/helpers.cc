@@ -1,11 +1,14 @@
 #include <algorithm>
 #include <archive.h>
 #include <archive_entry.h>
+#include <filesystem>
 #include <fstream>
 #include <openssl/evp.h>
 #include <unordered_set>
 
+#include "files.hh"
 #include "helpers.hh"
+#include "nlohmann/json.hpp"
 #include "objects/ZCError.hh"
 
 using namespace std;
@@ -37,15 +40,31 @@ const fs::path getProjectRoot()
   return path;
 }
 
+void createZCRootDir(const fs::path &path)
+{
+  fs::create_directories(path);
+  nlohmann::json j;
+  writeJsonFile(j, path / REGISTRY);
+  writeJsonFile(j, path / CONFIG);
+}
+
 const fs::path &getZCRootDir()
 {
+  static const fs::path zc_root = []()
+  {
 #if defined(_WIN32) || defined(_WIN64)
-  static const char *home = getenv("USERPROFILE");
+    const char *home = getenv("USERPROFILE");
 #else
-  static const char *home = getenv("HOME");
+    const char *home = getenv("HOME");
 #endif
 
-  static fs::path zc_root = (home) ? fs::path(home) / ROOT_DIR : fs::current_path() / ROOT_DIR;
+    fs::path root = (home) ? fs::path(home) / ROOT_DIR : fs::current_path() / ROOT_DIR;
+
+    if (!fs::exists(root))
+      createZCRootDir(root);
+
+    return root;
+  }();
 
   return zc_root;
 }
