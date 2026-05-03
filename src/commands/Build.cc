@@ -18,7 +18,7 @@ Build::Build(
 
 int Build::operator()()
 {
-  l_.buildProject(quiet_, release_);
+  l_.buildProject(quiet_, release_, g_.gc_->flags_);
 
   if (g_.gc_->move_binary_to_current_path_ && l_.lc_->type_ == Type::BIN)
   {

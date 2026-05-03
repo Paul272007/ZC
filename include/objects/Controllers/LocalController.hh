@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
+#include <vector>
 
 #include "Controller.hh"
 #include "helpers.hh"
@@ -14,13 +16,14 @@ public:
 
   void cleanProject();
   void buildProject(bool quiet, bool release_mode);
+  void buildProject(bool quiet, bool release_mode, const std::vector<std::string> &compile_options);
   void publishProject();
   bool addDependency(const std::string &target);
 
   LocalConfig *lc_;
 
 private:
-  void generateCMakeLists() const;
+  void generateCMakeLists(const std::vector<std::string> &compile_options) const;
   void checkFolderNames() const;
 
   std::filesystem::path build_dir_;

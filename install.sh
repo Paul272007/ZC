@@ -68,7 +68,7 @@ for item in etc/*; do
 done
 
 # Always force updating completions
-cp -r etc/completions "$ZC_DIR"
+sudo cp -r etc/completions/* /usr/share/zsh/site-functions/
 # Ensure bin directory exists
 mkdir -p "$ZC_DIR/bin"
 
@@ -235,18 +235,14 @@ update_rc() {
   fi
 }
 
-# Zsh configuration
-ZSH_RC="$REAL_HOME/.zshrc"
-ZSH_BLOCK="export PATH=\"\$HOME/.zc/bin:\$PATH\"
-fpath=(\$HOME/.zc/completions \$fpath)
-# In some cases, you might need to run 'rm -f ~/.zcompdump && compinit' if completions don't show up
-autoload -Uz compinit && compinit"
-update_rc "$ZSH_RC" "$ZSH_BLOCK" ".zc/completions"
+# Zsh and Bash configuration
+BLOCK="export PATH=\"\$HOME/.zc/bin:\$PATH\""
 
-# Bash configuration
+ZSH_RC="$REAL_HOME/.zshrc"
 BASH_RC="$REAL_HOME/.bashrc"
-BASH_BLOCK="export PATH=\"\$HOME/.zc/bin:\$PATH\""
-update_rc "$BASH_RC" "$BASH_BLOCK" ".zc/bin"
+
+update_rc "$ZSH_RC" "$BLOCK" ".zc/bin"
+update_rc "$BASH_RC" "$BLOCK" ".zc/bin"
 
 # Global Profile configuration (for GUI sessions and login shells)
 PROFILE="$REAL_HOME/.profile"

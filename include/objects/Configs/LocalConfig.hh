@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <vector>
 
 #include "Config.hh"
 #include "objects/Version.hh"
@@ -27,6 +28,7 @@ public:
   std::optional<Version> version_;
   std::filesystem::path src_folder_;
   std::filesystem::path include_folder_;
+  std::vector<std::string> languages_;
 
 protected:
   void load() override;

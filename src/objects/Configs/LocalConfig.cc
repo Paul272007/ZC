@@ -4,6 +4,7 @@
 #include "nlohmann/json.hpp"
 #include "objects/Configs/Config.hh"
 #include "objects/ZCError.hh"
+#include <vector>
 
 LocalConfig::LocalConfig(const std::filesystem::path &file) : Config(file)
 {
@@ -27,6 +28,7 @@ void LocalConfig::load()
   src_folder_ = json_conf.value("srcFolder", "src");
   include_folder_ = json_conf.value("includeFolder", "include");
   target_ = json_conf.value("target", "");
+  languages_ = json_conf.value<std::vector<std::string>>("languages", {"C", "CXX"});
 
   // Type
   std::string type_str = "";

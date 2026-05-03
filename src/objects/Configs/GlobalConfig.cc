@@ -51,7 +51,7 @@ void GlobalConfig::load()
   token_ = json_conf.value("token", "");
   default_author_ = json_conf.value("username", "");
 
-  flags_ = json_conf.value<std::vector<std::string>>("flags", std::vector<std::string>{"-Wall", "-Wextra"});
+  flags_ = json_conf.value<std::vector<std::string>>("flags", {"-Wall", "-Wextra"});
 
   move_binary_to_current_path_ = json_conf.value<bool>("move_binary_to_current_path", false);
   clear_before_run_ = json_conf.value<bool>("clear_before_run", false);

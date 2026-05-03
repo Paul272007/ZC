@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "helpers.hh"
 #include "interface.hh"
@@ -51,6 +52,14 @@ void LocalController::cleanProject()
 
 void LocalController::buildProject(bool quiet, bool release_mode)
 {
+  GlobalController g(log_, force_);
+  buildProject(quiet, release_mode, g.gc_->flags_);
+}
+
+void LocalController::buildProject(
+    bool quiet, bool release_mode, const std::vector<std::string> &compile_options
+)
+{
   if (fs::exists(build_dir_) && force_)
     cleanProject();
 
@@ -60,10 +69,10 @@ void LocalController::buildProject(bool quiet, bool release_mode)
   {
     log_(LogLevel::INFO, "Generating build configuration...");
 
-    generateCMakeLists();
+    generateCMakeLists(compile_options);
     const string config_cmd = "cmake " + escape_shell_arg(root_dir_.string()) + " -B " +
-                              escape_shell_arg(build_dir_.string()) + " -DCMAKE_BUILD_TYPE=" +
-                              (release_mode ? "Release " : "Debug ") + quiet_cmd;
+                              escape_shell_arg(build_dir_.string()) +
+                              " -DCMAKE_BUILD_TYPE=" + (release_mode ? "Release " : "Debug ") + quiet_cmd;
 
 #ifdef DEBUG_MODE
     log_(LogLevel::DEBUG, config_cmd);
@@ -89,7 +98,7 @@ void LocalController::buildProject(bool quiet, bool release_mode)
   log_(LogLevel::SUCCESS, "Project was built successfully in " + build_dir_.string());
 }
 
-void LocalController::generateCMakeLists() const
+void LocalController::generateCMakeLists(const std::vector<std::string> &compile_options) const
 {
   ofstream cmake(cmakelists_);
   if (!cmake.is_open())
@@ -104,9 +113,11 @@ void LocalController::generateCMakeLists() const
   cmake << "# --- Editing this file manually could break it.\n\n";
 
   // Boilerplate
-  cmake << "cmake_minimum_required(VERSION 3.12)\n";            // Version
-  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";           // Compile commands for clangd
-  cmake << "project(" << lc_->name_ << " LANGUAGES C CXX)\n\n"; // Project name
+  cmake << "cmake_minimum_required(VERSION 3.12)\n";  // Version
+  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n"; // Compile commands for clangd
+  cmake << "project(" << lc_->name_ << " LANGUAGES";  // Project name
+  for (const auto &language : lc_->languages_) cmake << " " << upper(language);
+  cmake << ")\n\n";
 
   // Variables for local and global ZC directories
   cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << EXTERNAL << "\")\n";
@@ -121,6 +132,14 @@ void LocalController::generateCMakeLists() const
   {
     cmake << "set(CMAKE_CXX_STANDARD " << (lc_->cpp_std_.substr(3)) << ")\n";
     cmake << "set(CMAKE_C_STANDARD " << (lc_->c_std_.substr(1)) << ")\n\n";
+  }
+
+  // Compile options
+  if (!compile_options.empty())
+  {
+    cmake << "add_compile_options(\n";
+    for (const auto &flag : compile_options) cmake << "  " << flag << "\n";
+    cmake << ")\n\n";
   }
 
   // Macro definitions for debug/release mode
