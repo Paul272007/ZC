@@ -13,16 +13,22 @@ Update::Update(
 )
     : Command(force, quiet), path_(path)
 {
-  if (targets.size() > 1 && !path_.empty())
-    throw ZCError(ZC_BAD_COMMAND, "Cannot update two libraries with the same path");
+  if (!targets.empty() && !path_.empty())
+    throw ZCError(ZC_INCOMPATIBLE_FLAGS, "Cannot update from remote and from local path at the same time");
+
+  if (!global && !path_.empty() && getProjectRoot(path_) == getProjectRoot())
+    throw ZCError(ZC_BAD_COMMAND, "Cannot update library as its own dependency");
 
   if (global)
     c_ = make_unique<GlobalController>(logger_, force);
   else
     c_ = make_unique<LocalController>(logger_, force);
 
-  removeDuplicates(targets);
-  targets_ = Controller::parsePackages(targets);
+  if (path_.empty())
+  {
+    removeDuplicates(targets);
+    targets_ = Controller::parsePackages(targets);
+  }
 }
 
 int Update::operator()()

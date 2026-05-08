@@ -65,7 +65,7 @@ int Init::operator()()
   base_config["name"] = name_;
   base_config["author"] = author_;
   base_config["target"] = target_;
-  base_config["add_std"] = g_.gc_->add_std_;
+  base_config["add_std"] = g_.gc_->add_std_.value_or(true);
   base_config["type"] = type_ == Type::LIB ? "lib" : (type_ == Type::BIN ? "bin" : "undef");
   writeJsonFile(base_config, fs::current_path() / CONFIG);
 

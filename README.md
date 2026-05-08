@@ -18,7 +18,9 @@ For the moment ZC is only available for Linux.
 
 ### Quick install for other distributions
 
-`bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"`
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"
+```
 
 ## Usage
 

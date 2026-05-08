@@ -145,14 +145,14 @@ void Run::buildCommand()
   if (plus_)
   {
     cmd << g_.gc_->cpp_compiler_ << " ";
-    if (g_.gc_->add_std_ || add_std_)
-      cmd << "'-std=" << g_.gc_->cpp_std_ << "' ";
+    if (g_.gc_->add_std_.value_or(false) || add_std_)
+      cmd << "'-std=" << g_.gc_->cpp_std_.value_or("c++20") << "' ";
   }
   else
   {
     cmd << g_.gc_->c_compiler_ << " ";
-    if (g_.gc_->add_std_ || add_std_)
-      cmd << "'-std=" << g_.gc_->c_std_ << "' ";
+    if (g_.gc_->add_std_.value_or(false) || add_std_)
+      cmd << "'-std=" << g_.gc_->c_std_.value_or("c17") << "' ";
   }
 
   // User flags

@@ -1,4 +1,4 @@
-// ZC: Version 0.1.0
+// ZC: Version 0.1.1
 //
 //   ________  ________
 //  |\_____  \|\   ____\
@@ -40,7 +40,7 @@ int main(const int argc, char *argv[])
   // Initialize app
   CLI::App app("ZC utility for C and C++");
   argv = app.ensure_utf8(argv);
-  app.set_version_flag("--version,-v", "ZC v0.1.0 (unstable)");
+  app.set_version_flag("--version,-v", "ZC v0.1.1 (unstable)");
   app.require_subcommand(1);
   unique_ptr<Command> command(nullptr);
 

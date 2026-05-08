@@ -6,6 +6,7 @@
 
 #include "Controller.hh"
 #include "helpers.hh"
+#include "objects/Configs/GlobalConfig.hh"
 #include "objects/Configs/LocalConfig.hh"
 
 class LocalController : public Controller
@@ -21,6 +22,7 @@ public:
   bool addDependency(const std::string &target);
 
   LocalConfig *lc_;
+  GlobalConfig *gc_;
 
 private:
   void generateCMakeLists(const std::vector<std::string> &compile_options) const;
@@ -28,4 +30,5 @@ private:
 
   std::filesystem::path build_dir_;
   std::filesystem::path cmakelists_;
+  std::unique_ptr<GlobalConfig> gc_ptr_;
 };

@@ -16,9 +16,9 @@ void GlobalConfig::write() const
   json root;
   root["c_compiler"] = c_compiler_;
   root["cpp_compiler"] = cpp_compiler_;
-  root["c_std"] = c_std_;
-  root["cpp_std"] = cpp_std_;
-  root["auto_add_std"] = add_std_;
+  root["c_std"] = c_std_.value_or("c17");
+  root["cpp_std"] = cpp_std_.value_or("c++20");
+  root["auto_add_std"] = add_std_.value_or(false);
   root["editor"] = editor_;
   root["flags"] = flags_;
   root["move_binary_to_current_path"] = move_binary_to_current_path_;

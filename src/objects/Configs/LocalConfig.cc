@@ -21,9 +21,22 @@ void LocalConfig::load()
   static_compile_ = json_conf.value<bool>("static", false);
   name_ = json_conf.value("name", "");
   author_ = json_conf.value("author", "");
-  c_std_ = json_conf.value("c_std", "c17");
-  cpp_std_ = json_conf.value("cpp_std", "c++20");
-  add_std_ = json_conf.value("add_std", false);
+
+  if (json_conf.contains("c_std"))
+    c_std_ = json_conf["c_std"];
+  else
+    c_std_ = std::nullopt;
+
+  if (json_conf.contains("cpp_std"))
+    cpp_std_ = json_conf["cpp_std"];
+  else
+    cpp_std_ = std::nullopt;
+
+  if (json_conf.contains("add_std"))
+    add_std_ = json_conf["add_std"];
+  else
+    add_std_ = std::nullopt;
+
   version_ = Version(json_conf.value("version", "0.0.0"));
   src_folder_ = json_conf.value("srcFolder", "src");
   include_folder_ = json_conf.value("includeFolder", "include");
@@ -49,6 +62,13 @@ void LocalConfig::write() const
   root["author"] = author_;
   root["target"] = target_;
   root["type"] = type_ == Type::BIN ? "bin" : (type_ == Type::LIB) ? "lib" : "";
+
+  if (c_std_)
+    root["c_std"] = *c_std_;
+  if (cpp_std_)
+    root["cpp_std"] = *cpp_std_;
+  if (add_std_)
+    root["add_std"] = *add_std_;
 
   if (src_folder_.filename().string() != "src")
     root["srcFolder"] = src_folder_;

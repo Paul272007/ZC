@@ -112,7 +112,7 @@ if [ "$CONFIG_EXISTS" == "false" ]; then
   prompt_str "Additionnal flags for compiling ?" "-Wall -Wextra" VAL_FLAGS
   prompt_str "Text editor to use" "${EDITOR:-nvim}" VAL_EDITOR
   prompt_str "Username" "user" VAL_USERNAME
-  prompt_bool "Always add standard flag ?" "false" VAL_AUTO_STD
+  prompt_bool "Always add standard flag ?" "true" VAL_AUTO_STD
   prompt_bool "Always clear terminal before using zc run ?" "false" VAL_CLEAR
   prompt_bool "Always keep binaries created by zc run ?" "false" VAL_KEEP
   prompt_bool "Always open file in text editor after zc create ?" "false" VAL_EDIT_CREATE

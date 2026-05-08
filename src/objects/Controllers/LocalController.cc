@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -28,6 +29,10 @@ LocalController::LocalController(Logger log, bool force, const std::filesystem::
   auto local_config = std::make_unique<LocalConfig>(root_dir_ / CONFIG);
   lc_ = local_config.get();
   c_ = std::move(local_config);
+
+  gc_ptr_ = std::make_unique<GlobalConfig>(getZCRootDir() / CONFIG);
+  gc_ = gc_ptr_.get();
+
   r_ = std::make_unique<LocalRegistry>(root_dir_ / REGISTRY);
 
   checkPackageName(lc_->name_);
@@ -52,8 +57,7 @@ void LocalController::cleanProject()
 
 void LocalController::buildProject(bool quiet, bool release_mode)
 {
-  GlobalController g(log_, force_);
-  buildProject(quiet, release_mode, g.gc_->flags_);
+  buildProject(quiet, release_mode, gc_->flags_);
 }
 
 void LocalController::buildProject(
@@ -113,13 +117,34 @@ void LocalController::generateCMakeLists(const std::vector<std::string> &compile
   cmake << "# --- Editing this file manually could break it.\n\n";
 
   // Boilerplate
-  cmake << "cmake_minimum_required(VERSION 3.12)\n";  // Version
-  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n"; // Compile commands for clangd
-  cmake << "project(" << lc_->name_ << " LANGUAGES";  // Project name
-  for (const auto &language : lc_->languages_) cmake << " " << upper(language);
+  vector<std::string> languages;
+  for (const auto &l : lc_->languages_) languages.emplace_back(upper(l));
+
+  cmake << "cmake_minimum_required(VERSION 3.12)\n";
+  cmake << "project(" << lc_->name_ << " LANGUAGES";
+  for (const auto &language : languages) cmake << " " << language;
   cmake << ")\n\n";
 
-  // Variables for local and global ZC directories
+  cmake << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n";
+
+  bool add_std = lc_->add_std_.value_or(gc_->add_std_.value_or(true));
+  if (add_std)
+  {
+    string cpp_std = lc_->cpp_std_.value_or(gc_->cpp_std_.value_or("c++20"));
+    string c_std = lc_->c_std_.value_or(gc_->c_std_.value_or("c17"));
+
+    size_t c_pos = c_std.find_first_of("0123456789");
+    if (c_pos != string::npos && find(languages.begin(), languages.end(), "C") != languages.end())
+      cmake << "set(CMAKE_C_STANDARD " << c_std.substr(c_pos) << ")\n";
+
+    size_t cpp_pos = cpp_std.find_first_of("0123456789");
+    if (cpp_pos != string::npos && find(languages.begin(), languages.end(), "CXX") != languages.end())
+      cmake << "set(CMAKE_CXX_STANDARD " << cpp_std.substr(cpp_pos) << ")\n";
+
+    cmake << "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n";
+  }
+
+  // ZC Paths
   cmake << "set(ZC_LOCAL_ROOT \"${CMAKE_SOURCE_DIR}/" << EXTERNAL << "\")\n";
   cmake << "if(WIN32)\n";
   cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{USERPROFILE}/" << ROOT_DIR << "\")\n";
@@ -127,81 +152,79 @@ void LocalController::generateCMakeLists(const std::vector<std::string> &compile
   cmake << "  set(ZC_GLOBAL_ROOT \"$ENV{HOME}/" << ROOT_DIR << "\")\n";
   cmake << "endif()\n\n";
 
-  // Standards
-  if (lc_->add_std_)
-  {
-    cmake << "set(CMAKE_CXX_STANDARD " << (lc_->cpp_std_.substr(3)) << ")\n";
-    cmake << "set(CMAKE_C_STANDARD " << (lc_->c_std_.substr(1)) << ")\n\n";
-  }
-
   // Compile options
-  if (!compile_options.empty())
-  {
-    cmake << "add_compile_options(\n";
-    for (const auto &flag : compile_options) cmake << "  " << flag << "\n";
-    cmake << ")\n\n";
-  }
+  const string flags_target = lc_->name_ + "_compiler_flags";
+  cmake << "add_library(" << flags_target << " INTERFACE)\n";
+  cmake << "target_compile_options(" << flags_target << " INTERFACE\n";
+  for (const auto &flag : compile_options) cmake << "  " << flag << "\n";
+  cmake << ")\n\n";
 
-  // Macro definitions for debug/release mode
-  cmake << "if(CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
-  cmake << "  add_definitions(-DZC_DEBUG)\n";
-  cmake << "else()\n";
-  cmake << "  add_definitions(-DZC_RELEASE)\n";
-  cmake << "endif()\n\n";
-
-  // Sources (make sure the paths are relative to the root of the project)
+  // Sources
   fs::path src = fs::relative(root_dir_ / lc_->src_folder_, root_dir_);
   fs::path include = fs::relative(root_dir_ / lc_->include_folder_, root_dir_);
 
   vector<string> c_extensions{"c", "cc", "cxx", "cpp"};
   vector<string> h_extensions{"h", "hh", "hxx", "hpp"};
-  for (auto &ext : c_extensions) ext = " \"" + src.string() + "/*." + ext + '"';
-  for (auto &ext : h_extensions) ext = " \"" + include.string() + "/*." + ext + '"';
-  cmake << "file(GLOB_RECURSE SOURCES" << join(c_extensions, "") << ")\n";
-  cmake << "file(GLOB_RECURSE HEADERS" << join(h_extensions, "") << ")\n\n";
+  string c_glob, h_glob;
+  for (const auto &ext : c_extensions) c_glob += " \"" + src.string() + "/*." + ext + "\"";
+  for (const auto &ext : h_extensions) h_glob += " \"" + include.string() + "/*." + ext + "\"";
 
-  // Source code
+  cmake << "file(GLOB_RECURSE SOURCES" << c_glob << ")\n";
+  cmake << "file(GLOB_RECURSE HEADERS" << h_glob << ")\n\n";
+
+  // --- Compile into object
+  const string objects_target = lc_->name_ + "_objects";
+  cmake << "add_library(" << objects_target << " OBJECT\n";
+  cmake << "  ${SOURCES}\n";
+  cmake << ")\n";
+  cmake << "set_target_properties(" << objects_target << " PROPERTIES POSITION_INDEPENDENT_CODE ON)\n\n";
+
+  cmake << "target_include_directories(" << objects_target << " PRIVATE\n";
+  cmake << "  \"${CMAKE_SOURCE_DIR}/" << lc_->include_folder_.string() << "\"\n";
+  cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";
+  cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n";
+  cmake << ")\n\n";
+
+  // ZC build macros
+  cmake << "if(CMAKE_BUILD_TYPE STREQUAL \"Debug\")\n";
+  cmake << "  target_compile_definitions(" << objects_target << " PUBLIC ZC_DEBUG)\n";
+  cmake << "else()\n";
+  cmake << "  target_compile_definitions(" << objects_target << " PUBLIC ZC_RELEASE)\n";
+  cmake << "endif()\n\n";
+
+  // --- Outputs
   vector<string> outputs;
-
   if (lc_->type_ == Type::BIN)
   {
-    cmake << "add_executable(" << lc_->target_ << '\n';
-    cmake << "  ${SOURCES}\n";
-    cmake << "  ${HEADERS}\n";
-    cmake << ")\n\n";
+    cmake << "add_executable(" << lc_->target_ << " $<TARGET_OBJECTS:" << objects_target << ">)\n";
+    cmake << "target_link_libraries(" << lc_->target_ << " PUBLIC " << flags_target << ")\n\n";
     outputs.push_back(lc_->target_);
   }
   else if (lc_->type_ == Type::LIB)
   {
-    const string static_target = lc_->target_ + "_static_target";
-    cmake << "add_library(" << static_target << " STATIC\n";
-    cmake << "  ${SOURCES}\n";
-    cmake << "  ${HEADERS}\n";
-    cmake << ")\n\n";
+    const string static_target = lc_->name_ + "_static";
+    cmake << "add_library(" << static_target << " STATIC $<TARGET_OBJECTS:" << objects_target << ">)\n";
     cmake << "set_target_properties(" << static_target << " PROPERTIES OUTPUT_NAME \"" << lc_->target_
-          << "\")\n\n";
+          << "\")\n";
+    cmake << "target_link_libraries(" << static_target << " PUBLIC " << flags_target << ")\n\n";
     outputs.push_back(static_target);
 
-    const string shared_target = lc_->target_ + "_shared_target";
-    cmake << "add_library(" << shared_target << " SHARED\n";
-    cmake << "  ${SOURCES}\n";
-    cmake << "  ${HEADERS}\n";
-    cmake << ")\n\n";
+    const string shared_target = lc_->name_ + "_shared";
+    cmake << "add_library(" << shared_target << " SHARED $<TARGET_OBJECTS:" << objects_target << ">)\n";
     cmake << "set_target_properties(" << shared_target << " PROPERTIES OUTPUT_NAME \"" << lc_->target_
-          << "\")\n\n";
+          << "\")\n";
+    cmake << "target_link_libraries(" << shared_target << " PUBLIC " << flags_target << ")\n\n";
     outputs.push_back(shared_target);
   }
 
+  // Dependencies
+  cmake << "if(UNIX)\n";
+  cmake << "  target_link_libraries(" << objects_target << " PUBLIC pthread dl)\n";
+  cmake << "endif()\n\n";
+
+  // Libraries from registry
   for (const string &output : outputs)
   {
-    // Includes
-    cmake << "target_include_directories(" << output << " PRIVATE\n";
-    cmake << "  \"${ZC_LOCAL_ROOT}/include\"\n";                                    // Local include folder
-    cmake << "  \"${ZC_GLOBAL_ROOT}/include\"\n";                                   // Global include folder
-    cmake << "  \"${CMAKE_SOURCE_DIR}/" << lc_->include_folder_.string() << "\"\n"; // Project include folder
-    cmake << ")\n\n";
-
-    // Libraries
     if (!r_->getPackages().empty())
     {
       vector<Package> local_deps;
@@ -213,39 +236,39 @@ void LocalController::generateCMakeLists(const std::vector<std::string> &compile
           local_deps.push_back(pkg);
         else if (fs::exists(global_lib_path / pkg.name))
           global_deps.push_back(pkg);
-        // Else it's a standard package no need to add a new link path
       }
 
       cmake << "target_link_directories(" << output << " PRIVATE\n";
-      for (const auto dep : global_deps)
-        cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << dep.name << "\"\n"; // Global library folders
-      for (const auto dep : local_deps)
-        cmake << "  \"${ZC_LOCAL_ROOT}/lib/" << dep.name << "\"\n"; // Local library folder
+      for (const auto dep : global_deps) cmake << "  \"${ZC_GLOBAL_ROOT}/lib/" << dep.name << "\"\n";
+      for (const auto dep : local_deps) cmake << "  \"${ZC_LOCAL_ROOT}/lib/" << dep.name << "\"\n";
       cmake << ")\n\n";
 
-      // Linking dependencies
       cmake << "target_link_libraries(" << output << " PRIVATE\n";
       for (const auto dep : r_->getPackages()) cmake << "  " << dep.binary << "\n";
       cmake << ")\n\n";
     }
 
-    // Add pthread/dl if UNIX-based
-    cmake << "if(UNIX)\n";
-    cmake << "  target_link_libraries(" << output << " PRIVATE pthread dl)\n";
-    cmake << "endif()\n\n";
-
     if (lc_->static_compile_)
       cmake << "target_link_options(" << output << " PRIVATE \"-static\")\n\n";
   }
 
-  // Activate RPATH
+  // RPATH
   cmake << "set(CMAKE_SKIP_BUILD_RPATH FALSE)\n";
   cmake << "set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)\n\n";
-  cmake << "if(APPLE)\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"@loader_path/" EXTERNAL "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
-  cmake << "else()\n";
-  cmake << "  set(CMAKE_INSTALL_RPATH \"$ORIGIN/" EXTERNAL "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
-  cmake << "endif()\n";
+
+  for (const string &output : outputs)
+  {
+    if (lc_->type_ == Type::BIN || output.find("_shared") != string::npos)
+    {
+      cmake << "if(APPLE)\n";
+      cmake << "  set_target_properties(" << output << " PROPERTIES INSTALL_RPATH \"@loader_path/" << EXTERNAL
+            << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+      cmake << "else()\n";
+      cmake << "  set_target_properties(" << output << " PROPERTIES INSTALL_RPATH \"$ORIGIN/" << EXTERNAL
+            << "/lib;${ZC_GLOBAL_ROOT}/lib\")\n";
+      cmake << "endif()\n";
+    }
+  }
 
   cmake.close();
 }

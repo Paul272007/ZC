@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
+#include <string>
 
 class Config
 {
@@ -8,11 +10,11 @@ public:
   virtual ~Config() = default;
   virtual void write() const = 0;
 
-  bool add_std_;
+  std::optional<bool> add_std_;
   std::string c_compiler_;
   std::string cpp_compiler_;
-  std::string c_std_;
-  std::string cpp_std_;
+  std::optional<std::string> c_std_;
+  std::optional<std::string> cpp_std_;
 
 protected:
   explicit Config(const std::filesystem::path &file) : file_(file)
