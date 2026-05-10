@@ -117,9 +117,9 @@ int main(const int argc, char *argv[])
   run->add_flag("--plus,-p", plus, "Force compilation as C++");
   run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_compile, "Compile using static libraries");
-  run->add_flag("-E", run_E, "Preprocess only");
-  run->add_flag("-S", run_S, "Compile, but do not assemble or link");
-  run->add_flag("-c", run_c, "Compile and assemble, but do not link");
+  run->add_flag("--preprocess,-E", run_E, "Preprocess only");
+  run->add_flag("--assemble,-S", run_S, "Compile, but do not assemble or link");
+  run->add_flag("--compile,-c", run_c, "Compile and assemble, but do not link");
 
   run->callback([&]() { command = make_unique<Run>(force, quiet, keep, plus, run_E, run_S, run_c, std, static_compile, input_files, run_args); });
 

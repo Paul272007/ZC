@@ -73,10 +73,10 @@ _zc_run() {
         '(-k --keep)'{-k,--keep}'[Do not delete executable after being executed]' \
         '(-p --plus)'{-p,--plus}'[Force compilation as C++]' \
         '(-s --static)'{-s,--static}'[Compile using static libraries]' \
+        '(-E --preprocess)'{-E,--preprocess}'[Preprocess only]' \
+        '(-S --assemble)'{-S,--assemble}'[Compile but do not assemble or link]' \
+        '(-c --compile)'{-c,--compile}'[Compile and assemble but do not link]'
         '--std[Add C/C++ standard from config file]' \
-        '-E[Preprocess only]' \
-        '-S[Compile but do not assemble or link]' \
-        '-c[Compile and assemble but do not link]'
 }
 
 _zc_create() {

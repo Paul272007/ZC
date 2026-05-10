@@ -384,7 +384,7 @@ void write(const std::filesystem::path &file, const std::string &content)
 
 bool isCpp(const std::filesystem::path &file)
 {
-  const char *exts[] = {".cc", ".cpp", ".cxx"};
+  const char *exts[] = {".cc", ".cp", ".cpp", ".cxx", ".C", ".CPP", ".c++"};
   for (const char *ext : exts)
     if (file.extension().string() == ext)
       return true;
