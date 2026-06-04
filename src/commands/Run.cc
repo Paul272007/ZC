@@ -23,8 +23,7 @@ Run::Run(
   for (const auto &f : files) files_.emplace_back(f);
 
   // Check if C++ was given
-  if (!plus_)
-    plus_ = compileAsCpp();
+  plus_ = plus_ || compileAsCpp();
 }
 
 int Run::operator()()

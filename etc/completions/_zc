@@ -75,8 +75,8 @@ _zc_run() {
         '(-s --static)'{-s,--static}'[Compile using static libraries]' \
         '(-E --preprocess)'{-E,--preprocess}'[Preprocess only]' \
         '(-S --assemble)'{-S,--assemble}'[Compile but do not assemble or link]' \
-        '(-c --compile)'{-c,--compile}'[Compile and assemble but do not link]'
-        '--std[Add C/C++ standard from config file]' \
+        '(-c --compile)'{-c,--compile}'[Compile and assemble but do not link]' \
+        '--std[Add C/C++ standard from config file]'
 }
 
 _zc_create() {
