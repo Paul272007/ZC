@@ -7,32 +7,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- DEPENDENCIES ---
 
-# 1. Fetch JSON (Nlohmann)
-include(FetchContent)
-FetchContent_Declare(
-    json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(json)
-
-# 2. Find LLVM/Clang
+# Find LLVM/Clang
 # We search for the header packages first
 find_package(LLVM REQUIRED)
 find_package(Clang REQUIRED)
 find_package(CURL REQUIRED)
 find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
-
-message(STATUS "LLVM found: ${LLVM_PACKAGE_VERSION}")
+find_package(nlohmann_json REQUIRED)
 
 include_directories(SYSTEM external)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${Clang_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# 3. Find specifically the library binary (libclang.so / .dylib)
-# It is important because target_link_libraries needs the path to the .so
+# Find specifically the library binary (libclang.so / .dylib)
 find_library(CLANG_LIB
     NAMES clang libclang clang-18 clang-17 clang-16 clang-15
     HINTS ${LLVM_LIBRARY_DIRS} ${Clang_LIBRARY_DIRS}
@@ -41,7 +30,6 @@ find_library(CLANG_LIB
 if(NOT CLANG_LIB)
   message(FATAL_ERROR "Could not find libclang shared library.")
 endif()
-message(STATUS "Found libclang: ${CLANG_LIB}")
 
 # --- BUILD ---
 
@@ -57,10 +45,8 @@ file(GLOB_RECURSE HEADERS "include/*.hh")
 
 add_executable(zc ${SOURCES} ${HEADERS})
 
-# Include directories for the project
 target_include_directories(zc PRIVATE include)
 
-# Link
 target_link_libraries(zc PRIVATE
   ${CLANG_LIB}
   nlohmann_json::nlohmann_json
@@ -68,14 +54,11 @@ target_link_libraries(zc PRIVATE
   LibArchive::LibArchive
   OpenSSL::Crypto
   # Sometimes necessary under Linux for LLVM :
-  pthread
-  dl
-  tinfo
+  # pthread
+  # dl
+  # tinfo
 )
 
-# --- INSTALLATION RULES (for install and uninstall scripts) ---
+# --- INSTALLATION RULES ---
 
-# Installs binary in /usr/local/bin (by default)
 install(TARGETS zc DESTINATION bin)
-
-# We don't install the configuration here because the script already does it
