@@ -40,8 +40,7 @@ if(ENABLE_DEBUG)
   add_compile_definitions(DEBUG_MODE)
 endif()
 
-file(GLOB_RECURSE SOURCES "src/*.cc")
-file(GLOB_RECURSE HEADERS "include/*.hh")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
 
 add_executable(zc ${SOURCES} ${HEADERS})
 
@@ -53,10 +52,6 @@ target_link_libraries(zc PRIVATE
   CURL::libcurl
   LibArchive::LibArchive
   OpenSSL::Crypto
-  # Sometimes necessary under Linux for LLVM :
-  # pthread
-  # dl
-  # tinfo
 )
 
 # --- INSTALLATION RULES ---
