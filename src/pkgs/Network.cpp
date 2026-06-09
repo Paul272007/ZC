@@ -27,7 +27,7 @@ Network &Network::get()
  * @param payload
  * @return void
  */
-void Network::post(string url, string payload)
+void Network::post(const std::string &url, const std::string &payload)
 {
   return;
 }
@@ -37,7 +37,7 @@ void Network::post(string url, string payload)
  * @param payload
  * @return void
  */
-void Network::put(string url, string payload)
+void Network::put(const std::string &url, const std::string &payload)
 {
   return;
 }
@@ -55,6 +55,6 @@ Network::Network()
  * @param method
  * @param payload
  */
-void Network::request(string url, string method, string payload)
+void Network::request(const std::string &url, const std::string &method, const std::string &payload)
 {
 }

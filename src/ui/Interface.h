@@ -32,16 +32,16 @@ public:
   /**
    * @param question
    */
-  bool ask(std::string question);
+  bool ask(const std::string &question);
 
   /**
    * @param question
    * @param default
    */
-  std::string input(std::string question, std::string default_ans);
+  std::string input(const std::string &question, const std::string &default_ans);
 
 private:
-  bool quiet = false;
+  const bool quiet_;
 
   /**
    * @param quiet

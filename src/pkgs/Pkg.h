@@ -17,8 +17,8 @@ struct Pkg
   std::string name;
   std::string target;
   std::string origin = "main";
-  PkgType type;
-  Version version;
+  PkgType type = UNDEF;
+  Version version = {0, 0, 0};
 };
 
 #endif //_PKG_H

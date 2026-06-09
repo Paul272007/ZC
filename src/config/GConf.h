@@ -15,12 +15,12 @@
 class GConf : public Conf
 {
 public:
-  bool move_bin_to_current_path = false;
-  bool clear_before_run = false;
   bool alway_keep = false;
   bool always_add_std = false;
   bool open_after_init = false;
   bool open_after_create = false;
+  bool clear_before_run = false;
+  bool move_bin_to_current_path = false;
   std::string token;
   std::string username;
   std::string c_compiler = "clang";
@@ -35,8 +35,6 @@ public:
   void login();
 
   void logout();
-
-  static std::vector<std::filesystem::path> templates();
 
 protected:
   void load();

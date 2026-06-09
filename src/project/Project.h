@@ -22,7 +22,7 @@ public:
   /**
    * @param release
    */
-  void build(bool release);
+  void build(bool release = false);
 
   void clean();
 
@@ -31,12 +31,12 @@ public:
   /**
    * @param target
    */
-  bool add_dependency(std::string target);
+  bool add_dependency(const std::string &target);
 
   /**
    * @param target
    */
-  bool remove_dependency(std::string target);
+  bool remove_dependency(const std::string &target);
 
 private:
   const std::filesystem::path root_dir_;

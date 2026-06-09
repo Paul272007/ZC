@@ -75,7 +75,7 @@ void Interface::error()
  * @param question
  * @return bool
  */
-bool Interface::ask(string question)
+bool Interface::ask(const std::string &question)
 {
   return false;
 }
@@ -85,7 +85,7 @@ bool Interface::ask(string question)
  * @param default
  * @return string
  */
-string Interface::input(string question, string default_ans)
+string Interface::input(const string &question, const string &default_ans)
 {
   return "";
 }
@@ -93,6 +93,6 @@ string Interface::input(string question, string default_ans)
 /**
  * @param quiet
  */
-Interface::Interface(bool quiet)
+Interface::Interface(bool quiet) : quiet_(quiet)
 {
 }

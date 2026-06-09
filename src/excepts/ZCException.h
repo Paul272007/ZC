@@ -15,21 +15,19 @@
 class ZCException : public std::exception
 {
 public:
-  ZCException();
-
   /**
    * @param code
    * @param message
    */
-  ZCException(ExitCode code, const std::string &message);
+  ZCException(ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented");
 
   virtual const char *what() const noexcept override;
 
   int code();
 
 private:
-  const std::string message_ = "Feature not implemented";
-  const ExitCode code_ = ZCE_SUCCESS;
+  const std::string message_;
+  const ExitCode code_;
 };
 
 #endif //_ZCEXCEPTION_H

@@ -24,7 +24,7 @@ protected:
   /**
    * @param force
    */
-  Command(bool force);
+  Command(bool force = false);
 
 private:
   GConf gconf_;

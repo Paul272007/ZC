@@ -18,13 +18,13 @@ public:
    * @param url
    * @param payload
    */
-  void post(std::string url, std::string payload);
+  void post(const std::string &url, const std::string &payload);
 
   /**
    * @param url
    * @param payload
    */
-  void put(std::string url, std::string payload);
+  void put(const std::string &url, const std::string &payload);
 
   ~Network();
 
@@ -36,7 +36,7 @@ private:
    * @param method
    * @param payload
    */
-  void request(std::string url, std::string method, std::string payload);
+  void request(const std::string &url, const std::string &method, const std::string &payload);
 };
 
 #endif //_NETWORK_H

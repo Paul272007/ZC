@@ -50,7 +50,7 @@ void Project::publish()
  * @param target
  * @return bool
  */
-bool Project::add_dependency(string target)
+bool Project::add_dependency(const string &target)
 {
   return false;
 }
@@ -59,7 +59,7 @@ bool Project::add_dependency(string target)
  * @param target
  * @return bool
  */
-bool Project::remove_dependency(string target)
+bool Project::remove_dependency(const string &target)
 {
   return false;
 }

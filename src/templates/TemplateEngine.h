@@ -23,7 +23,7 @@ public:
    * @param root
    * @param p_template
    */
-  void init_with_p_template(std::filesystem::path root, std::string p_template);
+  void init_with_p_template(const std::filesystem::path &root, const std::string &p_template);
 
 private:
   const std::filesystem::path templates_dir_;

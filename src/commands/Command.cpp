@@ -25,6 +25,6 @@ int Command::operator()()
 /**
  * @param force
  */
-Command::Command(bool force)
+Command::Command(bool force) : if_(Interface::get()), gconf_(GConf::get())
 {
 }

@@ -13,15 +13,11 @@ ZC_DEV_CONFIG
  * ZCException implementation
  */
 
-ZCException::ZCException()
-{
-}
-
 /**
  * @param code
  * @param message
  */
-ZCException::ZCException(ExitCode code, const std::string &message)
+ZCException::ZCException(ExitCode code, const std::string &message) : code_(code), message_(message)
 {
 }
 
@@ -30,7 +26,7 @@ ZCException::ZCException(ExitCode code, const std::string &message)
  */
 const char *ZCException::what() const noexcept
 {
-  return "";
+  return message_.c_str();
 }
 
 /**
@@ -38,5 +34,5 @@ const char *ZCException::what() const noexcept
  */
 int ZCException::code()
 {
-  return 0;
+  return (int)code_;
 }

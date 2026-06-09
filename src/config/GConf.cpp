@@ -17,7 +17,8 @@
  */
 GConf &GConf::get()
 {
-  return nullptr;
+  static GConf instance;
+  return instance;
 }
 
 /**
@@ -34,14 +35,6 @@ void GConf::login()
 void GConf::logout()
 {
   return;
-}
-
-/**
- * @return std::vector<std::filesystem::path>
- */
-std::vector<std::filesystem::path> GConf::templates()
-{
-  return null;
 }
 
 /**

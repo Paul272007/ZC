@@ -20,14 +20,14 @@ class PConf : public Conf
 {
 public:
   std::string name;
-  std::string target = name;
   std::string author;
+  std::string target = name;
   std::string c_std = "c23";
   std::string cxx_std = "c++20";
   std::string c_compiler = "clang";
   std::string cxx_compiler = "clang++";
   PkgType type = UNDEF;
-  Version version = std::string("0.0.0");
+  Version version = {0, 0, 0};
   std::vector<std::string> flags = {"-Wall", "-Wextra"};
   std::vector<Dependency> dependencies;
   std::vector<Language> languages;
@@ -37,7 +37,7 @@ public:
   /**
    * @param file
    */
-  PConf(std::filesystem::path file);
+  PConf(const std::filesystem::path &file);
 
 protected:
   void load();

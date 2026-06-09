@@ -24,7 +24,7 @@ TemplateEngine &TemplateEngine::get()
  */
 std::vector<std::filesystem::path> TemplateEngine::templates()
 {
-  return;
+  return vector<fs::path>{};
 }
 
 /**
@@ -32,7 +32,7 @@ std::vector<std::filesystem::path> TemplateEngine::templates()
  */
 std::vector<std::filesystem::path> TemplateEngine::p_templates()
 {
-  return;
+  return vector<fs::path>{};
 }
 
 /**
@@ -40,7 +40,7 @@ std::vector<std::filesystem::path> TemplateEngine::p_templates()
  * @param p_template
  * @return void
  */
-void TemplateEngine::init_with_p_template(std::filesystem::path root, string p_template)
+void TemplateEngine::init_with_p_template(const std::filesystem::path &root, const std::string &p_template)
 {
   return;
 }

@@ -19,7 +19,7 @@ PConf::PConf()
 /**
  * @param file
  */
-PConf::PConf(std::filesystem::path file)
+PConf::PConf(const std::filesystem::path &file)
 {
 }
 

@@ -29,7 +29,7 @@ Registry &Registry::get()
  * @param pkg
  * @return bool
  */
-bool Registry::remove_pkg(string pkg)
+bool Registry::remove_pkg(const std::string &pkg)
 {
   return false;
 }
@@ -38,9 +38,9 @@ bool Registry::remove_pkg(string pkg)
  * @param name
  * @return Pkg
  */
-Pkg Registry::get_pkg(string name)
+Pkg Registry::get_pkg(const std::string &pkg)
 {
-  return;
+  return Pkg();
 }
 
 /**
@@ -56,7 +56,7 @@ std::vector<Pkg> Registry::pkgs()
  * @param version
  * @return void
  */
-void Registry::install_pkg(string name, Version version)
+void Registry::install_pkg(const std::string &name, Version version)
 {
   return;
 }
@@ -65,7 +65,7 @@ void Registry::install_pkg(string name, Version version)
  * @param name
  * @return void
  */
-void Registry::update_pkg(string name)
+void Registry::update_pkg(const std::string &name)
 {
   return;
 }
@@ -89,7 +89,7 @@ void Registry::write()
 /**
  * @param root
  */
-Registry::Registry(std::filesystem::path root) : net_(Network::get())
+Registry::Registry(const std::filesystem::path &root) : net_(Network::get())
 {
 }
 
@@ -97,7 +97,7 @@ Registry::Registry(std::filesystem::path root) : net_(Network::get())
  * @param pkg
  * @return void
  */
-void Registry::index_pkg(Pkg pkg)
+void Registry::index_pkg(const Pkg &pkg)
 {
   return;
 }
@@ -107,7 +107,7 @@ void Registry::index_pkg(Pkg pkg)
  * @param pkg
  * @return void
  */
-void Registry::unindex_pkg(Pkg pkg)
+void Registry::unindex_pkg(const Pkg &pkg)
 {
   return;
 }
@@ -117,7 +117,7 @@ void Registry::unindex_pkg(Pkg pkg)
  * @param pkg
  * @return bool
  */
-bool Registry::is_installed(string pkg)
+bool Registry::is_installed(const string &pkg)
 {
   return false;
 }
@@ -143,7 +143,7 @@ void Registry::copy_libs()
  * @param expected
  * @return void
  */
-void Registry::check_pkg_archive(std::filesystem::path archive, string expected)
+void Registry::check_pkg_archive(const std::filesystem::path &archive, const string &expected)
 {
   return;
 }
