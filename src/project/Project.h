@@ -15,35 +15,40 @@
 class Project
 {
 public:
-  Project();
+  // expose configuration for the registry
+  const std::filesystem::path root_dir;
+  const std::filesystem::path build_dir;
+  PConf pconf;
 
-  ~Project();
+  explicit Project(const std::filesystem::path &root);
+
+  ~Project() = default;
 
   /**
    * @param release
    */
-  void build(bool release = false);
+  void build(bool release = false, bool force = false);
 
-  void clean();
+  void clean() const;
 
   void publish();
 
   /**
-   * @param target
+   * @param name
    */
-  bool add_dependency(const std::string &target);
+  void add_dependency(const std::string &name);
 
   /**
-   * @param target
+   * @param name
    */
-  bool remove_dependency(const std::string &target);
+  void remove_dependency(const std::string &name);
+
+  void install_dependencies() const;
 
 private:
-  const std::filesystem::path root_dir_;
-  const std::filesystem::path build_dir_;
   const std::filesystem::path makefile_;
   Registry &reg_;
-  PConf pconf_;
+  Interface &if_;
 
   void generate_Makefile();
 

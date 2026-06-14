@@ -36,10 +36,12 @@ public:
 
   void logout();
 
-protected:
-  void load();
+  ~GConf() override;
 
-  void write();
+protected:
+  void load() override;
+
+  void write() override;
 
 private:
   GConf();

@@ -4,14 +4,14 @@
  * @version 0.1
  */
 
-#ifndef _REGISTRY_H
-#define _REGISTRY_H
+#pragma once
 
 #include <string>
 #include <vector>
 
 #include "../config/Conf.h"
 #include "../helpers.h"
+#include "../project/Project.h"
 #include "Network.h"
 #include "Pkg.h"
 
@@ -19,79 +19,118 @@ class Registry : public Conf
 {
 public:
   /**
-   * Get the user registry : ~/.zc/registry.json
+   * Get the user registry, which index is stored in ~/.zc/registry.json
    */
-  static Registry &get();
-
-  /**
-   * Uninstall a package
-   * @param pkg
-   */
-  bool remove_pkg(const std::string &pkg);
+  [[nodiscard]] static Registry &get();
 
   /**
    * @param name
    */
-  Pkg get_pkg(const std::string &pkg);
-
-  std::vector<Pkg> pkgs();
+  RegistryPkg get_pkg(const std::string &name);
 
   /**
+   * Install a package from the server
+   * If already installed, throw an error
+   * TODO : add latest as default version here and make version a Version
+   * @param name
+   * @param version
+   * @param index
+   * @param force
+   */
+  void install_from_server(const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false);
+
+  /**
+   * Install a local package globally
+   * @param path The path to the project root
+   * @param force Whether to force installation even if the package is already installed
+   */
+  void install_from_path(const std::filesystem::path &path, bool force = false);
+
+  /**
+   * Add a new version to a package (latest available version by default)
+   * @param name
+   * @param version
+   * @param index
+   * @param force
+   */
+  void update_from_server(const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false);
+
+  void update_from_path(const std::filesystem::path &path, bool force = false);
+
+  /**
+   * Uninstall a package and all its versions
+   * @param pkg
+   */
+  void uninstall(const std::string &pkg);
+
+  /**
+   * Check if pkg is installed
    * @param name
    * @param version
    */
-  void install_pkg(const std::string &name, Version version);
+  bool is_installed(const std::string &name, const Version &version);
 
-  /**
-   * @param name
-   */
-  void update_pkg(const std::string &name);
+  bool is_installed(const std::string &name);
+
+  std::vector<RegistryPkg> pkgs();
+
+  ~Registry() override;
 
 protected:
-  void load();
+  void load() override;
 
-  void write();
+  void write() override;
 
 private:
-  const std::filesystem::path root_dir_ = get_zc_root();
-  const std::filesystem::path bin_dir_ = root_dir_ / CACHE_DIR / BIN_DIR;
-  const std::filesystem::path lib_dir_ = root_dir_ / CACHE_DIR / LIB_DIR;
-  const std::filesystem::path include_dir_ = root_dir_ / CACHE_DIR / INCLUDE_DIR;
-  const std::filesystem::path tmp_dir_ = root_dir_ / TMP_DIR;
-  std::vector<Pkg> pkgs_;
-  Network &net_;
+  const std::filesystem::path cache_dir_;
+  /* ! useless for the moment ! */
+  const std::filesystem::path bin_dir_;
+  const std::filesystem::path lib_dir_;
+  const std::filesystem::path include_dir_;
+  /* */
+  const std::filesystem::path bin_links_dir_;
+  const std::filesystem::path tmp_dir_;
+  std::vector<RegistryPkg> pkgs_;
+  const Network &net_;
 
   /**
    * @param root
    */
-  Registry(const std::filesystem::path &root);
+  explicit Registry(const std::filesystem::path &root);
 
   /**
    * @param pkg
    */
-  void index_pkg(const Pkg &pkg);
+  void index_add_pkg(const RegistryPkg &pkg);
+
+  void index_add_pkg_version(const std::string &name, const Version &version);
+
+  std::vector<RegistryPkg>::iterator get_pkg_it(const std::string &name);
 
   /**
-   * Remove pkg from index. A package with the same name and version must be found in the registry index.
-   * @param pkg
+   * Remove pkg from index. A package with the same name must be found in the registry index.
+   * @param name
    */
-  void unindex_pkg(const Pkg &pkg);
+  RegistryPkg unindex_pkg(const std::string &name);
+
+  void copy_bin(const Project &p) const;
+
+  void copy_headers(const Project &p) const;
+
+  void copy_libs(const Project &p) const;
+
+  void clean() const;
 
   /**
-   * Check if pkg is installed
-   * @param pkg
+   * Download archive, verify its hash, extract it and return the root of the project
    */
-  bool is_installed(const std::string &name);
-
-  void copy_bin();
-
-  void copy_libs();
+  std::filesystem::path download_and_extract(const std::string &name, const std::string &version, const nlohmann::json &index) const;
 
   /**
    * @param archive
    * @param expected
    */
-  void check_pkg_archive(const std::filesystem::path &archive, const std::string &expected);
-};
+  void verify_archive_hash(const std::filesystem::path &archive, const std::string &expected) const;
 
-#endif //_REGISTRY_H
+  static std::string pkg_url(const std::string &name, const std::string &version, const nlohmann::json &index);
+};

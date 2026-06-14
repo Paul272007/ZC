@@ -19,15 +19,15 @@ public:
 
 protected:
   const bool force_ = false;
-  Interface if_;
+  const Interface &if_ = Interface::get();
+  const GConf &gconf_ = GConf::get();
 
   /**
    * @param force
    */
-  Command(bool force = false);
-
-private:
-  GConf gconf_;
+  explicit Command(const bool force = false) : force_(force)
+  {
+  }
 };
 
 #endif //_COMMAND_H

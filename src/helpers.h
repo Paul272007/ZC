@@ -1,8 +1,12 @@
+#pragma once
+
 #include <filesystem>
 
 #define ZC_DEV_CONFIG                                                                                        \
   using namespace std;                                                                                       \
   namespace fs = std::filesystem;
+
+#define ZC_DEV_CONFIG_JSON ZC_DEV_CONFIG using json = nlohmann::json;
 
 // clang-format off
 
@@ -36,5 +40,12 @@
 
 // clang-format on
 
-const std::filesystem::path get_project_root(const std::filesystem::path &base);
-const std::filesystem::path get_zc_root();
+std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
+const std::filesystem::path &get_zc_root();
+void create_zc_root();
+
+void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
+std::string sha256(const std::filesystem::path &path);
+std::string base64_encode(const std::string &in);
+
+std::string upper(const std::string &text);

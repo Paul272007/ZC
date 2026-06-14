@@ -18,7 +18,7 @@ class Run : public Command
 public:
   Run();
 
-  int operator()();
+  int operator()() override;
 
 private:
   CompileMode mode_;

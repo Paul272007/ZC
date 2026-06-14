@@ -8,22 +8,44 @@
 #define _CONF_H
 
 #include <filesystem>
+#include <nlohmann/json.hpp>
+#include <utility>
+
+#include "../excepts/ZCException.h"
+#include "../ui/Interface.h"
 
 class Conf
 {
 public:
-  ~Conf();
+  virtual ~Conf() = default;
+
+  template <typename T>
+  static void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable)
+  {
+    if (!json_conf.contains(key))
+      throw ZCException(ZCE_MISSING_PROPERTY, "Expected property '" + key + "' missing.");
+
+    try
+    {
+      json_conf.at(key).get_to(variable);
+    }
+    catch ([[maybe_unused]] const nlohmann::json::type_error &_)
+    {
+      throw ZCException(ZCE_TYPE_ERROR, "Configuration error: key '" + key + "' has the wrong type");
+    }
+  }
 
 protected:
-  std::filesystem::path file_;
-  bool modified_;
-
-  Conf();
+  const std::filesystem::path file_;
+  const Interface &if_ = Interface::get();
+  bool modified_ = false;
 
   /**
    * @param file
    */
-  Conf(const std::filesystem::path &file);
+  explicit Conf(std::filesystem::path file) : file_(std::move(file))
+  {
+  }
 
   virtual void load() = 0;
 

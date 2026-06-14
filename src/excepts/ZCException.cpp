@@ -6,6 +6,7 @@
 
 #include "ZCException.h"
 #include "../helpers.h"
+#include "../ui/Interface.h"
 
 ZC_DEV_CONFIG
 
@@ -17,7 +18,7 @@ ZC_DEV_CONFIG
  * @param code
  * @param message
  */
-ZCException::ZCException(ExitCode code, const std::string &message) : code_(code), message_(message)
+ZCException::ZCException(const ExitCode code, const std::string &message) : message_(message), code_(code)
 {
 }
 
@@ -32,7 +33,19 @@ const char *ZCException::what() const noexcept
 /**
  * @return int
  */
-int ZCException::code()
+int ZCException::code() const
 {
-  return (int)code_;
+  return code_;
+}
+
+std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception)
+{
+  stream << "[" RED "ERROR" RESET "]   ";
+
+#ifdef DEBUG_MODE
+  stream << "(exit code: " << zc_exception.code_ << ") ";
+#endif
+
+  stream << zc_exception.message_;
+  return stream;
 }

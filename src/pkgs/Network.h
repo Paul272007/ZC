@@ -13,18 +13,33 @@ class Network
 {
 public:
   static Network &get();
+  Network(const Network &) = delete;
+  void operator=(const Network &) = delete;
+
+  void download(const std::string &url, const std::filesystem::path &dest) const;
 
   /**
    * @param url
    * @param payload
+   * @param token
    */
-  void post(const std::string &url, const std::string &payload);
+  std::string post(const std::string &url, const std::string &payload, const std::string &token = "");
 
   /**
    * @param url
    * @param payload
+   * @param token
    */
-  void put(const std::string &url, const std::string &payload);
+  std::string put(const std::string &url, const std::string &payload, const std::string &token = "");
+
+  /**
+   * @param url
+   * @param payload
+   * @param token
+   */
+  std::string get(const std::string &url, const std::string &payload, const std::string &token = "");
+
+  [[nodiscard]] const nlohmann::json &get_index() const;
 
   ~Network();
 
@@ -35,8 +50,12 @@ private:
    * @param url
    * @param method
    * @param payload
+   * @param token
    */
-  void request(const std::string &url, const std::string &method, const std::string &payload);
+  std::string request(
+      const std::string &url, const std::string &method, const std::string &payload,
+      const std::string &token = ""
+  );
 };
 
 #endif //_NETWORK_H

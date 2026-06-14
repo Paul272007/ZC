@@ -8,6 +8,7 @@
 #define _ZCEXCEPTION_H
 
 #include <exception>
+#include <ostream>
 #include <string>
 
 #include "ExitCode.h"
@@ -19,11 +20,13 @@ public:
    * @param code
    * @param message
    */
-  ZCException(ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented");
+  explicit ZCException(ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented");
 
-  virtual const char *what() const noexcept override;
+  const char *what() const noexcept override;
 
-  int code();
+  int code() const;
+
+  friend std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception);
 
 private:
   const std::string message_;

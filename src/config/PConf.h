@@ -4,14 +4,14 @@
  * @version 0.1
  */
 
-#ifndef _PCONF_H
-#define _PCONF_H
+#pragma once
 
 #include <string>
 #include <vector>
 
 #include "../Language.h"
 #include "../Version.h"
+#include "../helpers.h"
 #include "../pkgs/PkgType.h"
 #include "Conf.h"
 #include "Dependency.h"
@@ -32,17 +32,19 @@ public:
   std::vector<Dependency> dependencies;
   std::vector<Language> languages;
 
-  PConf();
+  ~PConf() override;
+
+  void add_dependency(const Dependency &d);
+
+  void remove_dependency(const std::string &dep_name);
 
   /**
    * @param file
    */
-  PConf(const std::filesystem::path &file);
+  explicit PConf(const std::filesystem::path &file = get_zc_root() / ZC_FILE);
 
 protected:
-  void load();
+  void load() override;
 
-  void write();
+  void write() override;
 };
-
-#endif //_PCONF_H

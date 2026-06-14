@@ -4,8 +4,7 @@
  * @version 0.1
  */
 
-#ifndef _COMPILEMODE_H
-#define _COMPILEMODE_H
+#pragma once
 
 enum CompileMode
 {
@@ -14,5 +13,3 @@ enum CompileMode
   ASSEMBLE,
   FULL
 };
-
-#endif //_COMPILEMODE_H
