@@ -10,10 +10,10 @@
 #include <vector>
 
 #include "../config/Conf.h"
-#include "../helpers.h"
-#include "../project/Project.h"
 #include "Network.h"
 #include "Pkg.h"
+
+class Project;
 
 class Registry : public Conf
 {
@@ -37,7 +37,9 @@ public:
    * @param index
    * @param force
    */
-  void install_from_server(const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false);
+  void install_from_server(
+      const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false
+  );
 
   /**
    * Install a local package globally
@@ -53,7 +55,9 @@ public:
    * @param index
    * @param force
    */
-  void update_from_server(const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false);
+  void update_from_server(
+      const std::string &name, const std::string &version, const nlohmann::json &index, bool force = false
+  );
 
   void update_from_path(const std::filesystem::path &path, bool force = false);
 
@@ -124,7 +128,9 @@ private:
   /**
    * Download archive, verify its hash, extract it and return the root of the project
    */
-  std::filesystem::path download_and_extract(const std::string &name, const std::string &version, const nlohmann::json &index) const;
+  std::filesystem::path download_and_extract(
+      const std::string &name, const std::string &version, const nlohmann::json &index
+  ) const;
 
   /**
    * @param archive
@@ -132,5 +138,6 @@ private:
    */
   void verify_archive_hash(const std::filesystem::path &archive, const std::string &expected) const;
 
-  static std::string pkg_url(const std::string &name, const std::string &version, const nlohmann::json &index);
+  static std::string
+  pkg_url(const std::string &name, const std::string &version, const nlohmann::json &index);
 };

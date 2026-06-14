@@ -4,11 +4,12 @@
  * @version 0.1
  */
 
-#ifndef _PKGTYPE_H
-#define _PKGTYPE_H
+#pragma once
 
 #include <nlohmann/json.hpp>
 #include <string>
+
+#include "helpers.h"
 
 enum PkgType
 {
@@ -59,5 +60,3 @@ inline void to_json(nlohmann::json &j, const PkgType &p)
 {
   j = to_string(p);
 }
-
-#endif //_PKGTYPE_H

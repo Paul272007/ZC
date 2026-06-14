@@ -13,7 +13,7 @@
 class Command
 {
 public:
-  virtual ~Command() = 0;
+  virtual ~Command() = default;
 
   virtual int operator()() = 0;
 

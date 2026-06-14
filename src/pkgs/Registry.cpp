@@ -6,6 +6,7 @@
 
 #include "Registry.h"
 #include "../config/PConf.h"
+#include "../project/Project.h"
 #include "../helpers.h"
 #include "Network.h"
 

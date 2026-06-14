@@ -4,8 +4,7 @@
  * @version 0.1
  */
 
-#ifndef _PROJECT_H
-#define _PROJECT_H
+#pragma once
 
 #include <string>
 
@@ -26,8 +25,9 @@ public:
 
   /**
    * @param release
+   * @param force
    */
-  void build(bool release = false, bool force = false);
+  void build(bool release = false, bool force = false) const;
 
   void clean() const;
 
@@ -45,14 +45,21 @@ public:
 
   void install_dependencies() const;
 
+  void generate_build_config() const;
+
 private:
+  const std::filesystem::path src_dir_;
   const std::filesystem::path makefile_;
   Registry &reg_;
   Interface &if_;
 
-  void generate_Makefile();
+  void generate_Makefile() const;
 
-  void generate_compile_commands();
+  void Makefile_bin(std::ostringstream &mk) const;
+  void Makefile_lib(std::ostringstream &mk) const;
+  void Makefile_compose(std::ostringstream &mk) const;
+
+  void generate_compile_commands() const;
+
+  void get_sources(std::vector<std::string> &c_files, std::vector<std::string> &cxx_files) const;
 };
-
-#endif //_PROJECT_H

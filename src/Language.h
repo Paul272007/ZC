@@ -20,6 +20,11 @@ enum Language
   UNKNOWN_LANGUAGE
 };
 
+inline bool is_c(const std::string &text)
+{
+  return upper(text) == "C";
+}
+
 inline bool is_cxx(const std::string &text)
 {
   if (const auto u_text = upper(text); u_text == "CXX" || u_text == "C++" || u_text == "CPP" || u_text == "CC")
@@ -27,13 +32,20 @@ inline bool is_cxx(const std::string &text)
   return false;
 }
 
+inline bool is_asm(const std::string &text)
+{
+  if (const auto u_text = upper(text); u_text == "S" || u_text == "ASM")
+    return true;
+  return false;
+}
+
 inline void from_json(const nlohmann::json &j, Language &l)
 {
-  if (const std::string lang_upper = upper(j.get<std::string>()); is_cxx(lang_upper))
+  if (const std::string lang = j.get<std::string>(); is_cxx(lang))
     l = CXX;
-  else if (lang_upper == "C")
+  else if (is_c(lang))
     l = C;
-  else if (lang_upper == "ASM_NASM")
+  else if (is_asm(lang))
     l = ASM_NASM;
   else
     l = UNKNOWN_LANGUAGE;

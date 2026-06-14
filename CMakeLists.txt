@@ -15,7 +15,7 @@ find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-include_directories(SYSTEM external)
+# include_directories(SYSTEM external)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${Clang_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -74,7 +74,7 @@ add_library(zc_core STATIC
         src/Version.h
 )
 
-target_include_directories(zc_core PRIVATE include)
+target_include_directories(zc_core PRIVATE src)
 target_link_libraries(zc_core PRIVATE
   ${CLANG_LIB}
   nlohmann_json::nlohmann_json

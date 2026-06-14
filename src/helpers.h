@@ -24,6 +24,7 @@
 #define REGISTRY_FILE      "registry.json"
 
 // Project-wide directories and files
+#define SRC_DIR            "src" // for the moment hard coded, later user defined
 #define BUILD_DIR          "build"
 
 #define ZC_FILE            "zc.json"

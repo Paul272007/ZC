@@ -5,6 +5,9 @@
  */
 
 #include <nlohmann/json.hpp>
+#include <fstream>
+#include <chrono>
+#include <format>
 
 #include "Project.h"
 #include "../config/GConf.h"
@@ -16,16 +19,30 @@ ZC_DEV_CONFIG_JSON
  * Project implementation
  */
 
-Project::Project(const std::filesystem::path &root) : root_dir(root), build_dir(root / BUILD_DIR), reg_(Registry::get()), if_(Interface::get())
+Project::Project(const std::filesystem::path &root)
+    : root_dir(root), build_dir(root / BUILD_DIR), src_dir_(root / SRC_DIR), makefile_(build_dir / MAKEFILE), reg_(Registry::get()), if_(Interface::get())
 {
 }
 
-void Project::build(bool release, const bool force)
+void Project::build(const bool release, const bool force) const
 {
-  if (fs::exists(build_dir) && force)
+  if (!release && force && fs::exists(build_dir))
     clean();
 
+  if (release)
+    install_dependencies();
 
+  if (force || !fs::exists(makefile_))
+    generate_Makefile();
+
+  if_.info("Building " + pconf.name + "...");
+
+  const std::string make_cmd = "make -C " + build_dir.string();
+
+  if (const int result = std::system(make_cmd.c_str()); result == 0)
+    if_.success("Project was successfully built in " + build_dir.string());
+  else
+    throw ZCException(ZCE_COMPILATION_ERROR, "Build failed with exit code " + std::to_string(result));
 }
 
 void Project::clean() const
@@ -47,7 +64,9 @@ void Project::publish()
 
   GConf &gc(GConf::get());
   if (gc.token.empty())
-    throw ZCException(ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first.");
+    throw ZCException(
+        ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first."
+    );
 
   if_.info("Verifying GitHub identity...");
   Network &net(Network::get());
@@ -57,9 +76,9 @@ void Project::publish()
 
   if (github_login != pconf.author)
     throw ZCException(
-      ZCE_AUTHENTICATION_ERROR, "Identity mismatch: You are logged in as '" + github_login +
-                                    "' but the author in zc.json is '" + pconf.author +
-                                    "'. Publication blocked for security reasons."
+        ZCE_AUTHENTICATION_ERROR, "Identity mismatch: You are logged in as '" + github_login +
+                                      "' but the author in zc.json is '" + pconf.author +
+                                      "'. Publication blocked for security reasons."
     );
 
   if_.success("Authenticated as " + github_login);
@@ -75,7 +94,8 @@ void Project::publish()
   fs::create_directories(tmp_dir);
 
   // Ensure the release exists on GitHub
-  string release_api_url = "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases/tags/" + tag;
+  string release_api_url =
+      "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases/tags/" + tag;
 
   try
   {
@@ -157,8 +177,8 @@ void Project::publish()
         {
           throw ZCException(
               ZCE_AUTHENTICATION_ERROR, "Security Violation: This package is owned by '" +
-                                           first_version_json["owner"].get<string>() +
-                                           "'. You cannot publish a new version."
+                                            first_version_json["owner"].get<string>() +
+                                            "'. You cannot publish a new version."
           );
         }
       }
@@ -190,32 +210,16 @@ void Project::add_dependency(const string &name)
 {
   RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
 
-  const Dependency d{
-    .name = pkg.name,
-    .static_link = false,
-    .version = *ranges::max_element(pkg.versions)
-  };
+  const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
 
   pconf.add_dependency(d);
+  generate_compile_commands(); // for the LSPs
 }
 
 void Project::remove_dependency(const string &name)
 {
   pconf.remove_dependency(name);
-}
-
-/**
- * @return void
- */
-void Project::generate_Makefile()
-{
-}
-
-/**
- * @return void
- */
-void Project::generate_compile_commands()
-{
+  generate_compile_commands(); // for the LSPs
 }
 
 void Project::install_dependencies() const
@@ -223,6 +227,136 @@ void Project::install_dependencies() const
   const auto &net = Network::get();
   const json index = net.get_index();
 
-  for (const auto &dependency: pconf.dependencies)
+  for (const auto &dependency : pconf.dependencies)
     reg_.install_from_server(dependency.name, dependency.version.string(), index);
+}
+
+void Project::generate_build_config() const
+{
+  generate_Makefile();
+  generate_compile_commands();
+}
+
+void Project::generate_Makefile() const
+{
+  GConf &gc(GConf::get());
+  fs::create_directories(build_dir);
+  std::vector<std::string> cxx_files;
+  std::vector<std::string> c_files;
+
+  get_sources(c_files, cxx_files);
+
+  if (pconf.type == HEADER)
+    return;
+
+  std::ostringstream mk;
+  const fs::path cache_dir = get_zc_root() / CACHE_DIR;
+
+  auto now_sec = chrono::floor<chrono::seconds>(chrono::system_clock::now());
+  const string s = std::format("{:%F %T}", now_sec);
+  mk << "# --- This file was automatically generated by ZC\n";
+  mk << "# --- Date of creation: " << s << " (UTC)\n";
+  mk << "# --- Do not edit this file manually !\n\n";
+
+  mk << "CC = " << gc.c_compiler << "\n";
+  mk << "CXX = " << gc.cxx_compiler << "\n";
+
+  mk << "CFLAGS = -std=" << gc.c_std;
+  if (pconf.type == LIB) mk << " -fPIC";
+  for (const auto &flag : pconf.flags) mk << " " << flag;
+  for (const auto &dep : pconf.dependencies) mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+  mk << "\n";
+
+  mk << "CXXFLAGS = -std=" << gc.cxx_std;
+  if (pconf.type == LIB) mk << " -fPIC";
+  for (const auto &flag : pconf.flags) mk << " " << flag;
+  for (const auto &dep : pconf.dependencies) mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+  mk << "\n";
+
+  mk << "COBJS = ";
+  for (const auto& file : c_files) mk << file << ".o ";
+  mk << "\n";
+
+  mk << "CXXOBJS = ";
+  for (const auto &file : cxx_files) mk << file << ".o ";
+  mk << "\n\n";
+
+  switch (pconf.type)
+  {
+  case BIN:
+    Makefile_bin(mk);
+    break;
+  case LIB:
+    Makefile_lib(mk);
+    break;
+  case COMPOSE:
+    Makefile_compose(mk);
+    break;
+  default:
+    break;
+  }
+
+  mk << "%.c.o: ../%\n";
+  mk << "\t@mkdir -p $(dir $@)\n";
+  mk << "\t@echo \"[C]    $<\"\n";
+  mk << "\t@$(CC) $(CFLAGS) -c $< -o $@\n\n";
+
+  mk << "%.cpp.o: ../%\n";
+  mk << "\t@mkdir -p $(dir $@)\n";
+  mk << "\t@echo \"[CXX]  $<\"\n";
+  mk << "\t@$(CXX) $(CXXFLAGS) -c $< -o $@\n\n";
+
+  std::ofstream out(makefile_);
+  out << mk.str();
+}
+
+void Project::Makefile_bin(std::ostringstream &mk) const
+{
+  mk << "TARGET = " << pconf.name << "\n\n";
+  mk << "all: $(TARGET)\n\n";
+  mk << "$(TARGET): $(COBJS) $(CXXOBJS)\n";
+  mk << "\t@echo \"[Link] Linking executable $@\"\n";
+  mk << "\t@$(CXX) $(CXXFLAGS) -o $@ $^\n\n";
+}
+
+void Project::Makefile_lib(std::ostringstream &mk) const
+{
+  mk << "TARGET_STATIC = lib" << pconf.name << ".a\n"; // TODO : handle other operating systems
+  mk << "TARGET_SHARED = lib" << pconf.name << ".so\n\n";
+  mk << "all: $(TARGET_STATIC) $(TARGET_SHARED)\n\n";
+
+  mk << "$(TARGET_STATIC): $(COBJS) $(CXXOBJS)\n";
+  mk << "\t@echo \"[AR]   Archiving static library $@\"\n";
+  mk << "\t@ar rcs $@ $^\n\n";
+
+  mk << "$(TARGET_SHARED): $(COBJS) $(CXXOBJS)\n";
+  mk << "\t@echo \"[Link] Linking shared library $@\"\n";
+  mk << "\t@$(CXX) -shared -o $@ $^\n\n";
+}
+
+void Project::Makefile_compose(std::ostringstream &mk) const
+{
+  mk << "all:\n";
+  mk << "\t@echo \"Compose project type is not yet fully implemented\"\n\n";
+}
+
+void Project::generate_compile_commands() const
+{
+  fs::create_directories(build_dir);
+}
+
+void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::string> &cxx_files) const
+{
+  if (!fs::exists(src_dir_))
+    throw ZCException(ZCE_NO_SOURCE_FILES, "Source directory does not exist");
+
+  for (const auto& entry : fs::recursive_directory_iterator(src_dir_))
+    if (string ext = entry.path().extension(); entry.is_regular_file() && !ext.empty())
+    {
+      ext.erase(0, 1);
+      if (is_c(ext))
+        c_files.push_back(fs::relative(entry.path(), root_dir).string());
+      else if (is_cxx(ext))
+        cxx_files.push_back(fs::relative(entry.path(), root_dir).string());
+    }
 }
