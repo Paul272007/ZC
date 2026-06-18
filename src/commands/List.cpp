@@ -14,7 +14,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-List::List(bool force, bool templates, bool p_templates, bool simple, bool remote)
+List::List(bool force, bool templates, bool p_templates, bool remote, bool simple)
     : Command(force), simple_(simple)
 {
   type_ = parse_mode<ListType>(

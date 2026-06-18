@@ -1,0 +1,16 @@
+{
+  "always_keep": false,
+  "always_add_std": false,
+  "open_after_init": false,
+  "open_after_create": false,
+  "clear_before_run": false,
+  "move_bin_to_current_path": false,
+  "username": "",
+  "token": "",
+  "c_compiler": "clang",
+  "cxx_compiler": "clang++",
+  "c_std": "c23",
+  "cxx_std": "c++20",
+  "editor": "vim",
+  "flags": ["-Wall", "-Wextra"]
+}

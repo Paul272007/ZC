@@ -128,7 +128,7 @@ void GConf::logout()
 void GConf::load()
 {
   const json root = if_.read_json(file_);
-  get_key(root, "alway_keep", alway_keep);
+  get_key(root, "always_keep", always_keep);
   get_key(root, "always_add_std", always_add_std);
   get_key(root, "open_after_init", open_after_init);
   get_key(root, "open_after_create", open_after_create);
@@ -139,15 +139,15 @@ void GConf::load()
   get_key(root, "c_std", c_std);
   get_key(root, "cxx_std", cxx_std);
   get_key(root, "editor", editor);
-  get_key(root, "token", token);
-  get_key(root, "username", username);
+  get_key(root, "token", token);       // TODO : do not throw error if empty
+  get_key(root, "username", username); // TODO : do not throw error if empty
   get_key(root, "flags", flags);
 }
 
 void GConf::write()
 {
   json root;
-  root["alway_keep"] = alway_keep;
+  root["always_keep"] = always_keep;
   root["always_add_std"] = always_add_std;
   root["open_after_init"] = open_after_init;
   root["open_after_create"] = open_after_create;
@@ -166,7 +166,7 @@ void GConf::write()
     root["username"] = username;
 
   if_.write_json(root, file_);
-  chmod(file_.c_str(), S_IRUSR | S_IWUSR);
+  chmod(file_.c_str(), S_IRUSR | S_IWUSR); // other users are not allowed to see the authentication token
 }
 
 GConf::~GConf()

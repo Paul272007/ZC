@@ -113,7 +113,6 @@ void PConf::write()
   root["dependencies"] = deps_json;
 
   if_.write_json(root, file_);
-  chmod(file_.c_str(), S_IRUSR | S_IWUSR); // other users are not allowed to see the authentication token
 }
 
 } // namespace zc

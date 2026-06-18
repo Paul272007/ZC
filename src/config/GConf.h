@@ -17,7 +17,7 @@ namespace zc
 class GConf : public Conf
 {
 public:
-  bool alway_keep = false;
+  bool always_keep = false;
   bool always_add_std = false;
   bool open_after_init = false;
   bool open_after_create = false;
