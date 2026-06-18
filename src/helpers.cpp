@@ -11,6 +11,7 @@
 #include <openssl/evp.h>
 #include <vector>
 
+#include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
 
@@ -188,6 +189,26 @@ Targets parse_targets(const std::vector<std::string> &targets)
       results.push_back({target, ""});
   }
   return results;
+}
+
+void check_name(const std::string &name)
+{
+  if (name.at(0) == '-')
+    throw ZCException(ZCE_CONTENT_ERROR, "The name of the package cannot begin with '-'");
+
+  for (const auto &str : FORBIDDEN_NAMES)
+    if (name == str)
+      throw ZCException(ZCE_CONTENT_ERROR, "The name of the package or target is forbidden: " + string(str));
+
+  for (char c : FORBIDDEN_CHARS)
+  {
+    size_t pos = name.find(c);
+    if (pos != string::npos)
+      throw ZCException(
+          ZCE_CONTENT_ERROR,
+          "The name of the package or target contains invalid character: " + std::string(1, c)
+      );
+  }
 }
 
 } // namespace zc

@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <initializer_list>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,7 +27,7 @@
 // clang-format off
 
 #define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache"}
-#define FORBIDDEN_CHARS    {'@', '#', ' ', '*', '!', '?', '{', '}', '[', ']', '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '^', '¨', '$'}
+#define FORBIDDEN_CHARS    {'@', '#', ' ', '*', '!', '?', '{', '}', '[', ']', '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '$'}
 
 // Global directories and files
 #define ZC_DIR             ".zc"
@@ -72,6 +74,14 @@ std::filesystem::path get_project_root(const std::filesystem::path &base = std::
 const std::filesystem::path &get_zc_root();
 void create_zc_root();
 Targets parse_targets(const std::vector<std::string> &targets);
+void check_name(const std::string &name);
+
+void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
+std::string sha256(const std::filesystem::path &path);
+std::string base64_encode(const std::string &in);
+
+std::string upper(const std::string &text);
+std::string escape_shell_arg(const std::string &arg);
 
 template <typename EnumType>
 EnumType parse_mode(
@@ -97,11 +107,35 @@ EnumType parse_mode(
   return result;
 }
 
-void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
-std::string sha256(const std::filesystem::path &path);
-std::string base64_encode(const std::string &in);
+template <typename T> void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable)
+{
+  if (!json_conf.contains(key))
+    throw ZCException(ZCE_MISSING_PROPERTY, "Expected property '" + key + "' missing.");
 
-std::string upper(const std::string &text);
-std::string escape_shell_arg(const std::string &arg);
+  try
+  {
+    json_conf.at(key).get_to(variable);
+  }
+  catch ([[maybe_unused]] const nlohmann::json::type_error &_)
+  {
+    throw ZCException(ZCE_TYPE_ERROR, "Configuration error: key '" + key + "' has the wrong type");
+  }
+}
+
+template <typename T>
+void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable, T default_value)
+{
+  if (!json_conf.contains(key))
+    variable = default_value;
+
+  try
+  {
+    json_conf.at(key).get_to(variable);
+  }
+  catch ([[maybe_unused]] const nlohmann::json::type_error &_)
+  {
+    throw ZCException(ZCE_TYPE_ERROR, "Configuration error: key '" + key + "' has the wrong type");
+  }
+}
 
 } // namespace zc

@@ -128,20 +128,20 @@ void GConf::logout()
 void GConf::load()
 {
   const json root = if_.read_json(file_);
-  get_key(root, "always_keep", always_keep);
-  get_key(root, "always_add_std", always_add_std);
-  get_key(root, "open_after_init", open_after_init);
-  get_key(root, "open_after_create", open_after_create);
-  get_key(root, "clear_before_run", clear_before_run);
-  get_key(root, "move_bin_to_current_path", move_bin_to_current_path);
-  get_key(root, "c_compiler", c_compiler);
-  get_key(root, "cxx_compiler", cxx_compiler);
-  get_key(root, "c_std", c_std);
-  get_key(root, "cxx_std", cxx_std);
-  get_key(root, "editor", editor);
-  get_key(root, "token", token);       // TODO : do not throw error if empty
-  get_key(root, "username", username); // TODO : do not throw error if empty
-  get_key(root, "flags", flags);
+  get_key(root, "always_keep", always_keep, false);
+  get_key(root, "always_add_std", always_add_std, false);
+  get_key(root, "open_after_init", open_after_init, false);
+  get_key(root, "open_after_create", open_after_create, false);
+  get_key(root, "clear_before_run", clear_before_run, false);
+  get_key(root, "move_bin_to_current_path", move_bin_to_current_path, false);
+  get_key(root, "c_compiler", c_compiler, string("clang"));
+  get_key(root, "cxx_compiler", cxx_compiler, string("clang++"));
+  get_key(root, "c_std", c_std, string("c23"));
+  get_key(root, "cxx_std", cxx_std, string("c++20"));
+  get_key(root, "editor", editor, string("vim"));
+  get_key(root, "token", token, string());
+  get_key(root, "username", username, string());
+  get_key(root, "flags", flags, {"-Wall", "-Wextra"});
 }
 
 void GConf::write()

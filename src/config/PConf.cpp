@@ -4,11 +4,14 @@
  * @version 0.1
  */
 
+#include <string>
 #include <sys/stat.h>
 
 #include "../helpers.h"
 #include "Conf.h"
 #include "PConf.h"
+#include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -59,22 +62,30 @@ PConf::PConf(const std::filesystem::path &file) : Conf(file)
 void PConf::load()
 {
   json root = if_.read_json(file_);
-  get_key(root, "name", name); // TODO : verify the name of the package here
-  get_key(root, "author", author);
-  get_key(root, "target", target);
-  get_key(root, "c_std", c_std);
-  get_key(root, "cxx_std", cxx_std);
-  get_key(root, "c_compiler", c_compiler);
-  get_key(root, "cxx_compiler", cxx_compiler);
-  get_key(root, "flags", flags);
-  get_key(root, "languages", languages);
+  get_key(root, "name", name);
+  get_key(root, "author", author, string());
+  get_key(root, "target", target, name);
+  get_key(root, "c_std", c_std, string("c23"));
+  get_key(root, "cxx_std", cxx_std, string("c++20"));
+  get_key(root, "c_compiler", c_compiler, string("clang"));
+  get_key(root, "cxx_compiler", cxx_compiler, string("clang++"));
+  get_key(root, "flags", flags, flags);
+  get_key(root, "src_dirs", src_dirs, src_dirs);
+  get_key(root, "include_dirs", include_dirs, include_dirs);
+  get_key(root, "languages", languages, {});
 
-  get_key(root, "type", type); // TODO : maybe throw an error if type is UNDEF
+  get_key(root, "type", type);
   get_key(root, "version", version);
+
+  if (type == UNDEF)
+    throw ZCException(ZCE_CONTENT_ERROR, "Package type cannot be UNDEF");
+
+  check_name(name);
+  if (target != name)
+    check_name(target);
 
   if (root.contains("dependencies") && root["dependencies"].is_object())
   {
-
     for (const auto &[key, value] : root["dependencies"].items())
     {
       Dependency d;
@@ -97,6 +108,8 @@ void PConf::write()
   root["type"] = type;
   root["version"] = version;
   root["flags"] = flags;
+  root["src_dirs"] = src_dirs;
+  root["include_dirs"] = include_dirs;
   root["languages"] = languages;
 
   if (!name.empty())

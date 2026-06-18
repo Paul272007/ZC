@@ -10,6 +10,7 @@
 
 #include "../Version.h"
 #include "../config/Conf.h"
+#include "../helpers.h"
 #include "PkgType.h"
 
 namespace zc
@@ -33,10 +34,10 @@ inline void to_json(nlohmann::json &j, const RegistryPkg &p)
 
 inline void from_json(const nlohmann::json &j, RegistryPkg &p)
 {
-  Conf::get_key(j, "type", p.type);
-  Conf::get_key(j, "target", p.target);
-  Conf::get_key(j, "origin", p.origin);
-  Conf::get_key(j, "versions", p.versions);
+  get_key(j, "type", p.type);
+  get_key(j, "target", p.target);
+  get_key(j, "origin", p.origin);
+  get_key(j, "versions", p.versions);
 }
 
 struct Pkg

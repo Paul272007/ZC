@@ -39,7 +39,7 @@ fi
 
 echo -e "${BLUE}[2/7] Setting up user environment...${NC}"
 ZC_DIR="$HOME/.zc"
-CONFIG_FILE="$ZC_DIR/zc.json"
+CONFIG_FILE="$ZC_DIR/config.json"
 CONFIG_EXISTS=false
 
 if [ -f "$CONFIG_FILE" ]; then
@@ -47,8 +47,7 @@ if [ -f "$CONFIG_FILE" ]; then
 fi
 
 if [ ! -d "$ZC_DIR" ]; then
-  mkdir -p "$ZC_DIR/lib"
-  mkdir -p "$ZC_DIR/include"
+  mkdir -p "$ZC_DIR/cache"
   mkdir -p "$ZC_DIR/completions"
   mkdir -p "$ZC_DIR/bin"
 fi
@@ -82,8 +81,8 @@ if [ "$CONFIG_EXISTS" == "false" ]; then
     local msg=$1
     local default=$2
     local var=$3
-    read -p "$(echo -e "${BLUE}?${NC} $msg ($default): ")" input
-    eval $var=\"\${input:-$default}\"
+    read -pr "$(echo -e "${BLUE}?${NC} $msg ($default): ")" input
+    eval "$var"=\"\${input:-"$default"}\"
   }
 
   prompt_bool() {
@@ -93,15 +92,15 @@ if [ "$CONFIG_EXISTS" == "false" ]; then
     local disp_default="y/N"
     [ "$default" == "true" ] && disp_default="Y/n"
 
-    read -p "$(echo -e "${BLUE}?${NC} $msg ($disp_default): ")" input
+    read -pr "$(echo -e "${BLUE}?${NC} $msg ($disp_default): ")" input
     input=$(echo "$input" | tr '[:upper:]' '[:lower:]') # Conversion minuscule compatible Bash 3 (macOS)
 
     if [ -z "$input" ]; then
-      eval $var="$default"
+      eval "$var"="$default"
     elif [[ "$input" == "y" || "$input" == "yes" || "$input" == "true" || "$input" == "o" || "$input" == "oui" ]]; then
-      eval $var="true"
+      eval "$var"="true"
     else
-      eval $var="false"
+      eval "$var"="false"
     fi
   }
 

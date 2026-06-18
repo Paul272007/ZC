@@ -51,7 +51,6 @@ public:
   void generate_build_config() const;
 
 private:
-  const std::filesystem::path src_dir_;
   const std::filesystem::path makefile_;
   Registry &reg_;
   Interface &if_;

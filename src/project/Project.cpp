@@ -23,7 +23,7 @@ namespace zc
  */
 
 Project::Project(const std::filesystem::path &root)
-    : root_dir(root), build_dir(root / BUILD_DIR), src_dir_(root / SRC_DIR), makefile_(build_dir / MAKEFILE),
+    : root_dir(root), build_dir(root / BUILD_DIR), makefile_(build_dir / MAKEFILE),
       reg_(Registry::get()), if_(Interface::get())
 {
 }
@@ -240,15 +240,15 @@ void Project::generate_build_config() const
 
 void Project::generate_Makefile() const
 {
+  if (pconf.type == HEADER)
+    return;
+
   GConf &gc(GConf::get());
   fs::create_directories(build_dir);
   std::vector<std::string> cxx_files;
   std::vector<std::string> c_files;
 
   get_sources(c_files, cxx_files);
-
-  if (pconf.type == HEADER)
-    return;
 
   std::ostringstream mk;
   const fs::path cache_dir = get_zc_root() / CACHE_DIR;
@@ -267,7 +267,9 @@ void Project::generate_Makefile() const
     mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
   for (const auto &dep : pconf.dependencies)
-    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
+  for (const auto &inc : pconf.include_dirs)
+    if (fs::exists(root_dir / inc)) mk << " -I../" << inc;
   mk << "\n";
 
   mk << "CXXFLAGS = -std=" << gc.cxx_std;
@@ -275,7 +277,9 @@ void Project::generate_Makefile() const
     mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
   for (const auto &dep : pconf.dependencies)
-    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
+  for (const auto &inc : pconf.include_dirs)
+    if (fs::exists(root_dir / inc)) mk << " -I../" << inc;
   mk << "\n";
 
   mk << "COBJS = ";
@@ -352,18 +356,29 @@ void Project::generate_compile_commands() const
 
 void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::string> &cxx_files) const
 {
-  if (!fs::exists(src_dir_))
-    throw ZCException(ZCE_NO_SOURCE_FILES, "Source directory does not exist");
-
-  for (const auto &entry : fs::recursive_directory_iterator(src_dir_))
-    if (string ext = entry.path().extension(); entry.is_regular_file() && !ext.empty())
+  bool found_any_src = false;
+  for (const auto &src_dir : pconf.src_dirs)
+  {
+    fs::path full_src_dir = root_dir / src_dir;
+    if (!fs::exists(full_src_dir))
+      continue;
+      
+    found_any_src = true;
+    for (const auto &entry : fs::recursive_directory_iterator(full_src_dir))
     {
-      ext.erase(0, 1);
-      if (is_c(ext))
-        c_files.push_back(fs::relative(entry.path(), root_dir).string());
-      else if (is_cxx(ext))
-        cxx_files.push_back(fs::relative(entry.path(), root_dir).string());
+      if (string ext = entry.path().extension(); entry.is_regular_file() && !ext.empty())
+      {
+        ext.erase(0, 1);
+        if (is_c(ext))
+          c_files.push_back(fs::relative(entry.path(), root_dir).string());
+        else if (is_cxx(ext))
+          cxx_files.push_back(fs::relative(entry.path(), root_dir).string());
+      }
     }
+  }
+  
+  if (!found_any_src)
+    throw ZCException(ZCE_NO_SOURCE_FILES, "None of the source directories exist");
 }
 
 } // namespace zc
