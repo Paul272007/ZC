@@ -6,9 +6,12 @@
 
 #include "ZCException.h"
 #include "../helpers.h"
-#include "../ui/Interface.h"
+#include "../ui/ui_utils.h"
 
 ZC_DEV_CONFIG
+
+namespace zc
+{
 
 /**
  * ZCException implementation
@@ -49,3 +52,5 @@ std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception)
   stream << zc_exception.message_;
   return stream;
 }
+
+} // namespace zc

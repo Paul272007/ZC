@@ -4,13 +4,15 @@
  * @version 0.1
  */
 
-#ifndef _LANGUAGE_H
-#define _LANGUAGE_H
+#pragma once
 
 #include <nlohmann/json.hpp>
 #include <string>
 
 #include "helpers.h"
+
+namespace zc
+{
 
 enum Language
 {
@@ -27,7 +29,8 @@ inline bool is_c(const std::string &text)
 
 inline bool is_cxx(const std::string &text)
 {
-  if (const auto u_text = upper(text); u_text == "CXX" || u_text == "C++" || u_text == "CPP" || u_text == "CC")
+  if (const auto u_text = upper(text);
+      u_text == "CXX" || u_text == "C++" || u_text == "CPP" || u_text == "CC")
     return true;
   return false;
 }
@@ -70,4 +73,4 @@ inline void to_json(nlohmann::json &j, const Language &l)
   }
 }
 
-#endif //_LANGUAGE_H
+} // namespace zc

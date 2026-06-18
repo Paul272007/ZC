@@ -6,6 +6,9 @@
 
 #pragma once
 
+namespace zc
+{
+
 enum CompileMode
 {
   PREPROCESS,
@@ -13,3 +16,4 @@ enum CompileMode
   ASSEMBLE,
   FULL
 };
+} // namespace zc

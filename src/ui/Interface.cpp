@@ -11,8 +11,12 @@
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "Interface.h"
+#include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG
+
+namespace zc
+{
 
 /**
  * Interface implementation
@@ -114,6 +118,23 @@ bool Interface::ask(const std::string &question, const bool default_ans) const
   return true; // Security if the input stream is closed
 }
 
+string Interface::input(const string &question) const
+{
+  string line;
+  cout << question << "\n> " << std::flush;
+
+  if (!getline(cin, line))
+  {
+    if (cin.eof())
+      return "";
+
+    cin.clear();
+    return "";
+  }
+
+  return line;
+}
+
 string Interface::input(const string &question, const string &default_ans) const
 {
   string line;
@@ -174,3 +195,5 @@ void Interface::write_json(const nlohmann::json &json, const std::filesystem::pa
 Interface::Interface(const bool quiet) : quiet_(quiet)
 {
 }
+
+} // namespace zc

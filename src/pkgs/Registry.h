@@ -10,8 +10,12 @@
 #include <vector>
 
 #include "../config/Conf.h"
+#include "../ui/Table.h"
 #include "Network.h"
 #include "Pkg.h"
+
+namespace zc
+{
 
 class Project;
 
@@ -22,6 +26,8 @@ public:
    * Get the user registry, which index is stored in ~/.zc/registry.json
    */
   [[nodiscard]] static Registry &get();
+  Registry(const Registry &) = delete;
+  void operator=(const Registry &) = delete;
 
   /**
    * @param name
@@ -31,7 +37,7 @@ public:
   /**
    * Install a package from the server
    * If already installed, throw an error
-   * TODO : add latest as default version here and make version a Version
+   * TODO : add latest as default version here and make version a Version + use Target struct
    * @param name
    * @param version
    * @param index
@@ -72,11 +78,17 @@ public:
    * @param name
    * @param version
    */
-  bool is_installed(const std::string &name, const Version &version);
+  [[nodiscard]] bool is_installed(const std::string &name, const Version &version);
 
-  bool is_installed(const std::string &name);
+  [[nodiscard]] bool is_installed(const std::string &name);
 
-  std::vector<RegistryPkg> pkgs();
+  [[nodiscard]] std::vector<RegistryPkg> pkgs() const;
+
+  [[nodiscard]] Table pkgs_table() const;
+
+  [[nodiscard]] std::vector<std::string> remote_pkgs() const;
+
+  [[nodiscard]] Table remote_pkgs_table() const;
 
   ~Registry() override;
 
@@ -109,7 +121,7 @@ private:
 
   void index_add_pkg_version(const std::string &name, const Version &version);
 
-  std::vector<RegistryPkg>::iterator get_pkg_it(const std::string &name);
+  [[nodiscard]] std::vector<RegistryPkg>::iterator get_pkg_it(const std::string &name);
 
   /**
    * Remove pkg from index. A package with the same name must be found in the registry index.
@@ -123,6 +135,9 @@ private:
 
   void copy_libs(const Project &p) const;
 
+  /**
+   * @brief Remove tmp dir
+   */
   void clean() const;
 
   /**
@@ -138,6 +153,8 @@ private:
    */
   void verify_archive_hash(const std::filesystem::path &archive, const std::string &expected) const;
 
-  static std::string
+  [[nodiscard]] static std::string
   pkg_url(const std::string &name, const std::string &version, const nlohmann::json &index);
 };
+
+} // namespace zc

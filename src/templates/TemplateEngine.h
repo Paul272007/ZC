@@ -4,11 +4,15 @@
  * @version 0.1
  */
 
-#ifndef _TEMPLATEENGINE_H
-#define _TEMPLATEENGINE_H
+#pragma once
 
 #include <filesystem>
 #include <vector>
+
+#include "ui/Table.h"
+
+namespace zc
+{
 
 class TemplateEngine
 {
@@ -19,11 +23,16 @@ public:
 
   std::vector<std::filesystem::path> p_templates() const;
 
+  Table templates_table() const;
+
+  Table p_templates_table() const;
+
   /**
    * @param root
    * @param p_template
    */
-  void init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;
+  void
+  init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;
 
 private:
   const std::filesystem::path templates_dir_;
@@ -32,4 +41,4 @@ private:
   explicit TemplateEngine(const std::filesystem::path &root);
 };
 
-#endif //_TEMPLATEENGINE_H
+} // namespace zc

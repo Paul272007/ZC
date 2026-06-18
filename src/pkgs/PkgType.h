@@ -9,7 +9,10 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-#include "helpers.h"
+#include "../helpers.h"
+
+namespace zc
+{
 
 enum PkgType
 {
@@ -60,3 +63,5 @@ inline void to_json(nlohmann::json &j, const PkgType &p)
 {
   j = to_string(p);
 }
+
+} // namespace zc

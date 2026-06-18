@@ -4,11 +4,13 @@
  * @version 0.1
  */
 
-#ifndef _VERSION_H
-#define _VERSION_H
+#pragma once
 
 #include <nlohmann/json.hpp>
 #include <string>
+
+namespace zc
+{
 
 class Version
 {
@@ -45,4 +47,4 @@ inline void to_json(nlohmann::json &j, const Version &v)
   j = v.string();
 }
 
-#endif //_VERSION_H
+} // namespace zc

@@ -4,14 +4,16 @@
  * @version 0.1
  */
 
-#ifndef _ZCEXCEPTION_H
-#define _ZCEXCEPTION_H
+#pragma once
 
 #include <exception>
 #include <ostream>
 #include <string>
 
 #include "ExitCode.h"
+
+namespace zc
+{
 
 class ZCException : public std::exception
 {
@@ -33,4 +35,4 @@ private:
   const ExitCode code_;
 };
 
-#endif //_ZCEXCEPTION_H
+} // namespace zc

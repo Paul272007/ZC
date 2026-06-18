@@ -4,10 +4,12 @@
  * @version 0.1
  */
 
-#ifndef _DEPENDENCY_H
-#define _DEPENDENCY_H
+#pragma once
 
 #include "../Version.h"
+
+namespace zc
+{
 
 struct Dependency
 {
@@ -16,4 +18,4 @@ struct Dependency
   Version version = {0, 0, 0};
 };
 
-#endif //_DEPENDENCY_H
+} // namespace zc

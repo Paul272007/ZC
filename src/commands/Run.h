@@ -4,8 +4,7 @@
  * @version 0.1
  */
 
-#ifndef _RUN_H
-#define _RUN_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -13,10 +12,13 @@
 #include "../CompileMode.h"
 #include "Command.h"
 
+namespace zc
+{
+
 class Run : public Command
 {
 public:
-  Run();
+  Run(bool force);
 
   int operator()() override;
 
@@ -30,4 +32,4 @@ private:
   std::vector<std::string> get_dependencies();
 };
 
-#endif //_RUN_H
+} // namespace zc

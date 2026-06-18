@@ -4,11 +4,13 @@
  * @version 0.1
  */
 
-#ifndef _COMMAND_H
-#define _COMMAND_H
+#pragma once
 
 #include "../config/GConf.h"
 #include "../ui/Interface.h"
+
+namespace zc
+{
 
 class Command
 {
@@ -18,7 +20,7 @@ public:
   virtual int operator()() = 0;
 
 protected:
-  const bool force_ = false;
+  const bool force_;
   const Interface &if_ = Interface::get();
   const GConf &gconf_ = GConf::get();
 
@@ -30,4 +32,4 @@ protected:
   }
 };
 
-#endif //_COMMAND_H
+} // namespace zc

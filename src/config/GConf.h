@@ -4,13 +4,15 @@
  * @version 0.1
  */
 
-#ifndef _GCONF_H
-#define _GCONF_H
+#pragma once
 
 #include <string>
 #include <vector>
 
 #include "Conf.h"
+
+namespace zc
+{
 
 class GConf : public Conf
 {
@@ -47,4 +49,4 @@ private:
   GConf();
 };
 
-#endif //_GCONF_H
+} // namespace zc

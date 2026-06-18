@@ -12,6 +12,9 @@
 
 ZC_DEV_CONFIG
 
+namespace zc
+{
+
 /**
  * Version implementation
  */
@@ -50,7 +53,8 @@ Version::Version(const std::string &text)
  * @param minor
  * @param patch
  */
-Version::Version(const int major, const int minor, const int patch) : major_(major), minor_(minor), patch_(patch)
+Version::Version(const int major, const int minor, const int patch)
+    : major_(major), minor_(minor), patch_(patch)
 {
 }
 
@@ -58,3 +62,4 @@ std::string Version::string() const
 {
   return std::format("{}.{}.{}", major_, minor_, patch_);
 }
+} // namespace zc

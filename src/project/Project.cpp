@@ -4,35 +4,36 @@
  * @version 0.1
  */
 
-#include <nlohmann/json.hpp>
-#include <fstream>
 #include <chrono>
 #include <format>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
-#include "Project.h"
 #include "../config/GConf.h"
 #include "../helpers.h"
+#include "Project.h"
 
 ZC_DEV_CONFIG_JSON
+
+namespace zc
+{
 
 /**
  * Project implementation
  */
 
 Project::Project(const std::filesystem::path &root)
-    : root_dir(root), build_dir(root / BUILD_DIR), src_dir_(root / SRC_DIR), makefile_(build_dir / MAKEFILE), reg_(Registry::get()), if_(Interface::get())
+    : root_dir(root), build_dir(root / BUILD_DIR), src_dir_(root / SRC_DIR), makefile_(build_dir / MAKEFILE),
+      reg_(Registry::get()), if_(Interface::get())
 {
 }
 
-void Project::build(const bool release, const bool force) const
+void Project::build(const bool release) const
 {
-  if (!release && force && fs::exists(build_dir))
-    clean();
-
   if (release)
     install_dependencies();
 
-  if (force || !fs::exists(makefile_))
+  if (!fs::exists(makefile_))
     generate_Makefile();
 
   if_.info("Building " + pconf.name + "...");
@@ -262,19 +263,23 @@ void Project::generate_Makefile() const
   mk << "CXX = " << gc.cxx_compiler << "\n";
 
   mk << "CFLAGS = -std=" << gc.c_std;
-  if (pconf.type == LIB) mk << " -fPIC";
+  if (pconf.type == LIB)
+    mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
-  for (const auto &dep : pconf.dependencies) mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+  for (const auto &dep : pconf.dependencies)
+    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
   mk << "\n";
 
   mk << "CXXFLAGS = -std=" << gc.cxx_std;
-  if (pconf.type == LIB) mk << " -fPIC";
+  if (pconf.type == LIB)
+    mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
-  for (const auto &dep : pconf.dependencies) mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
+  for (const auto &dep : pconf.dependencies)
+    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR); // TODO : handle std libraries
   mk << "\n";
 
   mk << "COBJS = ";
-  for (const auto& file : c_files) mk << file << ".o ";
+  for (const auto &file : c_files) mk << file << ".o ";
   mk << "\n";
 
   mk << "CXXOBJS = ";
@@ -350,7 +355,7 @@ void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::st
   if (!fs::exists(src_dir_))
     throw ZCException(ZCE_NO_SOURCE_FILES, "Source directory does not exist");
 
-  for (const auto& entry : fs::recursive_directory_iterator(src_dir_))
+  for (const auto &entry : fs::recursive_directory_iterator(src_dir_))
     if (string ext = entry.path().extension(); entry.is_regular_file() && !ext.empty())
     {
       ext.erase(0, 1);
@@ -360,3 +365,5 @@ void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::st
         cxx_files.push_back(fs::relative(entry.path(), root_dir).string());
     }
 }
+
+} // namespace zc

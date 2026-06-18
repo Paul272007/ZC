@@ -6,14 +6,18 @@
 
 #include "Run.h"
 #include "../helpers.h"
+#include "commands/Command.h"
 
 ZC_DEV_CONFIG
+
+namespace zc
+{
 
 /**
  * Run implementation
  */
 
-Run::Run()
+Run::Run(const bool force) : Command(force)
 {
 }
 
@@ -48,3 +52,5 @@ vector<string> Run::get_dependencies()
 {
   return vector<string>();
 }
+
+} // namespace zc

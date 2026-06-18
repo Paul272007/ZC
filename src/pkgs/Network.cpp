@@ -7,13 +7,16 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
-#include "../helpers.h"
 #include "../excepts/ZCException.h"
+#include "../helpers.h"
 #include "Network.h"
 
 #include "../ui/Interface.h"
 
 ZC_DEV_CONFIG_JSON
+
+namespace zc
+{
 
 /**
  * Network implementation
@@ -93,7 +96,8 @@ std::string Network::get(const std::string &url, const std::string &payload, con
 
 const nlohmann::json &Network::get_index() const
 {
-  static const json json_index = [&] {
+  static const json json_index = [&]
+  {
     const auto &if_ = Interface::get();
     if_.info("Fetching registry index...");
     const fs::path tmp_dir = get_zc_root() / TMP_DIR;
@@ -102,7 +106,7 @@ const nlohmann::json &Network::get_index() const
     download(INDEX_URL, index);
     return if_.read_json(index);
   }();
-  
+
   return json_index;
 }
 
@@ -160,7 +164,9 @@ string Network::request(
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK)
-      throw ZCException(ZCE_NETWORK_ERROR, "Network error during " + method + " request: " + curl_easy_strerror(res));
+      throw ZCException(
+          ZCE_NETWORK_ERROR, "Network error during " + method + " request: " + curl_easy_strerror(res)
+      );
 
     if (http_code >= 400)
       throw ZCException(ZCE_NETWORK_ERROR, "API Error (" + std::to_string(http_code) + "): " + readBuffer);
@@ -168,3 +174,5 @@ string Network::request(
     return readBuffer;
   }
 }
+
+} // namespace zc

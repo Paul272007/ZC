@@ -12,10 +12,14 @@
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "../pkgs/Network.cpp"
+#include "../ui/ui_utils.h"
 #include "Conf.h"
 #include "GConf.h"
 
 ZC_DEV_CONFIG_JSON
+
+namespace zc
+{
 
 /**
  * GConf implementation
@@ -64,7 +68,7 @@ void GConf::login()
   if_.flush();
 
   const std::string token_payload = "client_id=" CLIENT_ID "&device_code=" + device_code +
-                              "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
+                                    "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
 
   while (true)
   {
@@ -176,3 +180,5 @@ GConf::GConf() : Conf(get_zc_root() / CONFIG_FILE)
   if (fs::exists(file_))
     GConf::load();
 }
+
+} // namespace zc

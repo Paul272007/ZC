@@ -4,8 +4,7 @@
  * @version 0.1
  */
 
-#ifndef _CONF_H
-#define _CONF_H
+#pragma once
 
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -13,6 +12,9 @@
 
 #include "../excepts/ZCException.h"
 #include "../ui/Interface.h"
+
+namespace zc
+{
 
 class Conf
 {
@@ -52,4 +54,4 @@ protected:
   virtual void write() = 0;
 };
 
-#endif //_CONF_H
+} // namespace zc

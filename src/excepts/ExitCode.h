@@ -1,11 +1,15 @@
+
+
 /**
  * Project ZC
  * @author Paul Maillard
  * @version 0.1
  */
 
-#ifndef _EXITCODE_H
-#define _EXITCODE_H
+#pragma once
+
+namespace zc
+{
 
 enum ExitCode
 {
@@ -34,7 +38,8 @@ enum ExitCode
   ZCE_GIT_ERROR,
   ZCE_ARCHIVE_ERROR,
   ZCE_AUTHENTICATION_ERROR,
-  ZCE_MISSING_TOKEN
+  ZCE_MISSING_TOKEN,
+  ZCE_ABORTED,
 };
 
-#endif //_EXITCODE_H
+} // namespace zc

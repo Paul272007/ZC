@@ -1,6 +1,12 @@
 #pragma once
 
 #include <filesystem>
+#include <initializer_list>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "excepts/ZCException.h"
 
 #define ZC_DEV_CONFIG                                                                                        \
   using namespace std;                                                                                       \
@@ -8,7 +14,18 @@
 
 #define ZC_DEV_CONFIG_JSON ZC_DEV_CONFIG using json = nlohmann::json;
 
+#if defined(_WIN32) || defined(_WIN64)
+#define SHARED_LIB_EXT ".lib"
+#elifdef __APPLE__
+#define SHARED_LIB_EXT ".dylib"
+#else
+#define SHARED_LIB_EXT ".so"
+#endif
+
 // clang-format off
+
+#define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache"}
+#define FORBIDDEN_CHARS    {'@', '#', ' ', '*', '!', '?', '{', '}', '[', ']', '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '^', '¨', '$'}
 
 // Global directories and files
 #define ZC_DIR             ".zc"
@@ -39,14 +56,52 @@
 #define TOKEN_URL          "https://github.com/login/oauth/access_token"
 #define INDEX_URL          "https://paul272007.github.io/ZC-Registry/index.json"
 
+namespace zc
+{
+
+struct Target {
+  const std::string name;
+  const std::string version;
+};
+
+using Targets = std::vector<Target>;
+
 // clang-format on
 
 std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
 const std::filesystem::path &get_zc_root();
 void create_zc_root();
+Targets parse_targets(const std::vector<std::string> &targets);
+
+template <typename EnumType>
+EnumType parse_mode(
+    std::initializer_list<std::pair<EnumType, bool>> flags, EnumType default_mode,
+    const std::string &error_msg = "Incompatible flags: multiple modes selected."
+)
+{
+  int count = 0;
+  EnumType result = default_mode;
+
+  for (const auto &pair : flags)
+  {
+    if (pair.second)
+    {
+      count++;
+      result = pair.first;
+    }
+  }
+
+  if (count > 1)
+    throw ZCException(ZCE_INCOMPATIBLE_FLAGS, error_msg);
+
+  return result;
+}
 
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
 std::string upper(const std::string &text);
+std::string escape_shell_arg(const std::string &arg);
+
+} // namespace zc

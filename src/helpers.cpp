@@ -4,18 +4,20 @@
  * @version 0.1
  */
 
-#include <filesystem>
 #include <archive.h>
 #include <archive_entry.h>
+#include <filesystem>
+#include <fstream>
 #include <openssl/evp.h>
-
-#include "helpers.h"
+#include <vector>
 
 #include "excepts/ZCException.h"
-
-#include <fstream>
+#include "helpers.h"
 
 ZC_DEV_CONFIG
+
+namespace zc
+{
 
 const fs::path &get_zc_root()
 {
@@ -66,7 +68,8 @@ void create_zc_root()
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest)
 {
   archive_entry *entry;
-  constexpr int flags = ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS;
+  constexpr int flags =
+      ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_ACL | ARCHIVE_EXTRACT_FFLAGS;
 
   struct archive *a = archive_read_new();
   archive_read_support_format_all(a);
@@ -156,3 +159,35 @@ std::string upper(const std::string &text)
   }
   return output;
 }
+
+string escape_shell_arg(const string &arg)
+{
+  string escaped = "'";
+  for (char c : arg)
+  {
+    if (c == '\'')
+      escaped += "'\\''";
+    else
+      escaped += c;
+  }
+  escaped += "'";
+  return escaped;
+}
+
+Targets parse_targets(const std::vector<std::string> &targets)
+{
+  Targets results;
+  for (const auto &target : targets)
+  {
+    string requested_version = "";
+    size_t at_pos = target.find('@');
+
+    if (at_pos != string::npos)
+      results.push_back({target.substr(0, at_pos), target.substr(at_pos + 1)});
+    else
+      results.push_back({target, ""});
+  }
+  return results;
+}
+
+} // namespace zc

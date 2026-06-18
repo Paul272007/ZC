@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- DEPENDENCIES ---
 
-# Find LLVM/Clang : we search for the header packages first
 find_package(LLVM REQUIRED)
 find_package(Clang REQUIRED)
 find_package(CURL REQUIRED)
@@ -15,35 +14,15 @@ find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-# include_directories(SYSTEM external)
-include_directories(${LLVM_INCLUDE_DIRS})
-include_directories(${Clang_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
-
-# Find specifically the library binary (libclang.so / .dylib)
-find_library(CLANG_LIB
-    NAMES clang libclang clang-18 clang-17 clang-16 clang-15
-    HINTS ${LLVM_LIBRARY_DIRS} ${Clang_LIBRARY_DIRS}
-)
-
-if(NOT CLANG_LIB)
-  message(FATAL_ERROR "Could not find libclang shared library.")
-endif()
-
 # --- BUILD ---
 
-# Option to build in debug mode (activated for dev mode)
 option(ENABLE_DEBUG "Activate debug mode" ON)
-
 if(ENABLE_DEBUG)
   add_compile_definitions(DEBUG_MODE)
 endif()
 
 # Create library
-add_library(zc_core STATIC
-        src/commands/Command.h
-        src/commands/Run.cpp
-        src/commands/Run.h
+add_library(zc-core STATIC
         src/config/Conf.h
         src/config/Dependency.h
         src/config/GConf.cpp
@@ -65,6 +44,9 @@ add_library(zc_core STATIC
         src/templates/TemplateEngine.h
         src/ui/Interface.cpp
         src/ui/Interface.h
+        src/ui/Table.cpp
+        src/ui/Table.h
+        src/ui/ui_utils.h
         src/CLI11.h
         src/CompileMode.h
         src/helpers.cpp
@@ -72,24 +54,53 @@ add_library(zc_core STATIC
         src/Language.h
         src/Version.cpp
         src/Version.h
+        src/commands/Add.cpp
+        src/commands/Add.h
+        src/commands/Build.cpp
+        src/commands/Build.h
+        src/commands/Clean.cpp
+        src/commands/Clean.h
+        src/commands/Command.h
+        src/commands/Create.cpp
+        src/commands/Create.h
+        src/commands/Init.cpp
+        src/commands/Init.h
+        src/commands/Install.cpp
+        src/commands/Install.h
+        src/commands/List.cpp
+        src/commands/List.h
+        src/commands/Login.cpp
+        src/commands/Login.h
+        src/commands/Logout.cpp
+        src/commands/Logout.h
+        src/commands/Publish.cpp
+        src/commands/Publish.h
+        src/commands/Remove.cpp
+        src/commands/Remove.h
+        src/commands/Run.cpp
+        src/commands/Run.h
+        src/commands/Uninstall.cpp
+        src/commands/Uninstall.h
+        src/commands/Update.cpp
+        src/commands/Update.h
 )
 
-target_include_directories(zc_core PRIVATE src)
-target_link_libraries(zc_core PRIVATE
-  ${CLANG_LIB}
-  nlohmann_json::nlohmann_json
-  CURL::libcurl
-  LibArchive::LibArchive
-  OpenSSL::Crypto
+target_include_directories(zc-core PRIVATE src)
+target_link_libraries(zc-core PRIVATE
+        libclang
+        nlohmann_json::nlohmann_json
+        CURL::libcurl
+        LibArchive::LibArchive
+        OpenSSL::Crypto
 )
 
 # Compile zc
 add_executable(zc src/zc.cpp)
-target_link_libraries(zc PRIVATE zc_core)
+target_link_libraries(zc PRIVATE zc-core)
 
 # Compile zcc
 add_executable(zcc src/zcc.cpp)
-target_link_libraries(zcc PRIVATE zc_core)
+target_link_libraries(zcc PRIVATE zc-core)
 
 # --- INSTALLATION RULES ---
 

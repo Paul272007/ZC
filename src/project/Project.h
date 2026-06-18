@@ -11,6 +11,9 @@
 #include "../config/PConf.h"
 #include "../pkgs/Registry.h"
 
+namespace zc
+{
+
 class Project
 {
 public:
@@ -19,7 +22,7 @@ public:
   const std::filesystem::path build_dir;
   PConf pconf;
 
-  explicit Project(const std::filesystem::path &root);
+  explicit Project(const std::filesystem::path &root = get_project_root());
 
   ~Project() = default;
 
@@ -27,7 +30,7 @@ public:
    * @param release
    * @param force
    */
-  void build(bool release = false, bool force = false) const;
+  void build(bool release = false) const;
 
   void clean() const;
 
@@ -63,3 +66,5 @@ private:
 
   void get_sources(std::vector<std::string> &c_files, std::vector<std::string> &cxx_files) const;
 };
+
+} // namespace zc

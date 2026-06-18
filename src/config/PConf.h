@@ -16,6 +16,9 @@
 #include "Conf.h"
 #include "Dependency.h"
 
+namespace zc
+{
+
 class PConf : public Conf
 {
 public:
@@ -48,3 +51,5 @@ protected:
 
   void write() override;
 };
+
+} // namespace zc

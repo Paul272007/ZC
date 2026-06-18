@@ -11,6 +11,9 @@
 
 ZC_DEV_CONFIG
 
+namespace zc
+{
+
 /**
  * TemplateEngine implementation
  */
@@ -36,7 +39,22 @@ std::vector<std::filesystem::path> TemplateEngine::templates() const
     throw ZCException(ZCE_INTERNAL_ERROR, e.what());
   }
   return file_list;
+}
 
+Table TemplateEngine::templates_table() const
+{
+  vector<vector<string>> str_t = {{"Template"}};
+  for (const auto &t_path : templates()) str_t.push_back({t_path.filename().string()});
+
+  return {false, true, str_t};
+}
+
+Table TemplateEngine::p_templates_table() const
+{
+  vector<vector<string>> str_t = {{"Project Template"}};
+  for (const auto &t_path : p_templates()) str_t.push_back({t_path.filename().string()});
+
+  return {false, true, str_t};
 }
 
 std::vector<std::filesystem::path> TemplateEngine::p_templates() const
@@ -56,7 +74,8 @@ std::vector<std::filesystem::path> TemplateEngine::p_templates() const
   return templates_list;
 }
 
-void TemplateEngine::init_with_p_template(const std::filesystem::path &root, const std::string &p_template, const bool force
+void TemplateEngine::init_with_p_template(
+    const std::filesystem::path &root, const std::string &p_template, const bool force
 ) const
 {
   const fs::path t_path = p_templates_dir_ / p_template;
@@ -73,7 +92,9 @@ void TemplateEngine::init_with_p_template(const std::filesystem::path &root, con
 
     fs::path dest_path = root / rel_path;
     if (fs::exists(dest_path) && !force)
-      if (!Interface::get().ask("The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"))
+      if (!Interface::get().ask(
+              "The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"
+          ))
         continue;
 
     // Copy stuff
@@ -98,6 +119,9 @@ void TemplateEngine::init_with_p_template(const std::filesystem::path &root, con
   }
 }
 
-TemplateEngine::TemplateEngine(const std::filesystem::path &root) : templates_dir_(root / TEMPLATES_DIR), p_templates_dir_(root / P_TEMPLATES_DIR)
+TemplateEngine::TemplateEngine(const std::filesystem::path &root)
+    : templates_dir_(root / TEMPLATES_DIR), p_templates_dir_(root / P_TEMPLATES_DIR)
 {
 }
+
+} // namespace zc

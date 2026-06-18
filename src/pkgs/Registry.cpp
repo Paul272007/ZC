@@ -6,11 +6,14 @@
 
 #include "Registry.h"
 #include "../config/PConf.h"
-#include "../project/Project.h"
 #include "../helpers.h"
+#include "../project/Project.h"
 #include "Network.h"
 
 ZC_DEV_CONFIG_JSON
+
+namespace zc
+{
 
 /**
  * Registry implementation
@@ -164,9 +167,37 @@ bool Registry::is_installed(const string &name)
   return ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; }) != pkgs_.end();
 }
 
-std::vector<RegistryPkg> Registry::pkgs()
+std::vector<RegistryPkg> Registry::pkgs() const
 {
   return pkgs_;
+}
+
+Table Registry::pkgs_table() const
+{
+  vector<vector<string>> str_pkgs{{"Package name", "Target", "Origin", "Latest version", "Type"}};
+
+  for (const auto &p : pkgs_)
+    str_pkgs.push_back({p.name, p.target, p.origin, p.versions.back().string(), to_string(p.type)});
+
+  return {false, true, str_pkgs};
+}
+
+std::vector<std::string> Registry::remote_pkgs() const
+{
+  const Network &n(Network::get());
+  json index = n.get_index();
+  vector<std::string> v;
+  if (index.contains("packages") && index["packages"].is_object())
+    for (auto it = index["packages"].begin(); it != index["packages"].end(); ++it) v.push_back(it.key());
+  clean();
+  return v;
+}
+
+Table Registry::remote_pkgs_table() const
+{
+  vector<vector<string>> str_pkgs{{"Package name"}};
+  for (const auto &p : remote_pkgs()) str_pkgs.push_back({p});
+  return {false, true, str_pkgs};
 }
 
 Registry::~Registry()
@@ -357,3 +388,5 @@ std::string Registry::pkg_url(const string &name, const string &version, const n
 
   return index["packages"][name]["versions"][version_to_install].value("url", "");
 }
+
+} // namespace zc

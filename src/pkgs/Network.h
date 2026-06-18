@@ -4,15 +4,19 @@
  * @version 0.1
  */
 
-#ifndef _NETWORK_H
-#define _NETWORK_H
+#pragma once
 
+#include <filesystem>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
+
+namespace zc
+{
 
 class Network
 {
 public:
-  static Network &get();
+  [[nodiscard]] static Network &get();
   Network(const Network &) = delete;
   void operator=(const Network &) = delete;
 
@@ -58,4 +62,4 @@ private:
   );
 };
 
-#endif //_NETWORK_H
+} // namespace zc

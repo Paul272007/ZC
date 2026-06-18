@@ -4,11 +4,16 @@
  * @version 0.1
  */
 
-#include "PConf.h"
+#include <sys/stat.h>
+
 #include "../helpers.h"
 #include "Conf.h"
+#include "PConf.h"
 
 ZC_DEV_CONFIG_JSON
+
+namespace zc
+{
 
 /**
  * PConf implementation
@@ -30,7 +35,8 @@ void PConf::add_dependency(const Dependency &d)
 
 void PConf::remove_dependency(const std::string &dep_name)
 {
-  const auto it = ranges::find_if(dependencies, [dep_name](const Dependency &d){ return d.name == dep_name; });
+  const auto it =
+      ranges::find_if(dependencies, [dep_name](const Dependency &d) { return d.name == dep_name; });
 
   if (it == dependencies.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + dep_name + " was not found.");
@@ -46,12 +52,14 @@ PConf::PConf(const std::filesystem::path &file) : Conf(file)
 {
   if (fs::exists(file_))
     PConf::load();
+  else // this means no configuration exists so it needs to be written
+    modified_ = true;
 }
 
 void PConf::load()
 {
   json root = if_.read_json(file_);
-  get_key(root, "name", name);
+  get_key(root, "name", name); // TODO : verify the name of the package here
   get_key(root, "author", author);
   get_key(root, "target", target);
   get_key(root, "c_std", c_std);
@@ -105,4 +113,7 @@ void PConf::write()
   root["dependencies"] = deps_json;
 
   if_.write_json(root, file_);
+  chmod(file_.c_str(), S_IRUSR | S_IWUSR); // other users are not allowed to see the authentication token
 }
+
+} // namespace zc
