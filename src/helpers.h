@@ -82,6 +82,7 @@ std::string base64_encode(const std::string &in);
 
 std::string upper(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);
+std::string exec_command(const std::string &cmd);
 
 template <typename EnumType>
 EnumType parse_mode(

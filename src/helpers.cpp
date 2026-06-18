@@ -161,9 +161,9 @@ std::string upper(const std::string &text)
   return output;
 }
 
-string escape_shell_arg(const string &arg)
+std::string escape_shell_arg(const std::string &arg)
 {
-  string escaped = "'";
+  std::string escaped;
   for (char c : arg)
   {
     if (c == '\'')
@@ -171,8 +171,19 @@ string escape_shell_arg(const string &arg)
     else
       escaped += c;
   }
-  escaped += "'";
-  return escaped;
+  return "'" + escaped + "'";
+}
+
+std::string exec_command(const std::string &cmd)
+{
+  std::string result;
+  FILE *pipe = popen(cmd.c_str(), "r");
+  if (!pipe)
+    throw ZCException(ZCE_RUNTIME_ERROR, "popen() failed for command: " + cmd);
+  char buffer[128];
+  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) result += buffer;
+  pclose(pipe);
+  return result;
 }
 
 Targets parse_targets(const std::vector<std::string> &targets)

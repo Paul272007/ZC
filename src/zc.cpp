@@ -223,5 +223,4 @@ int main(const int argc, char *argv[])
     cerr << RED << "Unexpected error: " << RESET << e.what() << endl;
     return -1;
   }
-  return 0;
 }

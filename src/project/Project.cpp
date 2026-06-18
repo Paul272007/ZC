@@ -23,8 +23,8 @@ namespace zc
  */
 
 Project::Project(const std::filesystem::path &root)
-    : root_dir(root), build_dir(root / BUILD_DIR), makefile_(build_dir / MAKEFILE),
-      reg_(Registry::get()), if_(Interface::get())
+    : root_dir(root), build_dir(root / BUILD_DIR), makefile_(build_dir / MAKEFILE), reg_(Registry::get()),
+      if_(Interface::get())
 {
 }
 
@@ -36,7 +36,25 @@ void Project::build(const bool release) const
   if (!fs::exists(makefile_))
     generate_Makefile();
 
-  if_.info("Building " + pconf.name + "...");
+  const std::string dry_cmd = "make --dry-run -C " + build_dir.string();
+  std::string dry_out = exec_command(dry_cmd);
+
+  int compile_count = 0;
+  std::istringstream iss(dry_out);
+  std::string line;
+  while (std::getline(iss, line))
+  {
+    if (line.find("echo \"[C] ") != std::string::npos || line.find("echo \"[CXX] ") != std::string::npos)
+      compile_count++;
+  }
+
+  if (compile_count == 0)
+  {
+    if_.info("Everything is up to date, nothing to compile.");
+    return;
+  }
+
+  if_.info("Building " + pconf.name + " (" + std::to_string(compile_count) + " files to compile)...");
 
   const std::string make_cmd = "make -C " + build_dir.string();
 
@@ -262,24 +280,28 @@ void Project::generate_Makefile() const
   mk << "CC = " << gc.c_compiler << "\n";
   mk << "CXX = " << gc.cxx_compiler << "\n";
 
-  mk << "CFLAGS = -std=" << gc.c_std;
+  mk << "CFLAGS = -std=" << gc.c_std << " -MMD -MP";
   if (pconf.type == LIB)
     mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
   for (const auto &dep : pconf.dependencies)
-    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
+    mk << " -I"
+       << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
   for (const auto &inc : pconf.include_dirs)
-    if (fs::exists(root_dir / inc)) mk << " -I../" << inc;
+    if (fs::exists(root_dir / inc))
+      mk << " -I../" << inc;
   mk << "\n";
 
-  mk << "CXXFLAGS = -std=" << gc.cxx_std;
+  mk << "CXXFLAGS = -std=" << gc.cxx_std << " -MMD -MP";
   if (pconf.type == LIB)
     mk << " -fPIC";
   for (const auto &flag : pconf.flags) mk << " " << flag;
   for (const auto &dep : pconf.dependencies)
-    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
+    mk << " -I"
+       << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string(); // TODO : handle std libraries
   for (const auto &inc : pconf.include_dirs)
-    if (fs::exists(root_dir / inc)) mk << " -I../" << inc;
+    if (fs::exists(root_dir / inc))
+      mk << " -I../" << inc;
   mk << "\n";
 
   mk << "COBJS = ";
@@ -314,6 +336,9 @@ void Project::generate_Makefile() const
   mk << "\t@mkdir -p $(dir $@)\n";
   mk << "\t@echo \"[CXX]  $<\"\n";
   mk << "\t@$(CXX) $(CXXFLAGS) -c $< -o $@\n\n";
+
+  mk << "-include $(COBJS:.o=.d)\n";
+  mk << "-include $(CXXOBJS:.o=.d)\n";
 
   std::ofstream out(makefile_);
   out << mk.str();
@@ -362,7 +387,7 @@ void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::st
     fs::path full_src_dir = root_dir / src_dir;
     if (!fs::exists(full_src_dir))
       continue;
-      
+
     found_any_src = true;
     for (const auto &entry : fs::recursive_directory_iterator(full_src_dir))
     {
@@ -376,7 +401,7 @@ void Project::get_sources(std::vector<std::string> &c_files, std::vector<std::st
       }
     }
   }
-  
+
   if (!found_any_src)
     throw ZCException(ZCE_NO_SOURCE_FILES, "None of the source directories exist");
 }
