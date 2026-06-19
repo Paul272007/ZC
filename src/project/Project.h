@@ -13,6 +13,7 @@
 #include "../config/PConf.h"
 #include "../pkgs/Registry.h"
 #include "Language.h"
+#include "config/GConf.h"
 #include "ui/Interface.h"
 
 namespace zc
@@ -63,6 +64,7 @@ private:
   Sources sources_;
   Registry &reg_ = Registry::get();
   Interface &if_ = Interface::get();
+  GConf &gc_ = GConf::get();
 
   /**
    * @brief Generate the Makefile

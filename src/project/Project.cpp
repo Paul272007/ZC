@@ -138,15 +138,14 @@ void Project::publish()
   if (pconf.name.empty())
     throw ZCException(ZCE_MISSING_PROPERTY, "Package name is missing in zc.json");
 
-  GConf &gc(GConf::get());
-  if (gc.token.empty())
+  if (gc_.token.empty())
     throw ZCException(
         ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first."
     );
 
   if_.info("Verifying GitHub identity...");
   Network &net(Network::get());
-  string user_info_raw = net.get("https://api.github.com/user", "", gc.token); // empty payload
+  string user_info_raw = net.get("https://api.github.com/user", "", gc_.token); // empty payload
   auto user_info = nlohmann::json::parse(user_info_raw);
   string github_login = user_info["login"];
 
@@ -176,7 +175,7 @@ void Project::publish()
   try
   {
     if_.info("Checking if release '" + tag + "' exists on GitHub...");
-    net.get(release_api_url, "", gc.token);
+    net.get(release_api_url, "", gc_.token);
     if_.success("Release " + tag + " found!");
   }
   catch (const ZCException &)
@@ -197,7 +196,7 @@ void Project::publish()
 
     try
     {
-      net.post(create_release_url, release_payload.dump(), gc.token);
+      net.post(create_release_url, release_payload.dump(), gc_.token);
       if_.success("Release " + tag + " created successfully!");
     }
     catch (const ZCException &) // TODO : handle different error types directly in Network.cpp
@@ -239,14 +238,14 @@ void Project::publish()
     try
     {
       if_.debug("Verifying package ownership in registry...");
-      string dir_content_raw = net.get(package_dir_url, "", gc.token);
+      string dir_content_raw = net.get(package_dir_url, "", gc_.token);
 
       if (auto dir_content = nlohmann::json::parse(dir_content_raw);
           dir_content.is_array() && !dir_content.empty())
       {
         // Get the first file found to check the original owner
         string first_version_url = dir_content[0]["download_url"];
-        string first_version_raw = net.get(first_version_url, "", gc.token);
+        string first_version_raw = net.get(first_version_url, "", gc_.token);
 
         if (auto first_version_json = nlohmann::json::parse(first_version_raw);
             first_version_json.contains("owner") && first_version_json["owner"] != pconf.author)
@@ -267,7 +266,7 @@ void Project::publish()
     }
 
     // Upload the recipe
-    net.put(api_url, payload.dump(), gc.token);
+    net.put(api_url, payload.dump(), gc_.token);
     if_.success("Your package has been successfully published to the registry!");
   }
   catch (const ZCException &e)
@@ -326,7 +325,6 @@ int Project::generate_Makefile(const bool release)
   if (pconf.type == HEADER)
     return 0;
 
-  GConf &gc(GConf::get());
   fs::create_directories(build_dir);
 
   const int to_compile = get_sources(); // also checks if include dirs exist
@@ -360,31 +358,31 @@ int Project::generate_Makefile(const bool release)
 
 void Project::Makefile_bin(std::ostringstream &mk) const
 {
+  mk << "TARGET := " << BIN_NAME << "\n\n";
   mk << "all: $(TARGET)\n\n";
+
   mk << "$(TARGET):";
   for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
-  mk << "\t@echo \"ZC_LINK $@\"\n";
-  mk << "\t@$(CXX) $(CXXFLAGS) -o $@ $^\n\n";
+  mk << "\t@echo \"ZC_BIN|$@\"\n";
+  mk << "\t@" << get_linker() << " $(LIB_DIRS) $(LIBS) -o $@ $^\n\n";
 }
 
 void Project::Makefile_lib(std::ostringstream &mk) const
 {
-  mk << "$(TARGET): $(OBJS)\n";
-  mk << "\t@echo \"[LINK] $@\"";
-  mk << "\t$()\n";
-
-  mk << "TARGET_STATIC = " << STATIC_LIB_NAME << "\n"; // TODO : handle other operating systems
-  mk << "TARGET_SHARED = " << SHARED_LIB_NAME << "\n\n";
+  mk << "TARGET_STATIC := " << STATIC_LIB_NAME << "\n";
+  mk << "TARGET_SHARED := " << SHARED_LIB_NAME << "\n\n";
   mk << "all: $(TARGET_STATIC) $(TARGET_SHARED)\n\n";
 
-  mk << "$(TARGET_STATIC): $(COBJS) $(CXXOBJS)\n";
-  mk << "\t@echo \"[AR]   Archiving static library $@\"\n";
-  mk << "\t@ar rcs $@ $^\n\n";
+  mk << "$(TARGET_STATIC):";
+  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  mk << "\t@echo \"ZC_STATIC|$@\"\n";
+  mk << "\t@" << gc_.archive << " $@ $^\n\n";
 
-  mk << "$(TARGET_SHARED): $(COBJS) $(CXXOBJS)\n";
-  mk << "\t@echo \"[Link] Linking shared library $@\"\n";
-  mk << "\t@$(CXX) -shared -o $@ $^\n\n";
+  mk << "$(TARGET_SHARED):";
+  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  mk << "\t@echo \"ZC_SHARED|$@\"\n";
+  mk << "\t@" << get_linker() << " $(LIB_DIRS) $(LIBS) -shared -o $@ $^\n\n";
 }
 
 void Project::Makefile_compose(std::ostringstream &mk) const
@@ -474,10 +472,6 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "LIBS :=";
   for (const auto &dep : pconf.dependencies) mk << " -l" << reg_.get_pkg(dep.name).target;
   mk << "\n";
-
-  // Target
-  mk << "TARGET := " << pconf.target;
-  mk << "\n";
 }
 
 void Project::Makefile_rules(std::ostringstream &mk) const
@@ -540,7 +534,10 @@ int Project::get_sources()
 
 std::string Project::get_linker() const
 {
-  return "g++"; // TODO : implement
+  if (sources_.find(CXX) != sources_.end())
+    return pconf.get_lang_conf(CXX).compiler;
+  else
+    return pconf.get_lang_conf(C).compiler;
 }
 
 } // namespace zc

@@ -40,6 +40,8 @@ public:
 
   void remove_dependency(const std::string &dep_name);
 
+  LanguageConf get_lang_conf(Language l) const;
+
   /**
    * @param file
    */

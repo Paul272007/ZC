@@ -132,4 +132,12 @@ void PConf::write()
   if_.write_json(root, file_);
 }
 
+LanguageConf PConf::get_lang_conf(Language l) const
+{
+  const auto it = std::find_if(
+      languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
+  );
+  return *it;
+}
+
 } // namespace zc

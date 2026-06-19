@@ -18,22 +18,25 @@
 
 // clang-format off
 #if defined(_WIN32) || defined(_WIN64)
-#define STATIC_LIB_NAME (pconf.name + ".a")
-#define SHARED_LIB_NAME (pconf.name + ".lib")
+#define BIN_NAME        (pconf.target + ".exe")
+#define STATIC_LIB_NAME (pconf.target + ".a")
+#define SHARED_LIB_NAME (pconf.target + ".lib")
 #define RM_COMMAND      "del"
 #define MKDIR_COMMAND   "mkdir"
 #define USER_HOME_ENV   "USERPROFILE"
 #define HIDE_OUTPUT     " > NUL 2>&1" // Powershell : " *> $null"
 #elifdef __APPLE__
-#define STATIC_LIB_NAME ("lib" + pconf.name + ".a")
-#define SHARED_LIB_NAME ("lib" + pconf.name + ".dylib")
+#define BIN_NAME        pconf.target
+#define STATIC_LIB_NAME ("lib" + pconf.target + ".a")
+#define SHARED_LIB_NAME ("lib" + pconf.target + ".dylib")
 #define RM_COMMAND      "rm"
 #define MKDIR_COMMAND   "mkdir -p"
 #define USER_HOME_ENV   "HOME"
 #define HIDE_OUTPUT     " &>/dev/null"
 #else
-#define STATIC_LIB_NAME ("lib" + pconf.name + ".a")
-#define SHARED_LIB_NAME ("lib" + pconf.name + ".so")
+#define BIN_NAME        pconf.target
+#define STATIC_LIB_NAME ("lib" + pconf.target + ".a")
+#define SHARED_LIB_NAME ("lib" + pconf.target + ".so")
 #define RM_COMMAND      "rm"
 #define MKDIR_COMMAND   "mkdir -p"
 #define USER_HOME_ENV   "HOME"
