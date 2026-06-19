@@ -59,6 +59,7 @@ int main(const int argc, char *argv[])
   bool no_flags         = false;
   // Build
   bool clean_before     = false;
+  bool debug            = false;
   bool release          = false;
   // Init
   bool git              = false;
@@ -153,9 +154,10 @@ int main(const int argc, char *argv[])
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_before, "Clean before building");
-  build->add_flag("--release,-r", release, "Build in release mode instead of debug mode");
+  build->add_flag("--release,-r", release, "Build in release mode");
+  build->add_flag("--debug,-d", debug, "Build in debug mode");
 
-  build->callback([&] { command = make_unique<Build>(force, p_root, clean_before, release); });
+  build->callback([&] { command = make_unique<Build>(force, p_root, clean_before, release, debug); });
 
   // Add
 

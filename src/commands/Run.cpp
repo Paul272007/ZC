@@ -19,16 +19,6 @@
 
 ZC_DEV_CONFIG
 
-namespace
-{
-vector<fs::path> str_to_path(const vector<string> &vec)
-{
-  vector<fs::path> v;
-  for (const auto &f : vec) v.emplace_back(f);
-  return v;
-}
-} // namespace
-
 namespace zc
 {
 

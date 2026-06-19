@@ -14,7 +14,7 @@
 #include "../pkgs/PkgType.h"
 #include "Conf.h"
 #include "Dependency.h"
-#include "config/LanguageConf.h"
+#include "LanguageConf.h"
 
 namespace zc
 {

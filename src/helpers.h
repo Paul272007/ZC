@@ -66,6 +66,7 @@
 
 #define ZC_FILE            "zc.json"
 #define MAKEFILE           "Makefile"
+#define BUILD_MODE_FILE    ".zc_build_mode"
 
 // Distant server files and useful things
 #define INDEX_FILE         "index.json"
@@ -102,6 +103,7 @@ std::string upper(const std::string &text);
 std::string lower(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);
 std::string exec_command(const std::string &cmd);
+std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
 
 template <typename EnumType>
 EnumType parse_mode(

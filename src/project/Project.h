@@ -10,16 +10,48 @@
 #include <string>
 #include <vector>
 
+#include "../Language.h"
 #include "../config/PConf.h"
 #include "../pkgs/Registry.h"
-#include "Language.h"
 #include "config/GConf.h"
+#include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
+#include "helpers.h"
 #include "ui/Interface.h"
 
 namespace zc
 {
 
 using Sources = std::map<Language, std::vector<std::string>>;
+
+enum class BuildMode
+{
+  release,
+  debug
+};
+
+inline std::string build_mode_to_str(BuildMode mode)
+{
+  switch (mode)
+  {
+  case BuildMode::release:
+    return "release";
+  case BuildMode::debug:
+    return "debug";
+  default:
+    return "";
+  }
+}
+
+inline BuildMode build_mode_from_str(const std::string &str)
+{
+  const auto upper_str = upper(str);
+  if (upper_str == "RELEASE")
+    return BuildMode::release;
+  if (upper_str == "DEBUG")
+    return BuildMode::debug;
+  throw ZCException(ZCE_CONTENT_ERROR, "Invalid build mode declaration.");
+}
 
 class Project
 {
@@ -34,10 +66,10 @@ public:
   ~Project() = default;
 
   /**
-   * @param release
+   * @param current_mode
    * @param force
    */
-  void build(bool release = false);
+  void build(BuildMode current_mode = BuildMode::debug);
 
   void clean() const;
 

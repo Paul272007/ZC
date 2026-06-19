@@ -233,4 +233,11 @@ void check_name(const std::string &name)
   }
 }
 
+vector<fs::path> str_to_path(const vector<string> &vec)
+{
+  vector<fs::path> v;
+  for (const auto &f : vec) v.emplace_back(f);
+  return v;
+}
+
 } // namespace zc

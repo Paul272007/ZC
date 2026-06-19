@@ -37,23 +37,46 @@ Project::Project(const std::filesystem::path &root)
 {
 }
 
-void Project::build(const bool release)
+void Project::build(BuildMode current_mode)
 {
   if (pconf.type == HEADER)
     return;
 
-  // if_.info("Building " + pconf.name + "...");
+  const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
+  if (fs::exists(build_mode_file))
+  {
+    string previous_mode_str;
+    ifstream input(build_mode_file);
+    if (!input.is_open())
+      throw ZCException(ZCE_READING_ERROR, "The file couldn't be read: " + build_mode_file.string());
+    input >> previous_mode_str;
+
+    const BuildMode previous_mode = build_mode_from_str(previous_mode_str);
+    if (current_mode != previous_mode)
+    {
+      if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
+      clean();
+    }
+  }
+
+  fs::create_directories(build_dir);
+
+  ofstream output(build_mode_file);
+  if (!output.is_open())
+    throw ZCException(ZCE_WRITING_ERROR, "The file couldn't be written: " + build_mode_file.string());
+  output << build_mode_to_str(current_mode);
+
   const string make_cmd = "make --no-print-directory -C " + build_dir.string();
   int compiled = 0;
 
   to_compile_ = get_sources();
 
-  if (release)
+  if (current_mode == BuildMode::release)
     install_dependencies();
   else
     generate_compile_commands();
 
-  generate_Makefile(release);
+  generate_Makefile(current_mode == BuildMode::release);
 
   to_compile_ = 0;
   const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
@@ -310,12 +333,14 @@ void Project::add_dependency(const string &name)
   const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
 
   pconf.add_dependency(d);
+  fs::create_directories(build_dir);
   generate_compile_commands(); // for the LSPs
 }
 
 void Project::remove_dependency(const string &name)
 {
   pconf.remove_dependency(name);
+  fs::create_directories(build_dir);
   generate_compile_commands(); // for the LSPs
 }
 
@@ -339,14 +364,13 @@ void Project::generate_build_config()
 {
   if (pconf.type == HEADER)
     return;
+  fs::create_directories(build_dir);
   generate_Makefile();
   generate_compile_commands();
 }
 
 void Project::generate_Makefile(const bool release)
 {
-  fs::create_directories(build_dir);
-
   const int to_compile = get_sources(); // also checks if include dirs exist
 
   std::ostringstream mk;
@@ -413,8 +437,6 @@ void Project::Makefile_compose(std::ostringstream &mk) const
 
 void Project::generate_compile_commands() const
 {
-  fs::create_directories(build_dir);
-
   nlohmann::json compile_commands = nlohmann::json::array();
   const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
 

@@ -9,6 +9,8 @@
 #include "../helpers.h"
 #include "../project/Project.h"
 #include "Network.h"
+#include "pkgs/PkgType.h"
+#include <filesystem>
 
 ZC_DEV_CONFIG_JSON
 
@@ -52,43 +54,52 @@ void Registry::install_from_server(
   const fs::path project_root = download_and_extract(name, version, index);
   Project p(project_root);
 
-  if_.info("Building package...");
-  p.build(true);
-
-  if_.info("Indexing package...");
-  index_add_pkg(
-      RegistryPkg{
-          .name = p.pconf.name,
-          .target = p.pconf.target,
-          .origin = "main",
-          .type = p.pconf.type,
-          .versions = {p.pconf.version}
-      }
-  );
+  finish_install(p, "main");
 }
 
 void Registry::install_from_path(const std::filesystem::path &path, const bool force)
 {
   Project p(path);
-  if (!force && is_installed(p.pconf.name, p.pconf.version))
+  if (!force && is_installed(p.pconf.name))
   {
     if_.info("Skipped package " + p.pconf.name + ": already installed.");
     return;
   }
+  finish_install(p, "local");
+}
 
+void Registry::finish_install(Project &p, const std::string &origin)
+{
   if_.info("Building package...");
-  p.build(true);
+  p.build(BuildMode::release);
 
   if_.info("Indexing package...");
   index_add_pkg(
       RegistryPkg{
           .name = p.pconf.name,
           .target = p.pconf.target,
-          .origin = "local",
+          .origin = origin,
           .type = p.pconf.type,
           .versions = {p.pconf.version}
       }
   );
+  switch (p.pconf.type)
+  {
+  case BIN:
+    copy_bin(p);
+    break;
+  case LIB:
+    copy_headers(p);
+    copy_libs(p);
+    break;
+  case HEADER:
+    copy_headers(p);
+    break;
+  case COMPOSE:
+  default:
+    if_.debug("Not implemented yet.");
+    break;
+  }
 }
 
 void Registry::update_from_server(
@@ -108,12 +119,7 @@ void Registry::update_from_server(
   }
   const fs::path project_root = download_and_extract(name, version, index);
   Project p(project_root);
-
-  if_.info("Building package...");
-  p.build(true);
-
-  if_.info("Indexing package...");
-  index_add_pkg_version(p.pconf.name, p.pconf.version);
+  finish_update(p);
 }
 
 void Registry::update_from_path(const std::filesystem::path &path, const bool force)
@@ -127,12 +133,34 @@ void Registry::update_from_path(const std::filesystem::path &path, const bool fo
     if_.info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return;
   }
+  finish_update(p);
+}
 
+void Registry::finish_update(Project &p)
+{
   if_.info("Building package...");
-  p.build(true);
+  p.build(BuildMode::release);
 
   if_.info("Indexing package...");
   index_add_pkg_version(p.pconf.name, p.pconf.version);
+
+  switch (p.pconf.type)
+  {
+  case BIN:
+    copy_bin(p);
+    break;
+  case LIB:
+    copy_headers(p);
+    copy_libs(p);
+    break;
+  case HEADER:
+    copy_headers(p);
+    break;
+  case COMPOSE:
+  default:
+    if_.debug("Not implemented yet.");
+    break;
+  }
 }
 
 void Registry::uninstall(const std::string &pkg)
@@ -285,7 +313,7 @@ void Registry::copy_headers(const Project &p) const
 {
   if_.info("Installing header(s)...");
 
-  const auto source_dir = p.root_dir / INCLUDE_DIR;
+  const auto source_dir = p.root_dir / INCLUDE_DIR; // FIX : only headers from include/ are moved
   const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR;
 
   if (!fs::exists(source_dir))
@@ -305,22 +333,16 @@ void Registry::copy_libs(const Project &p) const
   const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / LIB_DIR;
 
   if (!fs::exists(source_dir))
-    throw ZCException(
-        ZCE_NOT_FOUND, "The build directory of the package was not found : " + source_dir.string()
-    );
+    throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());
 
   fs::create_directories(dest_dir);
-  // TODO : better system with Makefile : know precisely their names and throw error if not found
-  for (const auto &entry : fs::directory_iterator(source_dir))
-  {
-    if (string filename = entry.path().filename().string();
-        filename.find(p.pconf.target) != string::npos &&
-        (entry.path().extension() == ".a" || entry.path().extension() == ".so" ||
-         entry.path().extension() == ".dylib" || entry.path().extension() == ".lib"))
-    {
-      fs::copy_file(entry.path(), dest_dir / filename, fs::copy_options::overwrite_existing);
-    }
-  }
+  const auto pconf = p.pconf;
+  fs::copy_file(
+      source_dir / STATIC_LIB_NAME, dest_dir / STATIC_LIB_NAME, fs::copy_options::overwrite_existing
+  );
+  fs::copy_file(
+      source_dir / SHARED_LIB_NAME, dest_dir / SHARED_LIB_NAME, fs::copy_options::overwrite_existing
+  );
 }
 
 void Registry::clean() const

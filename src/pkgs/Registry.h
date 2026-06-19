@@ -94,7 +94,6 @@ public:
 
 protected:
   void load() override;
-
   void write() override;
 
 private:
@@ -109,10 +108,7 @@ private:
   std::vector<RegistryPkg> pkgs_;
   const Network &net_;
 
-  /**
-   * @param root
-   */
-  explicit Registry(const std::filesystem::path &root);
+  explicit Registry(const std::filesystem::path &root = get_zc_root());
 
   /**
    * @param pkg
@@ -128,6 +124,9 @@ private:
    * @param name
    */
   RegistryPkg unindex_pkg(const std::string &name);
+
+  void finish_install(Project &p, const std::string &origin);
+  void finish_update(Project &p);
 
   void copy_bin(const Project &p) const;
 
