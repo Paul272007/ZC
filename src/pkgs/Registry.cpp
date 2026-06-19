@@ -177,7 +177,7 @@ Table Registry::pkgs_table() const
   vector<vector<string>> str_pkgs{{"Package name", "Target", "Origin", "Latest version", "Type"}};
 
   for (const auto &p : pkgs_)
-    str_pkgs.push_back({p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_string(p.type)});
+    str_pkgs.push_back({p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_str(p.type)});
 
   return {false, true, str_pkgs};
 }

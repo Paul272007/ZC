@@ -146,7 +146,10 @@ template <typename T>
 void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable, T default_value)
 {
   if (!json_conf.contains(key))
+  {
     variable = default_value;
+    return;
+  }
 
   try
   {

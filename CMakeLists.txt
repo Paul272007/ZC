@@ -88,6 +88,8 @@ add_library(zc-core STATIC
         src/commands/Remove.h
         src/commands/Run.cpp
         src/commands/Run.h
+        src/commands/Setup.cpp
+        src/commands/Setup.h
         src/commands/Uninstall.cpp
         src/commands/Uninstall.h
         src/commands/Update.cpp

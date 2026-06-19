@@ -45,7 +45,7 @@ public:
   /**
    * @param file
    */
-  explicit PConf(const std::filesystem::path &file = get_zc_root() / ZC_FILE);
+  explicit PConf(const std::filesystem::path &file = get_project_root() / ZC_FILE);
 
 protected:
   void load() override;

@@ -31,8 +31,8 @@ namespace zc
  */
 
 Project::Project(const std::filesystem::path &root)
-    : root_dir(root), build_dir(root / BUILD_DIR), cache_dir_(root / PROJECT_CACHE_DIR),
-      makefile_(build_dir / MAKEFILE)
+    : root_dir(root), build_dir(root / BUILD_DIR), pconf(root / ZC_FILE),
+      cache_dir_(root / PROJECT_CACHE_DIR), makefile_(build_dir / MAKEFILE)
 {
 }
 
@@ -111,7 +111,7 @@ void Project::build(const bool release)
   if_.new_line();
 
   const int result = pclose(pipe);
-  if (WEXITSTATUS(result) == 0)
+  if (WEXITSTATUS(result) == 0) // FIX : find solution for windows
     if_.success("Project was successfully built in " + build_dir.string());
   else
     throw ZCException(ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result)));
@@ -376,11 +376,13 @@ void Project::Makefile_lib(std::ostringstream &mk) const
 
   mk << "$(TARGET_STATIC):";
   for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  mk << "\n";
   mk << "\t@echo \"ZC_STATIC|$@\"\n";
   mk << "\t@" << gc_.archive << " $@ $^\n\n";
 
   mk << "$(TARGET_SHARED):";
   for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  mk << "\n";
   mk << "\t@echo \"ZC_SHARED|$@\"\n";
   mk << "\t@" << get_linker() << " $(LIB_DIRS) $(LIBS) -shared -o $@ $^\n\n";
 }
@@ -422,10 +424,16 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "# Delete target when a compiling error occurred\n";
 #endif
   mk << ".DELETE_ON_ERROR:\n\n";
-  mk << ".PHONY: all clean install";
+  mk << ".PHONY: all clean install\n\n";
 
   for (const auto &l : pconf.languages)
   {
+    if (auto it = sources_.find(l.name); it == sources_.end())
+      throw ZCException(
+          ZCE_NO_SOURCE_FILES,
+          "Language " + language_to_str(l.name) + " is given but no source files of this language were found"
+      );
+
     // Languages configuration and flags
     string name = language_to_str(l.name);
     mk << name << "_COMPILER := " << l.compiler << "\n";
@@ -447,7 +455,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     mk << "\n";
 
     // Dependencies files
-    mk << name << "_DEPS := $(" << name << "_OBJS:.o=.d)\n";
+    mk << name << "_DEPS := $(" << name << "_OBJS:.o=.d)\n\n";
 #ifdef DEBUG_MODE
     mk << "# Do not crash if dependencies do not exist yet\n";
 #endif
@@ -484,13 +492,13 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     const string name = language_to_str(l.name);
     for (const auto &ext : extensions_for_language(l.name))
     {
-      mk << "%." << ext << ".o: ../%";
+      mk << "%." << ext << ".o: ../%\n";
       mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
       const string lower_ext = lower(ext);
-      mk << "%." << lower_ext << ".o: ../%";
+      mk << "%." << lower_ext << ".o: ../%\n";
       mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
@@ -505,6 +513,7 @@ int Project::get_sources()
     if (const fs::path full_inc_dir = root_dir / inc; !fs::exists(full_inc_dir))
       throw ZCException(ZCE_NOT_FOUND, "Include dir does not exist: " + full_inc_dir.string());
 
+  sources_.clear(); // security
   int total_files_to_compile = 0;
   for (const auto &src_dir : pconf.src_dirs)
   {

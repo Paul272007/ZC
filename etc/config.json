@@ -7,6 +7,7 @@
   "move_bin_to_current_path": false,
   "username": "",
   "token": "",
+  "archive": "ar rcs",
   "c_compiler": "clang",
   "cxx_compiler": "clang++",
   "c_std": "c23",
