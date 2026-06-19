@@ -65,14 +65,9 @@ private:
   Registry &reg_ = Registry::get();
   Interface &if_ = Interface::get();
   GConf &gc_ = GConf::get();
+  int to_compile_ = 0;
 
-  /**
-   * @brief Generate the Makefile
-   *
-   * @param release Whether we are in release mode
-   * @return The number of sources to compile
-   */
-  int generate_Makefile(bool release = false);
+  void generate_Makefile(bool release = false);
 
   void Makefile_bin(std::ostringstream &mk) const;
   void Makefile_lib(std::ostringstream &mk) const;
@@ -84,8 +79,8 @@ private:
 
   void generate_compile_commands() const;
 
-  std::string get_linker() const;
   int get_sources();
+  std::string get_linker() const;
 };
 
 } // namespace zc

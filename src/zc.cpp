@@ -78,7 +78,7 @@ int main(const int argc, char *argv[])
   string p_template;
   string name;
   string path;
-  string p_root         = "."; // Default path to search for project root is current path
+  string p_root;
 
   vector<string> run_args;
   vector<string> targets;

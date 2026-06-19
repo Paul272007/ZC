@@ -14,7 +14,7 @@
 
 // clang-format off
 #define C_EXTENSIONS    {"C"}
-#define CXX_EXTENSIONS  {"CXX", "C++", "CPP", "CC"}
+#define CXX_EXTENSIONS  {"CPP", "CC", "CXX", "C++"}
 #define ASM_EXTENSIONS  {"S", "ASM"}
 // clang-format on
 

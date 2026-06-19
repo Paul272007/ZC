@@ -40,6 +40,9 @@ const fs::path &get_zc_root()
 
 std::filesystem::path get_project_root(const std::filesystem::path &base)
 {
+  if (base.empty())
+    return get_project_root(fs::current_path());
+
   if (!fs::exists(base))
     throw ZCException(ZCE_NOT_FOUND, "The directory " + base.string() + " does not exist");
 

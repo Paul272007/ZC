@@ -6,6 +6,7 @@
 #include "helpers.h"
 #include "pkgs/PkgType.h"
 #include "templates/TemplateEngine.h"
+#include <filesystem>
 
 ZC_DEV_CONFIG
 
@@ -17,8 +18,8 @@ Init::Init(
     const std::string &target, const std::string &p_template, const std::string &name, bool is_bin,
     bool is_lib, bool is_header, bool is_compose
 )
-    : Command(force), p_root_(p_root), git_(git), edit_(edit), author_(author), p_template_(p_template),
-      name_(name)
+    : Command(force), p_root_(p_root.empty() ? fs::current_path() : p_root), git_(git), edit_(edit),
+      author_(author), p_template_(p_template), name_(name)
 {
   type_ = parse_mode<PkgType>(
       {{BIN, is_bin}, {LIB, is_lib}, {HEADER, is_header}, {COMPOSE, is_compose}}, UNDEF,

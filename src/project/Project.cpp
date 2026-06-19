@@ -19,6 +19,7 @@
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "pkgs/Network.h"
+#include "pkgs/PkgType.h"
 #include "pkgs/Registry.h"
 
 ZC_DEV_CONFIG_JSON
@@ -38,23 +39,27 @@ Project::Project(const std::filesystem::path &root)
 
 void Project::build(const bool release)
 {
-  if_.info("Building package " + pconf.name + "...");
-  const string make_cmd = "make -C " + build_dir.string();
-  int to_compile = 0;
+  if (pconf.type == HEADER)
+    return;
+
+  // if_.info("Building " + pconf.name + "...");
+  const string make_cmd = "make --no-print-directory -C " + build_dir.string();
   int compiled = 0;
+
+  to_compile_ = get_sources();
 
   if (release)
   {
     install_dependencies();
-    to_compile = generate_Makefile(release);
+    generate_Makefile(release);
   }
   else
   {
-    generate_compile_commands();
     if (!fs::exists(makefile_))
-      to_compile = generate_Makefile();
+      generate_Makefile();
     else
     {
+      to_compile_ = 0;
       const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
       FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
       if (!dry_pipe)
@@ -64,45 +69,75 @@ void Project::build(const bool release)
       while (fgets(buffer, sizeof(buffer), dry_pipe) != nullptr)
       {
         if (string(buffer).find("ZC_COMPILE|") != string::npos)
-          to_compile++;
+          to_compile_++;
       }
       pclose(dry_pipe);
     }
+    generate_compile_commands();
   }
 
-  if (to_compile == 0)
+  if (to_compile_ == 0)
   {
     if_.success("Project is already up to date! Nothing to do.");
     return;
   }
+
+  // Add linking as compilation steps
+  to_compile_ = pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (!pipe)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
   char buffer[1024];
+  const int bar_width = 20;
 
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
   {
     string line(buffer);
-    if (line.starts_with("ZC_COMPILE|"))
+    if (line.starts_with("ZC_OVER"))
+    {
+      if_.clear_loading_bar();
+    }
+    else if (line.starts_with("ZC_"))
     {
       compiled++;
-      int percent = (compiled * 100) / to_compile;
+      int percent = (compiled * 100) / to_compile_;
       if (percent > 100)
         percent = 100;
 
-      // Extract filename
-      string filename = line.substr(11); // After ZC_COMPILE|
-      if (!filename.empty() && filename.back() == '\n')
-        filename.pop_back();
+      string message;
+      string target_name;
+      string rest = line.substr(3);
 
-      const int bar_width = 20;
-      if_.loading_bar(bar_width, percent, "Compiling " + filename);
+      if (rest.starts_with("COMPILE|"))
+      {
+        message = "Compiling object ";
+        target_name = rest.substr(8);
+      }
+      else if (rest.starts_with("STATIC|"))
+      {
+        message = "Linking static library ";
+        target_name = line.substr(7);
+      }
+      else if (rest.starts_with("SHARED|"))
+      {
+        message = "Linking shared library ";
+        target_name = line.substr(7);
+      }
+      else if (rest.starts_with("BIN|"))
+      {
+        message = "Linking executable ";
+        target_name = line.substr(4);
+      }
+
+      if (!target_name.empty() && target_name.back() == '\n')
+        target_name.pop_back();
+
+      if_.loading_bar(bar_width, percent, message + target_name);
     }
     else
     {
-      // Pass other outputs (warnings, errors) directly, but clear the progress bar line first
       if_.clear_loading_bar();
       if_.info(line); // TODO : parse to detect if it is an error / warning to change display style
     }
@@ -316,15 +351,14 @@ void Project::update_dependencies() const
 
 void Project::generate_build_config()
 {
+  if (pconf.type == HEADER)
+    return;
   generate_Makefile();
   generate_compile_commands();
 }
 
-int Project::generate_Makefile(const bool release)
+void Project::generate_Makefile(const bool release)
 {
-  if (pconf.type == HEADER)
-    return 0;
-
   fs::create_directories(build_dir);
 
   const int to_compile = get_sources(); // also checks if include dirs exist
@@ -352,8 +386,6 @@ int Project::generate_Makefile(const bool release)
 
   std::ofstream out(makefile_);
   out << mk.str();
-
-  return to_compile;
 }
 
 void Project::Makefile_bin(std::ostringstream &mk) const
@@ -396,6 +428,39 @@ void Project::Makefile_compose(std::ostringstream &mk) const
 void Project::generate_compile_commands() const
 {
   fs::create_directories(build_dir);
+
+  nlohmann::json compile_commands = nlohmann::json::array();
+  const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
+
+  string includes = "";
+  for (const auto &inc : pconf.include_dirs) includes += " -I../" + inc;
+  for (const auto &dep : pconf.dependencies)
+    includes += " -I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string();
+
+  for (const auto &l : pconf.languages)
+  {
+    if (sources_.find(l.name) == sources_.end())
+      continue;
+
+    string flags = "-std=" + l.std + " -MMD -MP";
+    for (const auto &flag : l.flags) flags += " " + escape_shell_arg(flag);
+    if (pconf.type == LIB)
+      flags += " -fPIC";
+    flags += " -g -DZC_DEBUG"; // Always generate compile_commands in debug mode by default for LSP
+
+    for (const auto &file : sources_.at(l.name))
+    {
+      nlohmann::json cmd;
+      cmd["directory"] = fs::absolute(build_dir).string();
+      cmd["file"] = "../" + file;
+      cmd["output"] = file + ".o";
+      cmd["command"] = l.compiler + " " + flags + includes + " -c ../" + file + " -o " + file + ".o";
+      compile_commands.push_back(cmd);
+    }
+  }
+
+  std::ofstream out(build_dir / "compile_commands.json");
+  out << compile_commands.dump(2);
 }
 
 void Project::Makefile_comment(std::ostringstream &mk) const
@@ -424,6 +489,10 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "# Delete target when a compiling error occurred\n";
 #endif
   mk << ".DELETE_ON_ERROR:\n\n";
+#ifdef DEBUG_MODE
+  mk << "# Path to binaries\n";
+#endif
+  mk << "VPATH = ..\n\n";
   mk << ".PHONY: all clean install\n\n";
 
   for (const auto &l : pconf.languages)
@@ -438,7 +507,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     string name = language_to_str(l.name);
     mk << name << "_COMPILER := " << l.compiler << "\n";
     mk << name << "_STD := " << l.std << "\n";
-    mk << name << "_FLAGS := -std=${" << name << "_STD} -MMD -MP";
+    mk << name << "_FLAGS := -std=$(" << name << "_STD) -MMD -MP";
     for (const auto &flag : l.flags) mk << " " << escape_shell_arg(flag);
 
     if (pconf.type == LIB)
@@ -484,7 +553,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk << "clean:\n\tzc clean\n\n";
+  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows
   mk << "install:\n\tzc install --path ..\n\n";
 
   for (const auto &l : pconf.languages)
@@ -492,14 +561,14 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     const string name = language_to_str(l.name);
     for (const auto &ext : extensions_for_language(l.name))
     {
-      mk << "%." << ext << ".o: ../%\n";
-      mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
+      mk << "%." << ext << ".o: %." << ext << "\n";
+      mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
       const string lower_ext = lower(ext);
-      mk << "%." << lower_ext << ".o: ../%\n";
-      mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
+      mk << "%." << lower_ext << ".o: %." << lower_ext << "\n";
+      mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
     }
@@ -544,9 +613,9 @@ int Project::get_sources()
 std::string Project::get_linker() const
 {
   if (sources_.find(CXX) != sources_.end())
-    return pconf.get_lang_conf(CXX).compiler;
+    return "$(CXX_COMPILER)";
   else
-    return pconf.get_lang_conf(C).compiler;
+    return "$(C_COMPILER)";
 }
 
 } // namespace zc
