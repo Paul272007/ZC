@@ -136,9 +136,10 @@ void GConf::load()
   get_key(root, "open_after_create", open_after_create, false);
   get_key(root, "clear_before_run", clear_before_run, false);
   get_key(root, "move_bin_to_current_path", move_bin_to_current_path, false);
-  get_key(root, "editor", editor, string("vim"));
+  get_key(root, "editor", editor, editor);
   get_key(root, "token", token, string());
   get_key(root, "username", username, string());
+  get_key(root, "archive", archive, archive);
 
   if (root.contains("languages") && root["languages"].is_object())
   {
@@ -162,6 +163,7 @@ void GConf::write()
   root["clear_before_run"] = clear_before_run;
   root["move_bin_to_current_path"] = move_bin_to_current_path;
   root["editor"] = editor;
+  root["archive"] = archive;
 
   json lang_json = json::object();
   for (const auto &l : languages) lang_json[language_to_str(l.name)] = l;

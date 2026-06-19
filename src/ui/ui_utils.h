@@ -4,6 +4,8 @@ namespace zc
 {
 
 // clang-format off
+#define CLEAR_LINE  "\033[K"
+
 #define RESET       "\033[0m"
 #define BOLD        "\033[1m"
 #define FAINT       "\033[2m"

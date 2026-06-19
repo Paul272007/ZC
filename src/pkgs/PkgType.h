@@ -23,7 +23,7 @@ enum PkgType
   UNDEF
 };
 
-inline std::string to_string(const PkgType type)
+inline std::string pkg_type_to_str(const PkgType type)
 {
   switch (type)
   {
@@ -40,7 +40,7 @@ inline std::string to_string(const PkgType type)
   }
 }
 
-inline PkgType from_string(const std::string &type_str)
+inline PkgType pkg_type_from_str(const std::string &type_str)
 {
   const std::string type_upper = upper(type_str);
   if (type_upper == "BIN")
@@ -56,12 +56,12 @@ inline PkgType from_string(const std::string &type_str)
 
 inline void from_json(const nlohmann::json &j, PkgType &p)
 {
-  p = from_string(j.get<std::string>());
+  p = pkg_type_from_str(j.get<std::string>());
 }
 
 inline void to_json(nlohmann::json &j, const PkgType &p)
 {
-  j = to_string(p);
+  j = pkg_type_to_str(p);
 }
 
 } // namespace zc

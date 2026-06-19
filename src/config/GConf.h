@@ -28,6 +28,7 @@ public:
   std::string token;
   std::string username;
   std::string editor = "vim";
+  std::string archive = "ar rcs";
   std::vector<LanguageConf> languages = {
       {C, "c17", "clang", {"-Wall", "-Wextra"}}, {CXX, "c++20", "clang++", {"-Wall", "-Wextra"}}
   };

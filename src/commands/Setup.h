@@ -5,16 +5,14 @@
 namespace zc
 {
 
-class Build : public Command
+class Setup : public Command
 {
 public:
-  Build(bool force, const std::filesystem::path &p_root, bool clean, bool release);
+  Setup(bool force, const std::filesystem::path &p_root);
 
   int operator()() override;
 
 private:
-  const bool clean_;
-  const bool release_;
   const std::filesystem::path p_root_;
 };
 

@@ -154,6 +154,29 @@ string Interface::input(const string &question, const string &default_ans) const
   return line;
 }
 
+void Interface::loading_bar(int bar_width, int percent_filled, const std::string &message) const
+{
+  if (quiet_)
+    return;
+
+  // Pad percent to 3 chars
+  string pct_str = std::to_string(percent_filled);
+  while (pct_str.length() < 3) pct_str = " " + pct_str;
+
+  // Create loading bar
+  int filled = (percent_filled * bar_width) / 100;
+  string bar = "";
+  for (int i = 0; i < bar_width; i++) bar += (i < filled) ? "█" : "░";
+
+  std::cout << "\r" CLEAR_LINE << B_GREEN "[" << bar << "] " << pct_str << "%" RESET << message << std::flush;
+}
+
+void Interface::clear_loading_bar() const
+{
+  if (!quiet_)
+    std::cout << "\r" CLEAR_LINE << std::flush;
+}
+
 nlohmann::json Interface::read_json(const std::filesystem::path &file_path) const
 {
   nlohmann::json parsed_json;

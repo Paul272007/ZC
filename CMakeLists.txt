@@ -29,24 +29,30 @@ add_library(zc-core STATIC
         src/config/GConf.h
         src/config/PConf.cpp
         src/config/PConf.h
+
         src/excepts/ExitCode.h
         src/excepts/ZCException.cpp
         src/excepts/ZCException.h
+
         src/pkgs/Network.cpp
         src/pkgs/Network.h
         src/pkgs/Pkg.h
         src/pkgs/PkgType.h
         src/pkgs/Registry.cpp
         src/pkgs/Registry.h
+
         src/project/Project.cpp
         src/project/Project.h
+
         src/templates/TemplateEngine.cpp
         src/templates/TemplateEngine.h
+
         src/ui/Interface.cpp
         src/ui/Interface.h
         src/ui/Table.cpp
         src/ui/Table.h
         src/ui/ui_utils.h
+
         src/CLI11.h
         src/CompileMode.h
         src/helpers.cpp
@@ -54,6 +60,9 @@ add_library(zc-core STATIC
         src/Language.h
         src/Version.cpp
         src/Version.h
+        src/ZCCompiler.cpp
+        src/ZCCompiler.h
+
         src/commands/Add.cpp
         src/commands/Add.h
         src/commands/Build.cpp

@@ -23,6 +23,7 @@
 #include "commands/Publish.h"
 #include "commands/Remove.h"
 #include "commands/Run.h"
+#include "commands/Setup.h"
 #include "commands/Uninstall.h"
 #include "commands/Update.h"
 #include "excepts/ZCException.h"
@@ -88,6 +89,7 @@ int main(const int argc, char *argv[])
   // const auto create  = app.add_subcommand("create",  "Create file based on template"²);
   // Projects
   const auto init      = app.add_subcommand("init",      "Initialize empty project");
+  const auto setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
   const auto build     = app.add_subcommand("build",     "Build project");
   const auto add       = app.add_subcommand("add",       "Add dependencies to project");
   const auto remove    = app.add_subcommand("remove",    "Remove dependencies from project");
@@ -106,8 +108,8 @@ int main(const int argc, char *argv[])
   // Run
   // TODO : add --force,-f and --quiet,-q flags for each command
 
-  run->add_option("files", targets, "Files to compile and run");
-  run->add_option("args", run_args, "Arguments to be passed to the program when executed");
+  run->add_option("files", targets, "Files to compile and run")->required();
+  run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
 
   run->add_flag("--quiet,-q", quiet, "Do not show any messages");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
@@ -135,9 +137,15 @@ int main(const int argc, char *argv[])
   init->add_flag("--bin,-B", is_bin, "Make package of type BIN");
   init->add_flag("--lib,-L", is_lib, "Make package of type LIB");
   init->add_flag("--header,-H", is_header, "Make package of type HEADER");
-  init->add_flag("--is_compose,-C", is_compose, "Make package of type COMPOSE");
+  init->add_flag("--compose,-C", is_compose, "Make package of type COMPOSE");
 
   init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose); });
+
+  // Setup
+
+  setup->add_option("--project-path,-P", p_root, "Directory to use as project root");
+
+  setup->callback([&] { command = make_unique<Setup>(force, p_root); });
 
   // Build
 

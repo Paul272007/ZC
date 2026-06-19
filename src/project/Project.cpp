@@ -18,6 +18,7 @@
 #include "Project.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "pkgs/Network.h"
 #include "pkgs/Registry.h"
 
 ZC_DEV_CONFIG_JSON
@@ -37,20 +38,83 @@ Project::Project(const std::filesystem::path &root)
 
 void Project::build(const bool release)
 {
-  if (release)
-    install_dependencies();
-
-  if (!fs::exists(makefile_))
-    generate_Makefile(release);
-
   if_.info("Building package " + pconf.name + "...");
-
   const string make_cmd = "make -C " + build_dir.string();
+  int to_compile = 0;
+  int compiled = 0;
 
-  if (const int result = std::system(make_cmd.c_str()); result == 0)
+  if (release)
+  {
+    install_dependencies();
+    to_compile = generate_Makefile(release);
+  }
+  else
+  {
+    generate_compile_commands();
+    if (!fs::exists(makefile_))
+      to_compile = generate_Makefile();
+    else
+    {
+      const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
+      FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
+      if (!dry_pipe)
+        throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
+
+      char buffer[512];
+      while (fgets(buffer, sizeof(buffer), dry_pipe) != nullptr)
+      {
+        if (string(buffer).find("ZC_COMPILE|") != string::npos)
+          to_compile++;
+      }
+      pclose(dry_pipe);
+    }
+  }
+
+  if (to_compile == 0)
+  {
+    if_.success("Project is already up to date! Nothing to do.");
+    return;
+  }
+
+  FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
+  if (!pipe)
+    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
+
+  char buffer[1024];
+
+  while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+  {
+    string line(buffer);
+    if (line.starts_with("ZC_COMPILE|"))
+    {
+      compiled++;
+      int percent = (compiled * 100) / to_compile;
+      if (percent > 100)
+        percent = 100;
+
+      // Extract filename
+      string filename = line.substr(11); // After ZC_COMPILE|
+      if (!filename.empty() && filename.back() == '\n')
+        filename.pop_back();
+
+      const int bar_width = 20;
+      if_.loading_bar(bar_width, percent, "Compiling " + filename);
+    }
+    else
+    {
+      // Pass other outputs (warnings, errors) directly, but clear the progress bar line first
+      if_.clear_loading_bar();
+      if_.info(line); // TODO : parse to detect if it is an error / warning to change display style
+    }
+  }
+
+  if_.new_line();
+
+  const int result = pclose(pipe);
+  if (WEXITSTATUS(result) == 0)
     if_.success("Project was successfully built in " + build_dir.string());
   else
-    throw ZCException(ZCE_COMPILATION_ERROR, "Build failed with exit code " + std::to_string(result));
+    throw ZCException(ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result)));
 }
 
 void Project::clean() const
@@ -144,7 +208,7 @@ void Project::publish()
     }
   }
 
-  // Download and Hash
+  // Download and calculate hash
   if_.info("Downloading archive for verification...");
   net.download(archive_url, archive_path);
 
@@ -152,8 +216,8 @@ void Project::publish()
   if_.success("SHA-256 calculated: " + sha);
   fs::remove(archive_path);
 
-  // Upload Recipe to Registry
-  nlohmann::json recipe;
+  // Upload recipe to registry
+  json recipe;
   recipe["name"] = pconf.name;
   recipe["version"] = pconf.version.string();
   recipe["url"] = archive_url;
@@ -161,7 +225,7 @@ void Project::publish()
   recipe["owner"] = pconf.author;
 
   string file_path = "packages/" + pconf.name + "/" + pconf.version.string() + ".json";
-  nlohmann::json payload;
+  json payload;
   payload["message"] = "Publish " + pconf.name + " v" + pconf.version.string();
   payload["content"] = base64_encode(recipe.dump(2));
 
@@ -225,6 +289,7 @@ void Project::add_dependency(const string &name)
   const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
 
   pconf.add_dependency(d);
+  // TODO : regenerate Makefile ?
   generate_compile_commands(); // for the LSPs
 }
 
@@ -239,8 +304,15 @@ void Project::install_dependencies() const
   const auto &net = Network::get();
   const json index = net.get_index();
 
-  for (const auto &dependency : pconf.dependencies)
-    reg_.install_from_server(dependency.name, dependency.version.string(), index);
+  for (const auto &dep : pconf.dependencies) reg_.install_from_server(dep.name, dep.version.string(), index);
+}
+
+void Project::update_dependencies() const
+{
+  const auto &net = Network::get();
+  const json index = net.get_index();
+  // "" = get latest version
+  for (const auto &dep : pconf.dependencies) reg_.update_from_server(dep.name, "", index);
 }
 
 void Project::generate_build_config()
@@ -249,15 +321,15 @@ void Project::generate_build_config()
   generate_compile_commands();
 }
 
-void Project::generate_Makefile(const bool release)
+int Project::generate_Makefile(const bool release)
 {
   if (pconf.type == HEADER)
-    return;
+    return 0;
 
   GConf &gc(GConf::get());
   fs::create_directories(build_dir);
 
-  get_sources(); // also checks if include dirs exist
+  const int to_compile = get_sources(); // also checks if include dirs exist
 
   std::ostringstream mk;
 
@@ -282,19 +354,26 @@ void Project::generate_Makefile(const bool release)
 
   std::ofstream out(makefile_);
   out << mk.str();
+
+  return to_compile;
 }
 
 void Project::Makefile_bin(std::ostringstream &mk) const
 {
-  mk << "TARGET = " << pconf.name << "\n\n";
   mk << "all: $(TARGET)\n\n";
-  mk << "$(TARGET): $(COBJS) $(CXXOBJS)\n";
-  mk << "\t@echo \"[Link] Linking executable $@\"\n";
+  mk << "$(TARGET):";
+  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  mk << "\n";
+  mk << "\t@echo \"ZC_LINK $@\"\n";
   mk << "\t@$(CXX) $(CXXFLAGS) -o $@ $^\n\n";
 }
 
 void Project::Makefile_lib(std::ostringstream &mk) const
 {
+  mk << "$(TARGET): $(OBJS)\n";
+  mk << "\t@echo \"[LINK] $@\"";
+  mk << "\t$()\n";
+
   mk << "TARGET_STATIC = " << STATIC_LIB_NAME << "\n"; // TODO : handle other operating systems
   mk << "TARGET_SHARED = " << SHARED_LIB_NAME << "\n\n";
   mk << "all: $(TARGET_STATIC) $(TARGET_SHARED)\n\n";
@@ -403,13 +482,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk << "all: $(TARGET)\n";
   mk << "clean:\n\tzc clean\n\n";
   mk << "install:\n\tzc install --path ..\n\n";
-
-  mk << "$(TARGET): $(OBJS)\n";
-  mk << "\t@echo \"[LINK] $@\"";
-  mk << "\t$()\n";
 
   for (const auto &l : pconf.languages)
   {
@@ -418,48 +492,55 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     {
       mk << "%." << ext << ".o: ../%";
       mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
+      mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
       const string lower_ext = lower(ext);
       mk << "%." << lower_ext << ".o: ../%";
       mk << "\t" MKDIR_COMMAND " $(dir $@)\n";
+      mk << "\t@echo \"ZC_COMPILE|$<\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
     }
   }
 }
 
-void Project::get_sources()
+int Project::get_sources()
 {
+  // Check if include directories exist
   for (const auto &inc : pconf.include_dirs)
     if (const fs::path full_inc_dir = root_dir / inc; !fs::exists(full_inc_dir))
       throw ZCException(ZCE_NOT_FOUND, "Include dir does not exist: " + full_inc_dir.string());
 
-  bool found_any_src = false;
+  int total_files_to_compile = 0;
   for (const auto &src_dir : pconf.src_dirs)
   {
     const fs::path full_src_dir = root_dir / src_dir;
     if (!fs::exists(full_src_dir))
       throw ZCException(ZCE_NOT_FOUND, "Source dir " + full_src_dir.string() + " not found.");
 
-    found_any_src = true;
     for (const auto &entry : fs::recursive_directory_iterator(full_src_dir))
     {
-      if (string ext = entry.path().extension(); entry.is_regular_file() && !ext.empty())
+      const fs::path file = entry.path();
+      if (const Language l = language_of(file); l != UNKNOWN_LANGUAGE)
       {
-        ext.erase(0, 1);
-        if (const Language l = language_from_str(ext); l != UNKNOWN_LANGUAGE)
-        {
-          if (sources_.find(l) != sources_.end())
-            sources_[l].push_back(entry.path().string());
-          else
-            sources_[l] = {entry.path().string()};
-        }
+        if (sources_.find(l) != sources_.end())
+          sources_[l].push_back(file.string());
+        else
+          sources_[l] = {file.string()};
+        total_files_to_compile++;
       }
     }
   }
 
-  if (!found_any_src)
-    throw ZCException(ZCE_NO_SOURCE_FILES, "None of the source directories exist");
+  if (total_files_to_compile == 0)
+    throw ZCException(ZCE_NO_SOURCE_FILES, "No source files were found.");
+
+  return total_files_to_compile;
+}
+
+std::string Project::get_linker() const
+{
+  return "g++"; // TODO : implement
 }
 
 } // namespace zc

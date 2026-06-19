@@ -51,6 +51,10 @@ public:
    */
   std::string input(const std::string &question, const std::string &default_ans) const;
 
+  void loading_bar(int bar_width, int percent_filled, const std::string &message) const;
+
+  void clear_loading_bar() const;
+
   void write_json(const nlohmann::json &json, const std::filesystem::path &file_path) const;
 
   nlohmann::json read_json(const std::filesystem::path &file_path) const;

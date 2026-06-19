@@ -116,12 +116,8 @@ int Run::operator()()
 bool Run::has_cpp()
 {
   for (const auto &f : files_)
-    if (string ext = f.extension(); fs::is_regular_file(f) && !ext.empty())
-    {
-      ext.erase(0, 1);
-      if (language_from_str(ext) == CXX)
-        return true;
-    }
+    if (is_of_language(CXX, f))
+      return true;
   return false;
 }
 

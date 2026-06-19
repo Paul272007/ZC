@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -59,6 +60,34 @@ inline Language language_from_str(const std::string &txt)
       return ASM_NASM;
 
   return UNKNOWN_LANGUAGE;
+}
+
+inline bool is_of_language(Language l, const std::filesystem::path &file)
+{
+  if (!std::filesystem::is_regular_file(file))
+    return false;
+
+  std::string ext = file.extension();
+
+  if (ext.empty())
+    return false;
+
+  ext.erase(0, 1);
+  return language_from_str(ext) == l;
+}
+
+inline Language language_of(const std::filesystem::path &file)
+{
+  if (!std::filesystem::is_regular_file(file))
+    return UNKNOWN_LANGUAGE;
+
+  std::string ext = file.extension();
+
+  if (ext.empty())
+    return UNKNOWN_LANGUAGE;
+
+  ext.erase(0, 1);
+  return language_from_str(ext);
 }
 
 inline std::string language_to_str(const Language l)
