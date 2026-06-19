@@ -220,7 +220,7 @@ void Registry::write()
 }
 
 Registry::Registry(const std::filesystem::path &root)
-    : Conf(root / REGISTRY_FILE), cache_dir_(root / CACHE_DIR), bin_dir_(cache_dir_ / BIN_DIR),
+    : Conf(root / REGISTRY_FILE), cache_dir_(root / ZC_CACHE_DIR), bin_dir_(cache_dir_ / BIN_DIR),
       lib_dir_(cache_dir_ / LIB_DIR), include_dir_(cache_dir_ / INCLUDE_DIR), bin_links_dir_(root / BIN_DIR),
       tmp_dir_(root / TMP_DIR), net_(Network::get())
 {

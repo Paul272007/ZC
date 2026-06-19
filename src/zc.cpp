@@ -44,9 +44,18 @@ int main(const int argc, char *argv[])
   unique_ptr<Command> command(nullptr);
   // clang-format off
 
-  // --- Command line arguments as variables
+  // --- Command line arguments and flags as variables
   bool quiet            = false;
   bool force            = false;
+  // Run
+  bool preprocess       = false;
+  bool compile          = false;
+  bool assemble         = false;
+  bool plus             = false;
+  bool keep             = false;
+  bool add_std          = false;
+  bool static_link      = false;
+  bool no_flags         = false;
   // Build
   bool clean_before     = false;
   bool release          = false;
@@ -68,8 +77,9 @@ int main(const int argc, char *argv[])
   string p_template;
   string name;
   string path;
-  string p_root     = "."; // Default path to search for project root is current path
+  string p_root         = "."; // Default path to search for project root is current path
 
+  vector<string> run_args;
   vector<string> targets;
 
   // --- Subcommands
@@ -94,11 +104,23 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands arguments
   // Run
-  // TODO : add --force,-f flag for each command
+  // TODO : add --force,-f and --quiet,-q flags for each command
 
-  run->add_flag("--quiet,-q", quiet, "Enable quiet mode");
+  run->add_option("files", targets, "Files to compile and run");
+  run->add_option("args", run_args, "Arguments to be passed to the program when executed");
 
-  run->callback([&] { command = make_unique<Run>(force); });
+  run->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  run->add_flag("--force,-f", force, "Force compiling even if target already exists");
+  run->add_flag("--preprocess,-E", preprocess, "Preprocess only");
+  run->add_flag("--compile,-c", compile, "Compile and assemble, but do not link");
+  run->add_flag("--assemble,-S", assemble, "Compile, but do not assemble or link");
+  run->add_flag("--plus,-p", plus, "Force compilation as C++");
+  run->add_flag("--keep,-k", keep, "Do not delete the executable after program ends");
+  run->add_flag("--std", add_std, "Add C/C++ standard from config file");
+  run->add_flag("--static,-s", static_link, "Compile prioritizing the use of static libraries");
+  run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
+
+  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, add_std, static_link, no_flags); });
 
   // Init
 

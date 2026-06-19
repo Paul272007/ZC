@@ -10,6 +10,7 @@
 #include "../helpers.h"
 #include "Conf.h"
 #include "PConf.h"
+#include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 
@@ -61,19 +62,12 @@ PConf::PConf(const std::filesystem::path &file) : Conf(file)
 
 void PConf::load()
 {
-  json root = if_.read_json(file_);
+  const json root = if_.read_json(file_);
   get_key(root, "name", name);
-  get_key(root, "author", author, string());
+  get_key(root, "author", author, author);
   get_key(root, "target", target, name);
-  get_key(root, "c_std", c_std, string("c23"));
-  get_key(root, "cxx_std", cxx_std, string("c++20"));
-  get_key(root, "c_compiler", c_compiler, string("clang"));
-  get_key(root, "cxx_compiler", cxx_compiler, string("clang++"));
-  get_key(root, "flags", flags, flags);
   get_key(root, "src_dirs", src_dirs, src_dirs);
   get_key(root, "include_dirs", include_dirs, include_dirs);
-  get_key(root, "languages", languages, {});
-
   get_key(root, "type", type);
   get_key(root, "version", version);
 
@@ -84,6 +78,19 @@ void PConf::load()
   if (target != name)
     check_name(target);
 
+  // Get languages configuration
+  if (root.contains("languages") && root["languages"].is_object())
+  {
+    languages.clear();
+    for (const auto &[key, value] : root["languages"].items())
+    {
+      LanguageConf l = value.get<LanguageConf>();
+      l.name = language_from_str(key);
+      languages.push_back(l);
+    }
+  }
+
+  // Get dependencies
   if (root.contains("dependencies") && root["dependencies"].is_object())
   {
     for (const auto &[key, value] : root["dependencies"].items())
@@ -101,16 +108,10 @@ void PConf::write()
 {
   json root;
 
-  root["c_std"] = c_std;
-  root["cxx_std"] = cxx_std;
-  root["c_compiler"] = c_compiler;
-  root["cxx_compiler"] = cxx_compiler;
   root["type"] = type;
   root["version"] = version;
-  root["flags"] = flags;
   root["src_dirs"] = src_dirs;
   root["include_dirs"] = include_dirs;
-  root["languages"] = languages;
 
   if (!name.empty())
     root["name"] = name;
@@ -119,10 +120,13 @@ void PConf::write()
   if (!target.empty())
     root["target"] = target;
 
+  json lang_json = json::object();
+  for (const auto &l : languages) lang_json[language_to_str(l.name)] = l;
+  root["languages"] = lang_json;
+
   json deps_json = json::object();
   for (const auto &dep : dependencies)
     deps_json[dep.name] = {{"static_link", dep.static_link}, {"version", dep.version}};
-
   root["dependencies"] = deps_json;
 
   if_.write_json(root, file_);

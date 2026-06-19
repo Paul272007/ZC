@@ -16,22 +16,36 @@
 
 #define ZC_DEV_CONFIG_JSON ZC_DEV_CONFIG using json = nlohmann::json;
 
+// clang-format off
 #if defined(_WIN32) || defined(_WIN64)
-#define SHARED_LIB_EXT ".lib"
+#define STATIC_LIB_NAME (pconf.name + ".a")
+#define SHARED_LIB_NAME (pconf.name + ".lib")
+#define RM_COMMAND      "del"
+#define MKDIR_COMMAND   "mkdir"
+#define USER_HOME_ENV   "USERPROFILE"
+#define HIDE_OUTPUT     " > NUL 2>&1" // Powershell : " *> $null"
 #elifdef __APPLE__
-#define SHARED_LIB_EXT ".dylib"
+#define STATIC_LIB_NAME ("lib" + pconf.name + ".a")
+#define SHARED_LIB_NAME ("lib" + pconf.name + ".dylib")
+#define RM_COMMAND      "rm"
+#define MKDIR_COMMAND   "mkdir -p"
+#define USER_HOME_ENV   "HOME"
+#define HIDE_OUTPUT     " &>/dev/null"
 #else
-#define SHARED_LIB_EXT ".so"
+#define STATIC_LIB_NAME ("lib" + pconf.name + ".a")
+#define SHARED_LIB_NAME ("lib" + pconf.name + ".so")
+#define RM_COMMAND      "rm"
+#define MKDIR_COMMAND   "mkdir -p"
+#define USER_HOME_ENV   "HOME"
+#define HIDE_OUTPUT     " &>/dev/null"
 #endif
 
-// clang-format off
-
-#define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache"}
+#define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache"}
 #define FORBIDDEN_CHARS    {'@', '#', ' ', '*', '!', '?', '{', '}', '[', ']', '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '$'}
 
 // Global directories and files
 #define ZC_DIR             ".zc"
-#define CACHE_DIR          "cache"
+#define ZC_CACHE_DIR       "cache"
 #define BIN_DIR            "bin"
 #define LIB_DIR            "lib"
 #define INCLUDE_DIR        "include"
@@ -43,8 +57,9 @@
 #define REGISTRY_FILE      "registry.json"
 
 // Project-wide directories and files
-#define SRC_DIR            "src" // for the moment hard coded, later user defined
+#define SRC_DIR            "src"
 #define BUILD_DIR          "build"
+#define PROJECT_CACHE_DIR  ".cache"
 
 #define ZC_FILE            "zc.json"
 #define MAKEFILE           "Makefile"
@@ -81,6 +96,7 @@ std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
 std::string upper(const std::string &text);
+std::string lower(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);
 std::string exec_command(const std::string &cmd);
 

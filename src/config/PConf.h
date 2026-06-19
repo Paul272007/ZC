@@ -9,12 +9,12 @@
 #include <string>
 #include <vector>
 
-#include "../Language.h"
 #include "../Version.h"
 #include "../helpers.h"
 #include "../pkgs/PkgType.h"
 #include "Conf.h"
 #include "Dependency.h"
+#include "config/LanguageConf.h"
 
 namespace zc
 {
@@ -25,17 +25,14 @@ public:
   std::string name;
   std::string author;
   std::string target = name;
-  std::string c_std = "c23";
-  std::string cxx_std = "c++20";
-  std::string c_compiler = "clang";
-  std::string cxx_compiler = "clang++";
   PkgType type = UNDEF;
   Version version = {0, 0, 0};
-  std::vector<std::string> flags = {"-Wall", "-Wextra"};
   std::vector<std::string> src_dirs = {SRC_DIR};
   std::vector<std::string> include_dirs = {INCLUDE_DIR, SRC_DIR};
   std::vector<Dependency> dependencies;
-  std::vector<Language> languages;
+  std::vector<LanguageConf> languages = {
+      {C, "c17", "clang", {"-Wall", "-Wextra"}}, {CXX, "c++20", "clang++", {"-Wall", "-Wextra"}}
+  };
 
   ~PConf() override;
 

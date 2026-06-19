@@ -9,11 +9,11 @@
 namespace zc
 {
 
-enum CompileMode
+enum class CompileMode
 {
-  PREPROCESS,
-  COMPILE,
-  ASSEMBLE,
-  FULL
+  preprocess,
+  compile,
+  assemble,
+  full
 };
 } // namespace zc

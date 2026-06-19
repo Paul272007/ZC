@@ -9,7 +9,9 @@
 #include <string>
 #include <vector>
 
+#include "../Language.h"
 #include "Conf.h"
+#include "LanguageConf.h"
 
 namespace zc
 {
@@ -25,12 +27,10 @@ public:
   bool move_bin_to_current_path = false;
   std::string token;
   std::string username;
-  std::string c_compiler = "clang";
-  std::string cxx_compiler = "clang++";
-  std::string c_std = "c23";
-  std::string cxx_std = "c++20";
   std::string editor = "vim";
-  std::vector<std::string> flags = {"-Wall", "-Wextra"};
+  std::vector<LanguageConf> languages = {
+      {C, "c17", "clang", {"-Wall", "-Wextra"}}, {CXX, "c++20", "clang++", {"-Wall", "-Wextra"}}
+  };
 
   static GConf &get();
 
@@ -39,6 +39,8 @@ public:
   void logout();
 
   ~GConf() override;
+
+  LanguageConf get_lang_conf(Language l);
 
 protected:
   void load() override;

@@ -15,6 +15,8 @@
 #include "../ui/ui_utils.h"
 #include "Conf.h"
 #include "GConf.h"
+#include "Language.h"
+#include "config/LanguageConf.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -134,14 +136,20 @@ void GConf::load()
   get_key(root, "open_after_create", open_after_create, false);
   get_key(root, "clear_before_run", clear_before_run, false);
   get_key(root, "move_bin_to_current_path", move_bin_to_current_path, false);
-  get_key(root, "c_compiler", c_compiler, string("clang"));
-  get_key(root, "cxx_compiler", cxx_compiler, string("clang++"));
-  get_key(root, "c_std", c_std, string("c23"));
-  get_key(root, "cxx_std", cxx_std, string("c++20"));
   get_key(root, "editor", editor, string("vim"));
   get_key(root, "token", token, string());
   get_key(root, "username", username, string());
-  get_key(root, "flags", flags, {"-Wall", "-Wextra"});
+
+  if (root.contains("languages") && root["languages"].is_object())
+  {
+    languages.clear();
+    for (const auto &[key, value] : root["languages"].items())
+    {
+      LanguageConf l = value.get<LanguageConf>();
+      l.name = language_from_str(key);
+      languages.push_back(l);
+    }
+  }
 }
 
 void GConf::write()
@@ -153,12 +161,11 @@ void GConf::write()
   root["open_after_create"] = open_after_create;
   root["clear_before_run"] = clear_before_run;
   root["move_bin_to_current_path"] = move_bin_to_current_path;
-  root["c_compiler"] = c_compiler;
-  root["cxx_compiler"] = cxx_compiler;
-  root["c_std"] = c_std;
-  root["cxx_std"] = cxx_std;
   root["editor"] = editor;
-  root["flags"] = flags;
+
+  json lang_json = json::object();
+  for (const auto &l : languages) lang_json[language_to_str(l.name)] = l;
+  root["languages"] = lang_json;
 
   if (!token.empty())
     root["token"] = token;
@@ -179,6 +186,14 @@ GConf::GConf() : Conf(get_zc_root() / CONFIG_FILE)
 {
   if (fs::exists(file_))
     GConf::load();
+}
+
+LanguageConf GConf::get_lang_conf(Language l)
+{
+  const auto it = std::find_if(
+      languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
+  );
+  return *it;
 }
 
 } // namespace zc

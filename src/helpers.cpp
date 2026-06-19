@@ -6,6 +6,7 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <openssl/evp.h>
@@ -24,11 +25,7 @@ const fs::path &get_zc_root()
 {
   static const fs::path zc_root = []
   {
-#if defined(_WIN32) || defined(_WIN64)
-    const char *home = getenv("USERPROFILE");
-#else
-    const char *home = getenv("HOME");
-#endif
+    const char *home = getenv(USER_HOME_ENV);
 
     fs::path root = (home) ? fs::path(home) / ZC_DIR : fs::current_path() / ZC_DIR;
 
@@ -161,6 +158,17 @@ std::string upper(const std::string &text)
   return output;
 }
 
+std::string lower(const std::string &text)
+{
+  std::string output;
+  output.reserve(text.size());
+  for (const auto &c : text)
+  {
+    output += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+  }
+  return output;
+}
+
 std::string escape_shell_arg(const std::string &arg)
 {
   std::string escaped;
@@ -179,7 +187,7 @@ std::string exec_command(const std::string &cmd)
   std::string result;
   FILE *pipe = popen(cmd.c_str(), "r");
   if (!pipe)
-    throw ZCException(ZCE_RUNTIME_ERROR, "popen() failed for command: " + cmd);
+    throw ZCException(ZCE_INTERNAL_ERROR, "popen() failed for command: " + cmd);
   char buffer[128];
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) result += buffer;
   pclose(pipe);

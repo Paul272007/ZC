@@ -9,7 +9,6 @@
 #include <string>
 
 #include "../Version.h"
-#include "../config/Conf.h"
 #include "../helpers.h"
 #include "PkgType.h"
 
@@ -39,15 +38,5 @@ inline void from_json(const nlohmann::json &j, RegistryPkg &p)
   get_key(j, "origin", p.origin);
   get_key(j, "versions", p.versions);
 }
-
-struct Pkg
-{
-  std::string name;
-  std::string target;
-  PkgType type = UNDEF;
-  Version version;
-
-  bool operator==(const Pkg &) const = default;
-};
 
 } // namespace zc

@@ -55,9 +55,13 @@ public:
 
   nlohmann::json read_json(const std::filesystem::path &file_path) const;
 
+  bool is_quiet() const
+  {
+    return quiet_;
+  }
+
 private:
   const bool quiet_;
-  static Interface instance_;
 
   /**
    * @param quiet

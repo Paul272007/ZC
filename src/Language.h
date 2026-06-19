@@ -11,6 +11,12 @@
 
 #include "helpers.h"
 
+// clang-format off
+#define C_EXTENSIONS    {"C"}
+#define CXX_EXTENSIONS  {"CXX", "C++", "CPP", "CC"}
+#define ASM_EXTENSIONS  {"S", "ASM"}
+// clang-format on
+
 namespace zc
 {
 
@@ -22,55 +28,62 @@ enum Language
   UNKNOWN_LANGUAGE
 };
 
-inline bool is_c(const std::string &text)
-{
-  return upper(text) == "C";
-}
-
-inline bool is_cxx(const std::string &text)
-{
-  if (const auto u_text = upper(text);
-      u_text == "CXX" || u_text == "C++" || u_text == "CPP" || u_text == "CC")
-    return true;
-  return false;
-}
-
-inline bool is_asm(const std::string &text)
-{
-  if (const auto u_text = upper(text); u_text == "S" || u_text == "ASM")
-    return true;
-  return false;
-}
-
-inline void from_json(const nlohmann::json &j, Language &l)
-{
-  if (const std::string lang = j.get<std::string>(); is_cxx(lang))
-    l = CXX;
-  else if (is_c(lang))
-    l = C;
-  else if (is_asm(lang))
-    l = ASM_NASM;
-  else
-    l = UNKNOWN_LANGUAGE;
-}
-
-inline void to_json(nlohmann::json &j, const Language &l)
+inline std::vector<std::string> extensions_for_language(const Language l)
 {
   switch (l)
   {
   case C:
-    j = "C";
-    break;
+    return C_EXTENSIONS;
   case CXX:
-    j = "CXX";
-    break;
+    return CXX_EXTENSIONS;
   case ASM_NASM:
-    j = "ASM_NASM";
-    break;
+    return ASM_EXTENSIONS;
   default:
-    j = "UNKNOWN_LANGUAGE";
-    break;
+    return {};
   }
+}
+
+inline Language language_from_str(const std::string &txt)
+{
+  const auto upper_txt = upper(txt);
+  for (const auto &ext : C_EXTENSIONS)
+    if (upper_txt == ext)
+      return C;
+
+  for (const auto &ext : CXX_EXTENSIONS)
+    if (upper_txt == ext)
+      return CXX;
+
+  for (const auto &ext : ASM_EXTENSIONS)
+    if (upper_txt == ext)
+      return ASM_NASM;
+
+  return UNKNOWN_LANGUAGE;
+}
+
+inline std::string language_to_str(const Language l)
+{
+  switch (l)
+  {
+  case C:
+    return "C";
+  case CXX:
+    return "CXX";
+  case ASM_NASM:
+    return "ASM_NASM";
+  default:
+    return "UNKNOWN_LANGUAGE";
+  }
+}
+
+inline void from_json(const nlohmann::json &j, Language &l)
+{
+  l = language_from_str(j.get<std::string>());
+}
+
+inline void to_json(nlohmann::json &j, const Language &l)
+{
+  j = language_to_str(l);
 }
 
 } // namespace zc
