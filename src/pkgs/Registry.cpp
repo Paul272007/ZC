@@ -45,11 +45,12 @@ void Registry::install_from_server(
     const std::string &name, const std::string &version, const json &index, const bool force
 )
 {
-  if (!force && is_installed(name))
+  if (is_installed(name))
   {
-    if_.info("Skipped package " + name + ": already installed.");
+    update_from_server(name, version, index, force);
     return;
   }
+
   const string version_key = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
 
   const fs::path project_root = download_and_extract(name, version, index);
@@ -61,9 +62,9 @@ void Registry::install_from_server(
 void Registry::install_from_path(const std::filesystem::path &path, const bool force)
 {
   Project p(path);
-  if (!force && is_installed(p.pconf.name))
+  if (is_installed(p.pconf.name))
   {
-    if_.info("Skipped package " + p.pconf.name + ": already installed.");
+    update_from_path(path, force);
     return;
   }
   finish_install(p, "local");
@@ -309,6 +310,12 @@ void Registry::copy_bin(const Project &p) const
   fs::permissions(
       dest, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add
   );
+  // Edit symlink in ~/.zc/bin
+  const auto link = bin_links_dir_ / p.pconf.target;
+  fs::create_directories(bin_links_dir_);
+  if (fs::exists(link) || fs::is_symlink(link))
+    fs::remove(link);
+  fs::create_symlink(dest, link);
 }
 
 void Registry::copy_headers(const Project &p) const

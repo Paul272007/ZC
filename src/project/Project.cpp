@@ -337,18 +337,19 @@ void Project::add_dependency(const string &name)
 
   pconf.add_dependency(d);
   fs::create_directories(build_dir);
-  generate_compile_commands(); // for the LSPs
+  generate_compile_commands();
 }
 
 void Project::remove_dependency(const string &name)
 {
   pconf.remove_dependency(name);
   fs::create_directories(build_dir);
-  generate_compile_commands(); // for the LSPs
+  generate_compile_commands();
 }
 
 void Project::install_dependencies() const
 {
+  if_.info("Installing package dependencies...");
   const auto &net = Network::get();
   const json index = net.get_index();
 
