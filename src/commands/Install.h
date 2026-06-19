@@ -15,7 +15,7 @@ class Install : public Command
 public:
   Install(bool force, const std::string &path, std::vector<std::string> &targets);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::string path_;

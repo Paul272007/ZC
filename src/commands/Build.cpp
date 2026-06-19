@@ -14,7 +14,7 @@ Build::Build(const bool force, const std::filesystem::path &p_root, bool clean, 
 {
 }
 
-int Build::operator()()
+void Build::operator()()
 {
   Project p(p_root_);
   GConf gc(GConf::get());
@@ -27,8 +27,6 @@ int Build::operator()()
   if (p.pconf.type == BIN && gc.move_bin_to_current_path)
     if (fs::path binary = p.build_dir / p.pconf.target; fs::exists(binary))
       fs::rename(binary, fs::current_path() / p.pconf.target);
-
-  return 0;
 }
 
 } // namespace zc

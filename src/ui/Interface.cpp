@@ -22,9 +22,9 @@ namespace zc
  * Interface implementation
  */
 
-Interface &Interface::get(const bool quiet)
+Interface &Interface::get()
 {
-  static Interface instance(quiet);
+  static Interface instance;
   return instance;
 }
 
@@ -211,13 +211,6 @@ void Interface::write_json(const nlohmann::json &json, const std::filesystem::pa
 
   output << json.dump(2);
   output.close();
-}
-
-/**
- * @param quiet
- */
-Interface::Interface(const bool quiet) : quiet_(quiet)
-{
 }
 
 } // namespace zc

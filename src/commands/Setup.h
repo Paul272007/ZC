@@ -10,7 +10,7 @@ class Setup : public Command
 public:
   Setup(bool force, const std::filesystem::path &p_root);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::filesystem::path p_root_;

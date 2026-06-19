@@ -10,7 +10,7 @@ class Login : public Command
 {
 public:
   Login(bool force);
-  int operator()() override;
+  void operator()() override;
 
 private:
   GConf &gc_ = GConf::get();

@@ -95,11 +95,7 @@ void Project::build(const bool release)
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
   {
     string line(buffer);
-    if (line.starts_with("ZC_OVER"))
-    {
-      if_.clear_loading_bar();
-    }
-    else if (line.starts_with("ZC_"))
+    if (line.starts_with("ZC_"))
     {
       compiled++;
       int percent = (compiled * 100) / to_compile_;
@@ -118,17 +114,17 @@ void Project::build(const bool release)
       else if (rest.starts_with("STATIC|"))
       {
         message = "Linking static library ";
-        target_name = line.substr(7);
+        target_name = rest.substr(7);
       }
       else if (rest.starts_with("SHARED|"))
       {
         message = "Linking shared library ";
-        target_name = line.substr(7);
+        target_name = rest.substr(7);
       }
       else if (rest.starts_with("BIN|"))
       {
         message = "Linking executable ";
-        target_name = line.substr(4);
+        target_name = rest.substr(4);
       }
 
       if (!target_name.empty() && target_name.back() == '\n')
@@ -143,7 +139,8 @@ void Project::build(const bool release)
     }
   }
 
-  if_.new_line();
+  if_.clear_loading_bar();
+  // if_.new_line();
 
   const int result = pclose(pipe);
   if (WEXITSTATUS(result) == 0) // FIX : find solution for windows
@@ -506,8 +503,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     // Languages configuration and flags
     string name = language_to_str(l.name);
     mk << name << "_COMPILER := " << l.compiler << "\n";
-    mk << name << "_STD := " << l.std << "\n";
-    mk << name << "_FLAGS := -std=$(" << name << "_STD) -MMD -MP";
+    mk << name << "_STD      := " << l.std << "\n";
+    mk << name << "_FLAGS    := -std=$(" << name << "_STD) -MMD -MP";
     for (const auto &flag : l.flags) mk << " " << escape_shell_arg(flag);
 
     if (pconf.type == LIB)
@@ -519,12 +516,12 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     mk << "\n";
 
     // Files to compile into objects
-    mk << name << "_OBJS :=";
+    mk << name << "_OBJS     :=";
     for (const auto &file : sources_.at(l.name)) mk << " " << file << ".o";
     mk << "\n";
 
     // Dependencies files
-    mk << name << "_DEPS := $(" << name << "_OBJS:.o=.d)\n\n";
+    mk << name << "_DEPS     := $(" << name << "_OBJS:.o=.d)\n\n";
 #ifdef DEBUG_MODE
     mk << "# Do not crash if dependencies do not exist yet\n";
 #endif
@@ -540,20 +537,20 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "\n";
 
   // Library dirs
-  mk << "LIB_DIRS :=";
+  mk << "LIB_DIRS     :=";
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
     mk << " -L" << (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
   mk << "\n";
 
   // Libraries for linker
-  mk << "LIBS :=";
+  mk << "LIBS         :=";
   for (const auto &dep : pconf.dependencies) mk << " -l" << reg_.get_pkg(dep.name).target;
-  mk << "\n";
+  mk << "\n\n";
 }
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows
+  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
   mk << "install:\n\tzc install --path ..\n\n";
 
   for (const auto &l : pconf.languages)
@@ -596,9 +593,9 @@ int Project::get_sources()
       if (const Language l = language_of(file); l != UNKNOWN_LANGUAGE)
       {
         if (sources_.find(l) != sources_.end())
-          sources_[l].push_back(file.string());
+          sources_[l].push_back(fs::relative(file, root_dir).string());
         else
-          sources_[l] = {file.string()};
+          sources_[l] = {fs::relative(file, root_dir).string()};
         total_files_to_compile++;
       }
     }

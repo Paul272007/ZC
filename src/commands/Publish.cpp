@@ -17,11 +17,10 @@ Publish::Publish(const bool force, const std::filesystem::path &p_root)
 {
 }
 
-int Publish::operator()()
+void Publish::operator()()
 {
   Project p(p_root_);
   p.publish();
-  return 0;
 }
 
 } // namespace zc

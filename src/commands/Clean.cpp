@@ -13,11 +13,10 @@ Clean::Clean(const bool force, const std::filesystem::path &p_root)
 {
 }
 
-int Clean::operator()()
+void Clean::operator()()
 {
   Project p(p_root_);
   p.clean();
-  return 0;
 }
 
 } // namespace zc

@@ -15,7 +15,7 @@ public:
       bool is_lib, bool is_header, bool is_compose
   );
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::filesystem::path p_root_;

@@ -18,7 +18,7 @@ class List : public Command
 public:
   List(bool force, bool templates, bool p_templates, bool remote, bool simple);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   ListType type_;

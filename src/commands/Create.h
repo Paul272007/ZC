@@ -10,7 +10,7 @@ class Create : public Command
 public:
   Create(bool force);
 
-  int operator()() override;
+  void operator()() override;
 };
 
 } // namespace zc

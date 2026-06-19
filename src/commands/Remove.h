@@ -14,7 +14,7 @@ class Remove : public Command
 public:
   Remove(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::filesystem::path p_root_;

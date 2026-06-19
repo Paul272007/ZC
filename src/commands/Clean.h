@@ -14,7 +14,7 @@ class Clean : public Command
 public:
   Clean(bool force, const std::filesystem::path &p_root);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::filesystem::path p_root_;

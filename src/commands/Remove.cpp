@@ -17,13 +17,11 @@ Remove::Remove(const bool force, const std::filesystem::path &p_root, const std:
 {
 }
 
-int Remove::operator()()
+void Remove::operator()()
 {
   Project p(p_root_);
 
   for (const auto target : targets_) p.remove_dependency(target);
-
-  return 0;
 }
 
 } // namespace zc

@@ -16,7 +16,7 @@ class Uninstall : public Command
 public:
   Uninstall(bool force, std::vector<std::string> &targets);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   std::vector<std::string> targets_;

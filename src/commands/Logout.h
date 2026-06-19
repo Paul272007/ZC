@@ -10,7 +10,7 @@ class Logout : public Command
 {
 public:
   Logout(bool force);
-  int operator()() override;
+  void operator()() override;
 
 private:
   GConf &gc_ = GConf::get();

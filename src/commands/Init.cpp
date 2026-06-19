@@ -27,7 +27,7 @@ Init::Init(
   );
 }
 
-int Init::operator()()
+void Init::operator()()
 {
   if (!force_ && fs::exists(ZC_FILE))
     if (!if_.ask(
@@ -66,9 +66,7 @@ int Init::operator()()
 
   // TODO : replace with function to send command as array/vector and escape arguments
   if (gconf_.open_after_init || edit_)
-    return system(string(escape_shell_arg(gconf_.editor) + " " + escape_shell_arg(p_root_.string())).c_str());
-
-  return 0;
+    system(string(escape_shell_arg(gconf_.editor) + " " + escape_shell_arg(p_root_.string())).c_str());
 }
 
 } // namespace zc

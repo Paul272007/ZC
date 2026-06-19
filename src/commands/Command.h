@@ -17,7 +17,7 @@ class Command
 public:
   virtual ~Command() = default;
 
-  virtual int operator()() = 0;
+  virtual void operator()() = 0;
 
 protected:
   const bool force_;

@@ -55,7 +55,7 @@ Run::Run(
 /**
  * @return int
  */
-int Run::operator()()
+void Run::operator()()
 {
   for (const auto &f : files_)
     if (!fs::exists(f))
@@ -82,7 +82,7 @@ int Run::operator()()
   if (mode_ != CompileMode::full)
   {
     if_.success("File created: " + output_name_);
-    return 0;
+    return;
   }
 
   if (gc_.clear_before_run)
@@ -109,8 +109,6 @@ int Run::operator()()
 
   if (run_res != 0)
     throw ZCException(ZCE_RUNTIME_ERROR, "Program exited with code " + to_string(run_res));
-
-  return 0;
 }
 
 bool Run::has_cpp()

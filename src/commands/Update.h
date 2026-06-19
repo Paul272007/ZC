@@ -16,7 +16,7 @@ class Update : public Command
 public:
   Update(bool force, const std::string &path, std::vector<std::string> &targets);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   const std::filesystem::path path_;

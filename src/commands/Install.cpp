@@ -16,7 +16,7 @@ Install::Install(bool force, const std::string &path, std::vector<std::string> &
 {
 }
 
-int Install::operator()()
+void Install::operator()()
 {
   if (!path_.empty())
   {
@@ -26,18 +26,15 @@ int Install::operator()()
       );
 
     reg_.install_from_path(path_, force_);
-    return 0;
   }
   if (targets_.empty())
   {
     Project p;
     p.install_dependencies();
-    return 0;
   }
 
   json index = Network::get().get_index();
   for (const auto &target : targets_) reg_.install_from_server(target.name, target.version, index, force_);
-  return 0;
 }
 
 } // namespace zc

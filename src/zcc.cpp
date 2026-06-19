@@ -45,7 +45,7 @@ int main(const int argc, char *argv[])
   try
   {
     app.parse(argc, argv);
-    Interface::get(quiet); // create Interface instance before any other command
+    Interface::get().set_quiet(quiet); // create Interface instance before any other command
     ZCCompiler zcc(compiler, flags, sources);
     zcc();
   }

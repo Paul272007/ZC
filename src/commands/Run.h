@@ -23,7 +23,7 @@ public:
       bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std, bool static_link,
       bool no_flags);
 
-  int operator()() override;
+  void operator()() override;
 
 private:
   GConf &gc_ = GConf::get();

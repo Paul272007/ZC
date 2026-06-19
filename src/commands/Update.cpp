@@ -7,15 +7,15 @@
 
 ZC_DEV_CONFIG_JSON
 
-namespace zc {
-
+namespace zc
+{
 
 Update::Update(bool force, const std::string &path, std::vector<std::string> &targets)
     : Command(force), path_(path), targets_(parse_targets(targets))
 {
 }
 
-int Update::operator()()
+void Update::operator()()
 {
   if (!path_.empty())
   {
@@ -25,19 +25,18 @@ int Update::operator()()
       );
 
     reg_.update_from_path(path_, force_);
-    return 0;
+    return;
   }
   if (targets_.empty())
   {
     // TODO : implement p.update_dependencies();
     // Project p;
     // p.update_dependencies();
-    // return 0;
+    return;
   }
 
   json index = Network::get().get_index();
   for (const auto &target : targets_) reg_.update_from_server(target.name, target.version, index, force_);
-  return 0;
 }
 
 } // namespace zc

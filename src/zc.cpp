@@ -235,9 +235,10 @@ int main(const int argc, char *argv[])
   try
   {
     app.parse(argc, argv);
-    Interface::get(quiet); // create Interface instance before any other command
+    Interface::get().set_quiet(quiet);
     if (command)
-      return (*command)();
+      (*command)();
+    return 0;
   }
   catch (const CLI::ParseError &e)
   {
@@ -251,6 +252,6 @@ int main(const int argc, char *argv[])
   catch (const exception &e)
   {
     cerr << RED << "Unexpected error: " << RESET << e.what() << endl;
-    return -1;
+    return 255;
   }
 }

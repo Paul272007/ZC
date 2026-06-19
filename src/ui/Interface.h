@@ -16,10 +16,12 @@ namespace zc
 class Interface
 {
 public:
-  /**
-   * @param quiet
-   */
-  static Interface &get(bool quiet = false);
+  static Interface &get();
+
+  void set_quiet(bool quiet)
+  {
+    quiet_ = quiet;
+  }
 
   void clear() const;
 
@@ -65,12 +67,9 @@ public:
   }
 
 private:
-  const bool quiet_;
+  bool quiet_ = false;
 
-  /**
-   * @param quiet
-   */
-  explicit Interface(bool quiet);
+  Interface() = default;
 };
 
 } // namespace zc

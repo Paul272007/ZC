@@ -13,11 +13,10 @@ Setup::Setup(bool force, const std::filesystem::path &p_root)
 {
 }
 
-int Setup::operator()()
+void Setup::operator()()
 {
   Project p(p_root_);
   p.generate_build_config();
-  return 0;
 }
 
 } // namespace zc

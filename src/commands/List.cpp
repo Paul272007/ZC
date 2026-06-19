@@ -25,7 +25,7 @@ List::List(bool force, bool templates, bool p_templates, bool remote, bool simpl
   );
 }
 
-int List::operator()()
+void List::operator()()
 {
   Registry &reg(Registry::get());
   TemplateEngine &te(TemplateEngine::get());
@@ -77,7 +77,6 @@ int List::operator()()
     }
     t.draw();
   }
-  return 0;
 }
 
 } // namespace zc
