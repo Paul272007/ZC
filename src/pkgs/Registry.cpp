@@ -4,13 +4,14 @@
  * @version 0.1
  */
 
-#include "Registry.h"
+#include <filesystem>
+
 #include "../config/PConf.h"
 #include "../helpers.h"
 #include "../project/Project.h"
 #include "Network.h"
-#include "pkgs/PkgType.h"
-#include <filesystem>
+#include "PkgType.h"
+#include "Registry.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -230,6 +231,7 @@ Table Registry::remote_pkgs_table() const
 
 Registry::~Registry()
 {
+  clean();
   if (modified_)
     Registry::write();
 }
@@ -347,7 +349,8 @@ void Registry::copy_libs(const Project &p) const
 
 void Registry::clean() const
 {
-  fs::remove_all(tmp_dir_);
+  if (fs::exists(tmp_dir_) && fs::is_directory(tmp_dir_))
+    fs::remove_all(tmp_dir_);
 }
 
 std::filesystem::path

@@ -1,7 +1,3 @@
-//
-// Created by paul on 14/06/2026.
-//
-
 #include "Add.h"
 #include "commands/Command.h"
 #include "helpers.h"

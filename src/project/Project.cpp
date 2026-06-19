@@ -329,6 +329,9 @@ void Project::publish()
 
 void Project::add_dependency(const string &name)
 {
+  if (pconf.name == name)
+    throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
+
   RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
   const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
 
@@ -550,7 +553,10 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   // Library dirs
   mk << "LIB_DIRS     :=";
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
-    mk << " -L" << (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
+  {
+    const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
+    mk << " -L" << dep_lib_dir << " -Wl,-rpath," << dep_lib_dir;
+  }
   mk << "\n";
 
   // Libraries for linker

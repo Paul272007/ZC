@@ -3,7 +3,7 @@
 #include "Update.h"
 #include "commands/Command.h"
 #include "helpers.h"
-// #include "project/Project.h"
+#include "project/Project.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -29,9 +29,8 @@ void Update::operator()()
   }
   if (targets_.empty())
   {
-    // TODO : implement p.update_dependencies();
-    // Project p;
-    // p.update_dependencies();
+    Project p;
+    p.update_dependencies();
     return;
   }
 

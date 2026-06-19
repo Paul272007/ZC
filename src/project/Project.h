@@ -11,13 +11,13 @@
 #include <vector>
 
 #include "../Language.h"
+#include "../config/GConf.h"
 #include "../config/PConf.h"
+#include "../excepts/ExitCode.h"
+#include "../excepts/ZCException.h"
+#include "../helpers.h"
 #include "../pkgs/Registry.h"
-#include "config/GConf.h"
-#include "excepts/ExitCode.h"
-#include "excepts/ZCException.h"
-#include "helpers.h"
-#include "ui/Interface.h"
+#include "../ui/Interface.h"
 
 namespace zc
 {

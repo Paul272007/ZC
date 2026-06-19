@@ -26,11 +26,13 @@ void Install::operator()()
       );
 
     reg_.install_from_path(path_, force_);
+    return;
   }
   if (targets_.empty())
   {
     Project p;
     p.install_dependencies();
+    return;
   }
 
   json index = Network::get().get_index();
