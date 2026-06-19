@@ -29,23 +29,26 @@ Init::Init(
 
 void Init::operator()()
 {
-  if (!force_ && fs::exists(ZC_FILE))
-    if (!if_.ask(
-            "It seems like a ZC project already exists in this directory. Do you want to overwrite it ?"
-        ))
+  if (fs::exists(p_root_ / ZC_FILE))
+  {
+    if (!force_ &&
+        !if_.ask("A ZC project seems to already exist in this directory. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Project creation aborted.");
+    else
+      fs::remove(p_root_ / ZC_FILE);
+  }
 
   if (name_.empty())
-    name_ = if_.input("Package name: ", fs::current_path().filename().string());
+    name_ = if_.input("Package name", fs::current_path().filename().string());
 
   if (target_.empty())
-    target_ = if_.input("Package target: ", name_);
+    target_ = if_.input("Package target", name_);
 
   if (author_.empty())
-    author_ = if_.input("Package author: ", gconf_.username);
+    author_ = if_.input("Package author", gconf_.username);
 
   if (p_template_.empty())
-    p_template_ = if_.input("Project template to use: ");
+    p_template_ = if_.input("Project template to use");
 
   if (!p_template_.empty())
     TemplateEngine::get().init_with_p_template(p_root_, p_template_, force_);

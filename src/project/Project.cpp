@@ -49,32 +49,23 @@ void Project::build(const bool release)
   to_compile_ = get_sources();
 
   if (release)
-  {
     install_dependencies();
-    generate_Makefile(release);
-  }
   else
-  {
-    if (!fs::exists(makefile_))
-      generate_Makefile();
-    else
-    {
-      to_compile_ = 0;
-      const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
-      FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
-      if (!dry_pipe)
-        throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
-
-      char buffer[512];
-      while (fgets(buffer, sizeof(buffer), dry_pipe) != nullptr)
-      {
-        if (string(buffer).find("ZC_COMPILE|") != string::npos)
-          to_compile_++;
-      }
-      pclose(dry_pipe);
-    }
     generate_compile_commands();
-  }
+
+  generate_Makefile(release);
+
+  to_compile_ = 0;
+  const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
+  FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
+  if (!dry_pipe)
+    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
+
+  char buffer_dry[512];
+  while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
+    if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
+      to_compile_++;
+  pclose(dry_pipe);
 
   if (to_compile_ == 0)
   {
@@ -82,8 +73,8 @@ void Project::build(const bool release)
     return;
   }
 
-  // Add linking as compilation steps
-  to_compile_ = pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
+  // Add linking as compilation step
+  to_compile_ += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (!pipe)
@@ -214,7 +205,7 @@ void Project::publish()
   {
     if_.warning("Release " + tag + " not found. Attempting to create it...");
 
-    if (!if_.ask("Do you want to create tag " + tag + "?"))
+    if (!if_.ask("Do you want to create the tag " + tag + "?"))
       return;
 
     nlohmann::json release_payload;
@@ -316,11 +307,9 @@ void Project::publish()
 void Project::add_dependency(const string &name)
 {
   RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
-
   const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
 
   pconf.add_dependency(d);
-  // TODO : regenerate Makefile ?
   generate_compile_commands(); // for the LSPs
 }
 
@@ -560,13 +549,13 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     {
       mk << "%." << ext << ".o: %." << ext << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
-      mk << "\t@echo \"ZC_COMPILE|$<\"\n";
+      mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
       const string lower_ext = lower(ext);
       mk << "%." << lower_ext << ".o: %." << lower_ext << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
-      mk << "\t@echo \"ZC_COMPILE|$<\"\n";
+      mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
     }
   }

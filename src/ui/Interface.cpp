@@ -48,45 +48,30 @@ void Interface::new_line() const
     cout << std::endl;
 }
 
-/**
- * @return void
- */
 void Interface::success(const std::string &message) const
 {
   if (!quiet_)
     cout << "[" GREEN "SUCCESS" RESET "] " << message << endl;
 }
 
-/**
- * @return void
- */
 void Interface::info(const std::string &message) const
 {
   if (!quiet_)
     cout << "[" BLUE "INFO" RESET "]    " << message << endl;
 }
 
-/**
- * @return void
- */
 void Interface::debug(const std::string &message) const
 {
   if (!quiet_)
     cout << "[" CYAN "DEBUG" RESET "]   " << message << endl;
 }
 
-/**
- * @return void
- */
 void Interface::warning(const std::string &message) const
 {
   if (!quiet_)
     cout << "[" YELLOW "WARNING" RESET "] " << message << endl;
 }
 
-/**
- * @return void
- */
 void Interface::error(const std::string &message) const
 {
   if (!quiet_)
@@ -96,32 +81,28 @@ void Interface::error(const std::string &message) const
 bool Interface::ask(const std::string &question, const bool default_ans) const
 {
   string line;
-  cout << question << endl << (default_ans ? "[Y/n] " : "[y/N] ");
+  cout << BLUE "? " RESET << question << " [" << (default_ans ? "Y/n" : "y/N") << "] " << std::flush;
 
   while (getline(cin, line))
   {
-    // 1. If the line is empty, we consider it as 'yes'
     if (line.empty())
-      return true;
+      return default_ans;
 
-    // 2. Otherwise, we check the first character
     const char input = toupper(line[0]);
-
     if (input == 'Y')
       return true;
     if (input == 'N')
       return false;
 
-    cout << "Error: unexpected token" << endl << "[Y/n] ";
+    cout << "Error: unexpected token" << endl << "[" << (default_ans ? "Y/n" : "y/N") << "] " << std::flush;
   }
-
-  return true; // Security if the input stream is closed
+  return default_ans; // Security if the input stream is closed
 }
 
 string Interface::input(const string &question) const
 {
   string line;
-  cout << question << "\n> " << std::flush;
+  cout << BLUE "? " RESET << question << " : " << std::flush;
 
   if (!getline(cin, line))
   {
@@ -138,7 +119,7 @@ string Interface::input(const string &question) const
 string Interface::input(const string &question, const string &default_ans) const
 {
   string line;
-  cout << question << "\n(" << default_ans << ")> " << std::flush;
+  cout << BLUE "? " RESET << question << " (" << default_ans << "): " << std::flush;
 
   if (!getline(cin, line))
   {
@@ -159,11 +140,11 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
   if (quiet_)
     return;
 
-  // Pad percent to 3 chars
+  // Percentage always takes 3 characters
   string pct_str = std::to_string(percent_filled);
   while (pct_str.length() < 3) pct_str = " " + pct_str;
 
-  // Create loading bar
+  // Loading bar
   int filled = (percent_filled * bar_width) / 100;
   string bar = "";
   for (int i = 0; i < bar_width; i++) bar += (i < filled) ? "█" : "░";

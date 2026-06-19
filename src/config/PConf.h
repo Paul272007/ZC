@@ -28,7 +28,7 @@ public:
   PkgType type = UNDEF;
   Version version = {0, 0, 0};
   std::vector<std::string> src_dirs = {SRC_DIR};
-  std::vector<std::string> include_dirs = {INCLUDE_DIR, SRC_DIR};
+  std::vector<std::string> include_dirs = {SRC_DIR};
   std::vector<Dependency> dependencies;
   std::vector<LanguageConf> languages = {
       {C, "c17", "clang", {"-Wall", "-Wextra"}}, {CXX, "c++20", "clang++", {"-Wall", "-Wextra"}}
