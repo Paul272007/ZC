@@ -570,6 +570,12 @@ void Project::Makefile_rules(std::ostringstream &mk) const
 {
   mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
   mk << "install:\n\tzc install --path ..\n\n";
+  mk << "help:\n";
+  mk << "\t@echo \"Available targets:\"\n";
+  mk << "\t@echo \"  all      - Build the project\"\n";
+  mk << "\t@echo \"  clean    - Clean the project\"\n";
+  mk << "\t@echo \"  install  - Install the project\"\n";
+  mk << "\t@echo \"  help     - Show this help message\"\n\n";
 
   for (const auto &l : pconf.languages)
   {
