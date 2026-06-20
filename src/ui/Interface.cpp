@@ -60,6 +60,12 @@ void Interface::info(const std::string &message) const
     cout << "[" BLUE "INFO" RESET "]    " << message << endl;
 }
 
+void Interface::print(const std::string &message) const
+{
+  if (!quiet_)
+    cout << message << endl;
+}
+
 void Interface::debug(const std::string &message) const
 {
   if (!quiet_)

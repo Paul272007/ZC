@@ -108,6 +108,9 @@ void Project::build(BuildMode current_mode)
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
   {
     string line(buffer);
+    if (!line.empty() && line.back() == '\n')
+      line.pop_back();
+
     if (line.starts_with("ZC_"))
     {
       compiled++;
@@ -140,15 +143,12 @@ void Project::build(BuildMode current_mode)
         target_name = rest.substr(4);
       }
 
-      if (!target_name.empty() && target_name.back() == '\n')
-        target_name.pop_back();
-
       if_.loading_bar(bar_width, percent, message + target_name);
     }
     else
     {
       if_.clear_loading_bar();
-      if_.info(line); // TODO : parse to detect if it is an error / warning to change display style
+      if_.print(line); // TODO : parse to detect if it is an error / warning to change display style
     }
   }
 
@@ -567,7 +567,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     string name = language_to_str(l.name);
     mk << name << "_COMPILER := " << l.compiler << "\n";
     mk << name << "_STD      := " << l.std << "\n";
-    mk << name << "_FLAGS    := -std=$(" << name << "_STD) -MMD -MP";
+    mk << name << "_FLAGS    := -std=$(" << name << "_STD) -MMD -MP -fdiagnostics-color=always";
     for (const auto &flag : l.flags) mk << " " << escape_shell_arg(flag);
 
     if (pconf.type == LIB)
