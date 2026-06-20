@@ -39,7 +39,7 @@ void Project::build(BuildMode current_mode, bool is_install)
     return;
 
   fs::create_directories(build_dir);
-  const string make_cmd = "make --no-print-directory -C " + build_dir.string();
+  const string make_cmd = "make --no-print-directory -C " + build_dir.string() + " all";
   int compiled = 0;
   get_sources();
 
@@ -70,6 +70,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   generate_Makefile(current_mode == BuildMode::release);
 
   int to_compile = 0;
+  int to_link = 0;
   const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
   FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
   if (!dry_pipe)
@@ -77,18 +78,25 @@ void Project::build(BuildMode current_mode, bool is_install)
 
   char buffer_dry[512];
   while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
-    if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
+  {
+    string line(buffer_dry);
+    if (line.find("ZC_COMPILE|") != string::npos)
       to_compile++;
+    else if (
+        line.find("ZC_BIN|") != string::npos || line.find("ZC_STATIC|") != string::npos ||
+        line.find("ZC_SHARED|") != string::npos
+    )
+      to_link++;
+  }
   pclose(dry_pipe);
 
-  if (to_compile == 0)
+  if (to_compile == 0 && to_link == 0)
   {
     if_.success("Project is already up to date! Nothing to do.");
     return;
   }
-  if_.info(std::to_string(to_compile) + " file(s) to compile");
+  if_.info(to_string(to_compile) + " file(s) to compile, " + to_string(to_link) + " target(s) to link");
 
-  // Add linking as compilation step
   to_compile += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
@@ -554,6 +562,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 #endif
   mk << "VPATH = ..\n\n";
   mk << ".PHONY: all clean install\n\n";
+
+  mk << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
 
   for (const auto &l : pconf.languages)
   {

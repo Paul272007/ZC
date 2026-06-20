@@ -8,9 +8,14 @@ For the moment ZC is only available for Linux.
 
 ## Dependencies
 
-- `clang` and `llvm`
+- `clang` or `gcc`
 - `make`
 - `git`
+
+## Build dependencies
+
+- `clang` and `llvm`
+- `cmake`
 - `libarchive`
 - `libcurl`
 - `openssl`
