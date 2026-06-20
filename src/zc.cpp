@@ -84,6 +84,7 @@ int main(const int argc, char *argv[])
 
   vector<string> run_args;
   vector<string> targets;
+  vector<string> languages;
 
   // --- Subcommands
   // Files
@@ -134,6 +135,7 @@ int main(const int argc, char *argv[])
   init->add_option("--target,-t", target, "Package target");
   init->add_option("--project-template,-p", p_template, "Project template to use");
   init->add_option("--name,-n", name, "Name of the package");
+  init->add_option("--languages,-l", languages, "Languages of the project");
 
   init->add_flag("--git,-g", git, "Initialize empty git repository at project root");
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
@@ -142,7 +144,7 @@ int main(const int argc, char *argv[])
   init->add_flag("--header,-H", is_header, "Make package of type HEADER");
   init->add_flag("--compose,-C", is_compose, "Make package of type COMPOSE");
 
-  init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose); });
+  init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, languages); });
 
   // Setup
 

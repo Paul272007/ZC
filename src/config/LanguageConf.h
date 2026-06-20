@@ -16,6 +16,8 @@ struct LanguageConf
   std::string std;
   std::string compiler;
   std::vector<std::string> flags;
+
+  bool operator==(const LanguageConf &l) const = default;
 };
 
 inline void to_json(nlohmann::json &j, const LanguageConf &p)

@@ -98,13 +98,12 @@ const nlohmann::json &Network::get_index() const
 {
   static const json json_index = [&]
   {
-    const auto &if_ = Interface::get();
-    if_.info("Fetching registry index...");
+    Interface::get().info("Fetching registry index...");
     const fs::path tmp_dir = get_zc_root() / TMP_DIR;
     const fs::path index = tmp_dir / INDEX_FILE;
     fs::create_directories(tmp_dir);
     download(INDEX_URL, index);
-    return if_.read_json(index);
+    return read_json(index);
   }();
 
   return json_index;

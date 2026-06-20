@@ -4,23 +4,19 @@
  * @version 0.1
  */
 
-#include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "Interface.h"
+#include "excepts/ExitCode.h"
 #include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG
 
 namespace zc
 {
-
-/**
- * Interface implementation
- */
 
 Interface &Interface::get()
 {
@@ -30,34 +26,32 @@ Interface &Interface::get()
 
 void Interface::clear() const
 {
-  // \033[2J = clear screen
-  // \033[1;1H = set cursor in the top left corner
   if (!quiet_)
-    std::cout << "\033[2J\033[1;1H" << std::flush;
+    cout << CLEAR_SCREEN << CURSOR_TOP_LEFT << flush;
 }
 
-void Interface::flush() const
+void Interface::flush_screen() const
 {
   if (!quiet_)
-    cout << std::flush;
+    cout << flush;
 }
 
 void Interface::new_line() const
 {
   if (!quiet_)
-    cout << std::endl;
+    cout << endl;
 }
 
 void Interface::success(const std::string &message) const
 {
   if (!quiet_)
-    cout << "[" GREEN "SUCCESS" RESET "] " << message << endl;
+    cout << GREEN "✔ " RESET << message << endl;
 }
 
 void Interface::info(const std::string &message) const
 {
   if (!quiet_)
-    cout << "[" BLUE "INFO" RESET "]    " << message << endl;
+    cout << BLUE "➜ " RESET << message << endl;
 }
 
 void Interface::print(const std::string &message) const
@@ -69,75 +63,72 @@ void Interface::print(const std::string &message) const
 void Interface::debug(const std::string &message) const
 {
   if (!quiet_)
-    cout << "[" CYAN "DEBUG" RESET "]   " << message << endl;
+    cout << CYAN "⚙ " RESET << message << endl;
 }
 
 void Interface::warning(const std::string &message) const
 {
   if (!quiet_)
-    cout << "[" YELLOW "WARNING" RESET "] " << message << endl;
+    cout << YELLOW "! " RESET << message << endl;
 }
 
 void Interface::error(const std::string &message) const
 {
   if (!quiet_)
-    cerr << "[" RED "ERROR" RESET "]   " << message << endl;
+    cerr << RED "✗ " RESET << message << endl;
 }
 
 bool Interface::ask(const std::string &question, const bool default_ans) const
 {
-  string line;
-  cout << BLUE "? " RESET << question << " [" << (default_ans ? "Y/n" : "y/N") << "] " << std::flush;
-
-  while (getline(cin, line))
-  {
-    if (line.empty())
-      return default_ans;
-
-    const char input = toupper(line[0]);
-    if (input == 'Y')
-      return true;
-    if (input == 'N')
-      return false;
-
-    cout << "Error: unexpected token" << endl << "[" << (default_ans ? "Y/n" : "y/N") << "] " << std::flush;
-  }
-  return default_ans; // Security if the input stream is closed
+  vector<string> options = {"Yes", "No"};
+  int selected = radios(question, options);
+  return selected == 0;
 }
 
 string Interface::input(const string &question) const
 {
   string line;
-  cout << BLUE "? " RESET << question << " : " << std::flush;
+  cout << BLUE "? " RESET << question << ": " BLUE << flush;
 
   if (!getline(cin, line))
   {
+    cout << RESET;
     if (cin.eof())
       return "";
 
     cin.clear();
     return "";
   }
-
+  cout << RESET;
+  if (line.empty())
+  {
+    cout << CURSOR_UP(1) << "\r" CLEAR_LINE;
+    cout << BLUE "? " RESET << question << ": " << BLUE "none" RESET << endl;
+  }
   return line;
 }
 
 string Interface::input(const string &question, const string &default_ans) const
 {
   string line;
-  cout << BLUE "? " RESET << question << " (" << default_ans << "): " << std::flush;
+  cout << BLUE "? " RESET << question << " (" << default_ans << "): " BLUE << flush;
 
   if (!getline(cin, line))
   {
+    cout << RESET;
     if (cin.eof())
       return default_ans;
-
     cin.clear();
     return default_ans;
   }
-
+  cout << RESET;
   if (line.empty())
+  {
+    cout << CURSOR_UP(1) << "\r" CLEAR_LINE;
+    cout << BLUE "? " RESET << question << " (" << default_ans << "): " << BLUE << default_ans << RESET
+         << endl;
     return default_ans;
+  }
   return line;
 }
 
@@ -146,58 +137,167 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
   if (quiet_)
     return;
 
-  // Percentage always takes 3 characters
   string pct_str = std::to_string(percent_filled);
-  while (pct_str.length() < 3) pct_str = " " + pct_str;
+  while (pct_str.length() < 3) pct_str = " " + pct_str; // Percentage always takes 3 characters
 
-  // Loading bar
   int filled = (percent_filled * bar_width) / 100;
   string bar = "";
   for (int i = 0; i < bar_width; i++) bar += (i < filled) ? "█" : "░";
 
   cout << "\r" CLEAR_LINE << "[" B_GREEN << bar << RESET "] " B_GREEN << pct_str << "% " RESET << message
-       << std::flush;
+       << flush;
 }
 
 void Interface::clear_loading_bar() const
 {
   if (!quiet_)
-    std::cout << "\r" CLEAR_LINE << std::flush;
+    cout << "\r" CLEAR_LINE << flush;
 }
 
-nlohmann::json Interface::read_json(const std::filesystem::path &file_path) const
+vector<string> Interface::checkboxes(const string &question, const vector<string> &options) const
 {
-  nlohmann::json parsed_json;
+  int cursor = 0;
+  vector<bool> selected(options.size(), false);
+  cout << BLUE "? " RESET << question << endl << HIDE_CURSOR;
 
-  if (!std::filesystem::exists(file_path))
-    throw ZCException(ZCE_NOT_FOUND, "The JSON file was not found: " + file_path.string());
+  set_raw_mode(true);
 
-  std::ifstream input(file_path);
-  if (!input.is_open())
-    throw ZCException(ZCE_READING_ERROR, "The JSON file couldn't be read: " + file_path.string());
-
-  try
+  while (true)
   {
-    input >> parsed_json;
-  }
-  catch (const nlohmann::json::parse_error &e)
-  {
-    throw ZCException(
-        ZCE_PARSING_ERROR, "The JSON file couldn't be parsed: " + file_path.string() + ": " + e.what()
-    );
+    for (size_t i = 0; i < options.size(); i++)
+    {
+      if (i == cursor)
+        cout << BLUE "> ";
+      else
+        cout << WHITE "  ";
+
+      cout << (selected[i] ? "◉ " : "◯ ") << options[i] << RESET << endl;
+    }
+
+    char c = get_char_raw();
+    if (c == 3)
+    {
+      set_raw_mode(false);
+      std::cout << SHOW_CURSOR;
+      throw ZCException(ZCE_ABORTED, "Interrupted");
+    }
+    else if (c == '\n' || c == '\r')
+    {
+      break; // exit loop
+    }
+    else if (c == ' ' || c == 'x')
+    {
+      selected[cursor] = !selected[cursor]; // toggle option
+    }
+#if defined(_WIN32) || defined(_WIN64)
+    else if (c == -32 || c == 0 || c == 224)
+    {
+      char dir = get_char_raw();
+      if (dir == 72 && cursor > 0)
+        cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
+      if (dir == 80 && cursor < options.size() - 1)
+        cursor = (cursor == options.size() - 1) ? 0 : cursor + 1;
+    }
+#else
+    else if (c == '\033') // Escape sequence
+    {
+      char bracket = get_char_raw();
+      if (bracket == '[')
+      {
+        char dir = get_char_raw();
+        if (dir == 'A')
+          cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
+        if (dir == 'B' && cursor < options.size() - 1)
+          cursor = (cursor == options.size() - 1) ? 0 : cursor + 1;
+      }
+    }
+#endif
+    cout << CURSOR_UP(options.size()); // Bring the cursor up to erase everything
   }
 
-  return parsed_json;
+  set_raw_mode(false);
+  cout << SHOW_CURSOR;
+  cout << CURSOR_UP(options.size() + 1);
+  cout << CLEAR_UNDER_CURSOR;
+
+  vector<string> result;
+  for (size_t i = 0; i < options.size(); i++)
+    if (selected[i])
+      result.push_back(options[i]);
+
+  cout << BLUE << "? " << RESET << question << " " BLUE << join(result, ", ") << RESET << endl;
+
+  return result;
 }
 
-void Interface::write_json(const nlohmann::json &json, const std::filesystem::path &file_path) const
+int Interface::radios(
+    const std::string &question, const std::vector<std::string> &options, int default_ans
+) const
 {
-  ofstream output(file_path);
-  if (!output.is_open())
-    throw ZCException(ZCE_WRITING_ERROR, "The JSON file couldn't be written: " + file_path.string());
+  int cursor = default_ans;
 
-  output << json.dump(2);
-  output.close();
+  cout << BLUE << "? " << RESET << question << endl << HIDE_CURSOR;
+
+  set_raw_mode(true);
+
+  while (true)
+  {
+    for (size_t i = 0; i < options.size(); i++)
+    {
+      if (i == cursor)
+        cout << BLUE "> ";
+      else
+        cout << WHITE "  ";
+
+      cout << options[i] << RESET << endl;
+    }
+
+    char c = get_char_raw();
+
+    if (c == 3)
+    {
+      set_raw_mode(false);
+      std::cout << SHOW_CURSOR;
+      throw ZCException(ZCE_ABORTED, "Interrupted");
+    }
+    else if (c == '\n' || c == '\r')
+    {
+      break;
+    }
+#if defined(_WIN32) || defined(_WIN64)
+    else if (c == -32 || c == 0 || c == 224)
+    {
+      char dir = get_char_raw();
+      if (dir == 72 && cursor > 0)
+        cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
+      if (dir == 80 && cursor < options.size() - 1)
+        cursor = (cursor == options.size() - 1) ? 0 : cursor + 1;
+    }
+#else
+    else if (c == '\033')
+    {
+      char bracket = get_char_raw();
+      if (bracket == '[')
+      {
+        char dir = get_char_raw();
+        if (dir == 'A' && cursor > 0)
+          cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
+        if (dir == 'B' && cursor < options.size() - 1)
+          cursor = (cursor == options.size() - 1) ? 0 : cursor + 1;
+      }
+    }
+#endif
+    cout << CURSOR_UP(options.size());
+  }
+
+  set_raw_mode(false);
+  cout << SHOW_CURSOR;
+
+  cout << CURSOR_UP(options.size() + 1);
+  cout << CLEAR_UNDER_CURSOR;
+  cout << BLUE << "? " << RESET << question << " " BLUE << options[cursor] << RESET << endl;
+
+  return cursor;
 }
 
 } // namespace zc

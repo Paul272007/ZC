@@ -68,9 +68,6 @@ void PConf::remove_dependency(const std::string &dep_name)
   modified_ = true;
 }
 
-/**
- * @param file
- */
 PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::get().languages)
 {
   if (fs::exists(file_))
@@ -81,7 +78,7 @@ PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::g
 
 void PConf::load()
 {
-  const json root = if_.read_json(file_);
+  const json root = read_json(file_);
   get_key(root, "name", name);
   get_key(root, "author", author, author);
   get_key(root, "target", target, name);
@@ -89,6 +86,9 @@ void PConf::load()
   get_key(root, "include_dirs", include_dirs, include_dirs);
   get_key(root, "type", type);
   get_key(root, "version", version);
+
+  if (version.empty())
+    throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
 
   if (type == UNDEF)
     throw ZCException(ZCE_CONTENT_ERROR, "Package type cannot be UNDEF");
@@ -151,7 +151,7 @@ void PConf::write()
     };
   root["dependencies"] = deps_json;
 
-  if_.write_json(root, file_);
+  write_json(root, file_);
 }
 
 LanguageConf PConf::get_lang_conf(Language l) const

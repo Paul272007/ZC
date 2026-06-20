@@ -150,6 +150,18 @@ std::string base64_encode(const std::string &in)
   return out;
 }
 
+std::string join(const std::vector<std::string> &v, const std::string &separator)
+{
+  stringstream s;
+  for (int i = 0; i < v.size(); i++)
+  {
+    if (i != 0)
+      s << separator;
+    s << v[i];
+  }
+  return s.str();
+}
+
 std::string upper(const std::string &text)
 {
   std::string output;
@@ -248,6 +260,39 @@ void write_file(const std::filesystem::path &file, const std::string &content)
   if (!output.is_open())
     throw ZCException(ZCE_WRITING_ERROR, "The file couldn't be written: " + file.string());
   output << content;
+}
+
+nlohmann::json read_json(const std::filesystem::path &file_path)
+{
+  nlohmann::json parsed_json;
+
+  if (!std::filesystem::exists(file_path))
+    throw ZCException(ZCE_NOT_FOUND, "The JSON file was not found: " + file_path.string());
+
+  std::ifstream input(file_path);
+  if (!input.is_open())
+    throw ZCException(ZCE_READING_ERROR, "The JSON file couldn't be read: " + file_path.string());
+
+  try
+  {
+    input >> parsed_json;
+  }
+  catch (const nlohmann::json::parse_error &e)
+  {
+    throw ZCException(
+        ZCE_PARSING_ERROR, "The JSON file couldn't be parsed: " + file_path.string() + ": " + e.what()
+    );
+  }
+  return parsed_json;
+}
+
+void write_json(const nlohmann::json &json, const std::filesystem::path &file_path)
+{
+  ofstream output(file_path);
+  if (!output.is_open())
+    throw ZCException(ZCE_WRITING_ERROR, "The JSON file couldn't be written: " + file_path.string());
+  output << json.dump(2);
+  output.close();
 }
 
 vector<fs::path> str_to_path(const vector<string> &vec)

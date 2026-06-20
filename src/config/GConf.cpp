@@ -17,6 +17,7 @@
 #include "GConf.h"
 #include "Language.h"
 #include "config/LanguageConf.h"
+#include "excepts/ExitCode.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -55,7 +56,7 @@ void GConf::login()
   if_.info("");
 
   if_.info("Waiting for authorization (press Ctrl+C to abort)...");
-  if_.flush();
+  if_.flush_screen();
 
   const std::string token_payload = "client_id=" CLIENT_ID "&device_code=" + device_code +
                                     "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
@@ -73,7 +74,7 @@ void GConf::login()
 
       if (err == "authorization_pending")
       {
-        if_.flush();
+        if_.flush_screen();
       }
       else if (err == "slow_down")
       {
@@ -121,7 +122,7 @@ void GConf::logout()
 
 void GConf::load()
 {
-  const json root = if_.read_json(file_);
+  const json root = read_json(file_);
   get_key(root, "always_keep", always_keep, false);
   get_key(root, "always_add_std", always_add_std, false);
   get_key(root, "open_after_init", open_after_init, false);
@@ -166,7 +167,7 @@ void GConf::write()
   if (!username.empty())
     root["username"] = username;
 
-  if_.write_json(root, file_);
+  write_json(root, file_);
   chmod(file_.c_str(), S_IRUSR | S_IWUSR); // other users are not allowed to see the authentication token
 }
 
@@ -182,11 +183,13 @@ GConf::GConf() : Conf(get_zc_root() / CONFIG_FILE)
     GConf::load();
 }
 
-LanguageConf GConf::get_lang_conf(Language l)
+LanguageConf GConf::get_lang_conf(Language l) const
 {
   const auto it = std::find_if(
       languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
   );
+  if (it == languages.end())
+    throw ZCException(ZCE_NOT_FOUND, "No configuration available for language " + language_to_str(l));
   return *it;
 }
 

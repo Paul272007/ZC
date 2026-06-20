@@ -1,10 +1,52 @@
 #pragma once
 
+#include <cstdio>
+#if defined(_WIN32) || defined(_WIN64)
+#include <conio.h> // _getch()
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
+
 namespace zc
 {
+inline void set_raw_mode(bool enable)
+{
+#if !defined(_WIN32) && !defined(_WIN64)
+  static struct termios oldt, newt;
+  if (enable)
+  {
+    tcgetattr(STDIN_FILENO, &oldt); // Save the current state of the terminal
+    newt = oldt;
+    // Deactivate canonic mode (=waiting for <Enter> key) and the echo, deactivate ctrl+c = SIGINT
+    newt.c_lflag &= ~(ICANON | ECHO | ISIG);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt); // Apply new parameters
+  }
+  else
+  {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restore initial state
+  }
+#endif
+}
+
+inline char get_char_raw()
+{
+#if defined(_WIN32) || defined(_WIN64)
+  return _getch(); // Read a character without waiting for the <Enter> key on Windows
+#else
+  return getchar();
+#endif
+}
 
 // clang-format off
-#define CLEAR_LINE  "\033[K"
+#define CURSOR_UP(n)        ("\033[" + std::to_string(n) + "A")
+#define CURSOR_DOWN(n)      ("\033[" + std::to_string(n) + "B")
+#define CURSOR_TOP_LEFT     "\033[1;1H"
+#define CLEAR_UNDER_CURSOR  "\033[J"
+#define CLEAR_SCREEN        "\033[2J"
+#define CLEAR_LINE          "\033[K"
+#define HIDE_CURSOR         "\033[?25l"
+#define SHOW_CURSOR         "\033[?25h"
 
 #define RESET       "\033[0m"
 #define BOLD        "\033[1m"

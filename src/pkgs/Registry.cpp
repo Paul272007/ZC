@@ -103,6 +103,7 @@ void Registry::finish_install(Project &p, const std::string &origin)
     if_.debug("Not implemented yet.");
     break;
   }
+  if_.success("Package successfully installed!");
 }
 
 void Registry::update_from_server(Target &target, const nlohmann::json &index, const bool force)
@@ -174,7 +175,7 @@ void Registry::uninstall(const std::string &pkg)
       fs::remove(target);
 
   // Remove entire directory
-  if (const auto pkg_path = cache_dir_ / p.name; fs::exists(p.name))
+  if (const auto pkg_path = cache_dir_ / p.name; fs::exists(pkg_path))
     fs::remove_all(pkg_path);
 }
 
@@ -241,7 +242,7 @@ Registry::~Registry()
 
 void Registry::load()
 {
-  const json root = if_.read_json(file_);
+  const json root = read_json(file_);
 
   get_key(root, "packages", pkgs_);
 }
@@ -249,7 +250,7 @@ void Registry::load()
 void Registry::write()
 {
   const json root{{"packages", pkgs_}};
-  if_.write_json(root, file_);
+  write_json(root, file_);
 }
 
 Registry::Registry(const std::filesystem::path &root)
@@ -291,9 +292,11 @@ std::vector<RegistryPkg>::iterator Registry::get_pkg_it(const std::string &name)
 
 RegistryPkg Registry::unindex_pkg(const string &name)
 {
-  const auto removed_pkg = get_pkg_it(name);
-  pkgs_.erase(removed_pkg);
-  return *removed_pkg;
+  const auto removed_pkg_it = get_pkg_it(name);
+  RegistryPkg pkg = *removed_pkg_it;
+  pkgs_.erase(removed_pkg_it);
+  modified_ = true;
+  return pkg;
 }
 
 void Registry::copy_bin(const Project &p) const

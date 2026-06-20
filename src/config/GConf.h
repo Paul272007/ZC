@@ -43,7 +43,7 @@ public:
 
   ~GConf() override;
 
-  LanguageConf get_lang_conf(Language l);
+  LanguageConf get_lang_conf(Language l) const;
 
 protected:
   void load() override;

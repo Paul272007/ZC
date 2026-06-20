@@ -34,7 +34,7 @@ inline std::string pkg_type_to_pretty_str(const PkgType type)
   case HEADER:
     return "Header-only library";
   case COMPOSE:
-    return "Compose package";
+    return "Composed package";
   default:
     return "Undefined";
   }

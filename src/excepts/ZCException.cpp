@@ -43,7 +43,7 @@ int ZCException::code() const
 
 std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception)
 {
-  stream << "[" RED "ERROR" RESET "]   ";
+  stream << RED "✗ Error: " RESET;
 
 #ifdef DEBUG_MODE
   stream << "(exit code: " << zc_exception.code_ << ") ";

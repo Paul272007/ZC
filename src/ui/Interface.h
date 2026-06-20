@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <filesystem>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
+#include <vector>
 
 namespace zc
 {
@@ -20,14 +20,9 @@ public:
   Interface(const Interface &) = delete;
   void operator=(const Interface &) = delete;
 
-  void set_quiet(bool quiet)
-  {
-    quiet_ = quiet;
-  }
-
   void clear() const;
 
-  void flush() const;
+  void flush_screen() const;
 
   void new_line() const;
 
@@ -61,13 +56,19 @@ public:
 
   void clear_loading_bar() const;
 
-  void write_json(const nlohmann::json &json, const std::filesystem::path &file_path) const;
+  std::vector<std::string>
+  checkboxes(const std::string &question, const std::vector<std::string> &options) const;
 
-  nlohmann::json read_json(const std::filesystem::path &file_path) const;
+  int radios(const std::string &question, const std::vector<std::string> &options, int default_ans = 0) const;
 
   bool is_quiet() const
   {
     return quiet_;
+  }
+
+  void set_quiet(bool quiet)
+  {
+    quiet_ = quiet;
   }
 
 private:

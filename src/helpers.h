@@ -21,7 +21,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #define BIN_NAME(name)        (name + ".exe")
 #define STATIC_LIB_NAME(name) (name + ".a")
-#define SHARED_LIB_NAME(name) (name + ".lib")
+#define SHARED_LIB_NAME(name) (name + ".dll")
 #define RM_COMMAND            "del"
 #define MKDIR_COMMAND         "mkdir"
 #define USER_HOME_ENV         "USERPROFILE"
@@ -98,10 +98,15 @@ void check_name(const std::string &name);
 
 std::string read_file(const std::filesystem::path &file);
 void write_file(const std::filesystem::path &file, const std::string &content);
+
+nlohmann::json read_json(const std::filesystem::path &file_path);
+void write_json(const nlohmann::json &json, const std::filesystem::path &file_path);
+
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
+std::string join(const std::vector<std::string> &v, const std::string &separator);
 std::string upper(const std::string &text);
 std::string lower(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);

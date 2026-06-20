@@ -39,6 +39,9 @@ void Project::build(BuildMode current_mode, bool is_install)
     return;
 
   fs::create_directories(build_dir);
+  const string make_cmd = "make --no-print-directory -C " + build_dir.string();
+  int compiled = 0;
+  get_sources();
 
   if (!is_install)
   {
@@ -53,6 +56,7 @@ void Project::build(BuildMode current_mode, bool is_install)
       {
         if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
         clean();
+        fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
       }
     }
     else // if build mode file doesn't exist and mode is set to automatic, default is debug
@@ -60,30 +64,23 @@ void Project::build(BuildMode current_mode, bool is_install)
       current_mode = BuildMode::debug;
     }
     write_file(build_mode_file, build_mode_to_str(current_mode));
-  }
-
-  const string make_cmd = "make --no-print-directory -C " + build_dir.string();
-  int compiled = 0;
-
-  int to_compile = get_sources();
-
-  if (!is_install)
-  {
     generate_compile_commands();
-    to_compile = 0;
-    const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
-    FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
-    if (!dry_pipe)
-      throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
-
-    char buffer_dry[512];
-    while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
-      if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
-        to_compile++;
-    pclose(dry_pipe);
   }
 
   generate_Makefile(current_mode == BuildMode::release);
+
+  int to_compile = 0;
+  const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
+  FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
+  if (!dry_pipe)
+    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
+
+  char buffer_dry[512];
+  while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
+    if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
+      to_compile++;
+  pclose(dry_pipe);
+
   if (to_compile == 0)
   {
     if_.success("Project is already up to date! Nothing to do.");
@@ -141,6 +138,12 @@ void Project::build(BuildMode current_mode, bool is_install)
 
       if_.loading_bar(bar_width, percent, message + target_name);
     }
+#ifndef DEBUG_MODE
+    else if (line.starts_with("make"))
+    {
+      continue; // do not display make messages
+    }
+#endif
     else
     {
       if_.clear_loading_bar();
@@ -373,17 +376,13 @@ void Project::install_dependencies() const
   {
     if (dep.origin == "local")
     {
-      if_.warning(
-          "Dependency '" + dep.name +
-          "' is a local package. Skipping server installation. Make sure it's installed locally."
-      );
+      if_.warning("Dependency '" + dep.name + "' is a local package. Make sure it's installed.");
       continue;
     }
     if (dep.origin == "std")
     {
       if_.warning(
-          "Dependency '" + dep.name +
-          "' is a standard system package. Make sure it's installed on your system."
+          "Dependency '" + dep.name + "' is a standard package. Make sure it's installed on your system."
       );
       continue;
     }
@@ -490,7 +489,7 @@ void Project::Makefile_compose(std::ostringstream &mk) const
 
 void Project::generate_compile_commands() const
 {
-  nlohmann::json compile_commands = nlohmann::json::array();
+  json compile_commands = nlohmann::json::array();
   const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
 
   string includes = "";
