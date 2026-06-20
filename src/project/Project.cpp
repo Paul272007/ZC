@@ -452,20 +452,20 @@ void Project::generate_Makefile(const bool release) const
 
 void Project::Makefile_bin(std::ostringstream &mk) const
 {
-  mk << "TARGET := " << BIN_NAME << "\n\n";
+  mk << "TARGET := " << BIN_NAME(pconf.target) << "\n\n";
   mk << "all: $(TARGET)\n\n";
 
   mk << "$(TARGET):";
   for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_BIN|$@\"\n";
-  mk << "\t@" << get_linker() << " $(LIB_DIRS) $(LIBS) -o $@ $^\n\n";
+  mk << "\t@" << get_linker() << " -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
 }
 
 void Project::Makefile_lib(std::ostringstream &mk) const
 {
-  mk << "TARGET_STATIC := " << STATIC_LIB_NAME << "\n";
-  mk << "TARGET_SHARED := " << SHARED_LIB_NAME << "\n\n";
+  mk << "TARGET_STATIC := " << STATIC_LIB_NAME(pconf.target) << "\n";
+  mk << "TARGET_SHARED := " << SHARED_LIB_NAME(pconf.target) << "\n\n";
   mk << "all: $(TARGET_STATIC) $(TARGET_SHARED)\n\n";
 
   mk << "$(TARGET_STATIC):";
@@ -478,7 +478,7 @@ void Project::Makefile_lib(std::ostringstream &mk) const
   for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_SHARED|$@\"\n";
-  mk << "\t@" << get_linker() << " $(LIB_DIRS) $(LIBS) -shared -o $@ $^\n\n";
+  mk << "\t@" << get_linker() << " -shared -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
 }
 
 void Project::Makefile_compose(std::ostringstream &mk) const
@@ -603,6 +603,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "LIB_DIRS     :=";
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
   {
+    if (dep.static_link) // We add the archive directly as a source
+      continue;
     const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
     mk << " -L" << dep_lib_dir << " -Wl,-rpath," << dep_lib_dir;
   }
@@ -610,7 +612,14 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 
   // Libraries for linker
   mk << "LIBS         :=";
-  for (const auto &dep : pconf.dependencies) mk << " -l" << reg_.get_pkg(dep.name).target;
+  for (const auto &dep : pconf.dependencies)
+  {
+    const string dep_target = reg_.get_pkg(dep.name).target;
+    if (dep.static_link)
+      mk << " " << (cache_dir / dep.name / dep.version.string() / LIB_DIR / STATIC_LIB_NAME(dep_target));
+    else
+      mk << " -l" << dep_target;
+  }
   mk << "\n\n";
 }
 
@@ -631,12 +640,12 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     for (const auto &ext : extensions_for_language(l.name))
     {
       const string lower_ext = lower(ext);
-      mk << "%." << lower_ext << ".o: %." << lower_ext << "\n";
+      mk << "%." << lower_ext << ".o: %." << lower_ext << " ../" << ZC_FILE << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
-      mk << "%." << ext << ".o: %." << ext << "\n";
+      mk << "%." << ext << ".o: %." << ext << " ../" << ZC_FILE << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";

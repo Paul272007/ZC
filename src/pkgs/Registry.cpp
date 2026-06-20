@@ -345,12 +345,13 @@ void Registry::copy_libs(const Project &p) const
     throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());
 
   fs::create_directories(dest_dir);
-  const auto pconf = p.pconf;
   fs::copy_file(
-      source_dir / STATIC_LIB_NAME, dest_dir / STATIC_LIB_NAME, fs::copy_options::overwrite_existing
+      source_dir / STATIC_LIB_NAME(p.pconf.target), dest_dir / STATIC_LIB_NAME(p.pconf.target),
+      fs::copy_options::overwrite_existing
   );
   fs::copy_file(
-      source_dir / SHARED_LIB_NAME, dest_dir / SHARED_LIB_NAME, fs::copy_options::overwrite_existing
+      source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
+      fs::copy_options::overwrite_existing
   );
 }
 

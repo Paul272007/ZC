@@ -19,29 +19,29 @@
 
 // clang-format off
 #if defined(_WIN32) || defined(_WIN64)
-#define BIN_NAME        (pconf.target + ".exe")
-#define STATIC_LIB_NAME (pconf.target + ".a")
-#define SHARED_LIB_NAME (pconf.target + ".lib")
-#define RM_COMMAND      "del"
-#define MKDIR_COMMAND   "mkdir"
-#define USER_HOME_ENV   "USERPROFILE"
-#define HIDE_OUTPUT     " > NUL 2>&1" // Powershell : " *> $null"
+#define BIN_NAME(name)        (name + ".exe")
+#define STATIC_LIB_NAME(name) (name + ".a")
+#define SHARED_LIB_NAME(name) (name + ".lib")
+#define RM_COMMAND            "del"
+#define MKDIR_COMMAND         "mkdir"
+#define USER_HOME_ENV         "USERPROFILE"
+#define HIDE_OUTPUT           " > NUL 2>&1" // Powershell : " *> $null"
 #elifdef __APPLE__
-#define BIN_NAME        pconf.target
-#define STATIC_LIB_NAME ("lib" + pconf.target + ".a")
-#define SHARED_LIB_NAME ("lib" + pconf.target + ".dylib")
-#define RM_COMMAND      "rm"
-#define MKDIR_COMMAND   "mkdir -p"
-#define USER_HOME_ENV   "HOME"
-#define HIDE_OUTPUT     " &>/dev/null"
+#define BIN_NAME(name)        name
+#define STATIC_LIB_NAME(name) ("lib" + name + ".a")
+#define SHARED_LIB_NAME(name) ("lib" + name + ".dylib")
+#define RM_COMMAND            "rm"
+#define MKDIR_COMMAND         "mkdir -p"
+#define USER_HOME_ENV         "HOME"
+#define HIDE_OUTPUT           " &>/dev/null"
 #else
-#define BIN_NAME        pconf.target
-#define STATIC_LIB_NAME ("lib" + pconf.target + ".a")
-#define SHARED_LIB_NAME ("lib" + pconf.target + ".so")
-#define RM_COMMAND      "rm"
-#define MKDIR_COMMAND   "mkdir -p"
-#define USER_HOME_ENV   "HOME"
-#define HIDE_OUTPUT     " &>/dev/null"
+#define BIN_NAME(name)        name
+#define STATIC_LIB_NAME(name) ("lib" + name + ".a")
+#define SHARED_LIB_NAME(name) ("lib" + name + ".so")
+#define RM_COMMAND            "rm"
+#define MKDIR_COMMAND         "mkdir -p"
+#define USER_HOME_ENV         "HOME"
+#define HIDE_OUTPUT           " &>/dev/null"
 #endif
 
 #define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache"}
