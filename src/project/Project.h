@@ -75,15 +75,9 @@ public:
 
   void publish();
 
-  /**
-   * @param name
-   */
   void add_dependency(const std::string &name);
-
-  /**
-   * @param name
-   */
   void remove_dependency(const std::string &name);
+  void change_dependency_version(const std::string &name, const Version &new_version);
 
   void install_dependencies() const;
   void update_dependencies() const;

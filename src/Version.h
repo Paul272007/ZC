@@ -15,26 +15,20 @@ namespace zc
 class Version
 {
 public:
-  /**
-   * @param text
-   */
   Version(const std::string &text);
 
-  /**
-   * @param major
-   * @param minor
-   * @param patch
-   */
-  Version(int major = 0, int minor = 0, int patch = 0);
+  Version(int major = 0, int minor = 0, int patch = 1); // Default : first non-empty version
 
   [[nodiscard]] std::string string() const;
 
   [[nodiscard]] auto operator<=>(const Version &) const = default;
 
+  bool empty() const;
+
 private:
-  int major_;
-  int minor_;
-  int patch_;
+  int major_ = 0; // Initialize at 0 => if string is empty, so is the version
+  int minor_ = 0;
+  int patch_ = 0;
 };
 
 inline void from_json(const nlohmann::json &j, Version &v)

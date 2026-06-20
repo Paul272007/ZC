@@ -36,7 +36,7 @@ void Install::operator()()
   }
 
   json index = Network::get().get_index();
-  for (const auto &target : targets_) reg_.install_from_server(target.name, target.version, index, force_);
+  for (auto &target : targets_) reg_.install_from_server(target, index, force_);
 }
 
 } // namespace zc

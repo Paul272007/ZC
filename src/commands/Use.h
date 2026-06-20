@@ -11,15 +11,15 @@
 namespace zc
 {
 
-class Update : public Command
+class Use : public Command
 {
 public:
-  Update(bool force, const std::string &path, std::vector<std::string> &targets);
+  Use(bool force, const std::filesystem::path &p_root, std::vector<std::string> &targets);
 
   void operator()() override;
 
 private:
-  const std::filesystem::path path_;
+  const std::filesystem::path p_root_;
   Targets targets_;
   Registry &reg_ = Registry::get();
 };

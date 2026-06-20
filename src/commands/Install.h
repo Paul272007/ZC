@@ -19,7 +19,7 @@ public:
 
 private:
   const std::string path_;
-  const Targets targets_;
+  Targets targets_;
   Registry &reg_ = Registry::get();
 };
 

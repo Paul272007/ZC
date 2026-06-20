@@ -19,19 +19,15 @@ namespace zc
  * Version implementation
  */
 
-/**
- * @param text
- */
 Version::Version(const std::string &text)
 {
-  std::stringstream ss(text);
-  std::vector<int> parts;
+  stringstream ss(text);
+  vector<int> parts;
 
   try
   {
     std::string segment;
-    // Get 3 first numbers in string
-    while (std::getline(ss, segment, '.'))
+    while (std::getline(ss, segment, '.')) // Get 3 first numbers in string
       if (!segment.empty())
         parts.push_back(std::stoi(segment));
   }
@@ -48,11 +44,6 @@ Version::Version(const std::string &text)
     patch_ = parts[2];
 }
 
-/**
- * @param major
- * @param minor
- * @param patch
- */
 Version::Version(const int major, const int minor, const int patch)
     : major_(major), minor_(minor), patch_(patch)
 {
@@ -62,4 +53,10 @@ std::string Version::string() const
 {
   return std::format("{}.{}.{}", major_, minor_, patch_);
 }
+
+bool Version::empty() const
+{
+  return major_ == 0 && minor_ == 0 && patch_ == 0;
+}
+
 } // namespace zc

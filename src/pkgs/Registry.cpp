@@ -12,6 +12,7 @@
 #include "Network.h"
 #include "PkgType.h"
 #include "Registry.h"
+#include "excepts/ExitCode.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -36,24 +37,23 @@ RegistryPkg Registry::get_pkg(const std::string &name)
 {
   const auto it = ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; });
   if (it == pkgs_.end())
-    throw ZCException(ZCE_ALREADY_INSTALLED, "The package '" + name + "' was not found");
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
 
   return *it;
 }
 
-void Registry::install_from_server(
-    const std::string &name, const std::string &version, const json &index, const bool force
-)
+void Registry::install_from_server(Target &target, const json &index, const bool force)
 {
-  if (is_installed(name))
+  if (is_installed(target.name))
   {
-    update_from_server(name, version, index, force);
+    update_from_server(target, index, force);
     return;
   }
 
-  const string version_key = version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
+  target.version =
+      target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>() : target.version;
 
-  const fs::path project_root = download_and_extract(name, version, index);
+  const fs::path project_root = download_and_extract(target, index);
   Project p(project_root);
 
   finish_install(p, "main");
@@ -104,22 +104,20 @@ void Registry::finish_install(Project &p, const std::string &origin)
   }
 }
 
-void Registry::update_from_server(
-    const std::string &name, const std::string &version, const nlohmann::json &index, const bool force
-)
+void Registry::update_from_server(Target &target, const nlohmann::json &index, const bool force)
 {
-  if (get_pkg(name).origin != "main") // throws an error if package is not installed
+  if (get_pkg(target.name).origin != "main") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update local package with distant package");
 
   // Check if version is already installed
-  if (const string version_key =
-          version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
-      !force && is_installed(name, version_key))
+  target.version =
+      target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>() : target.version;
+  if (force && is_installed(target))
   {
-    if_.info("Skipped package " + name + ": already up-to-date at v" + version_key);
+    if_.info("Skipped package " + target.name + ": already up-to-date at v" + target.version.string());
     return;
   }
-  const fs::path project_root = download_and_extract(name, version, index);
+  const fs::path project_root = download_and_extract(target, index);
   Project p(project_root);
   finish_update(p);
 }
@@ -130,7 +128,7 @@ void Registry::update_from_path(const std::filesystem::path &path, const bool fo
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update distant package with local package");
 
-  if (!force && is_installed(p.pconf.name, p.pconf.version))
+  if (!force && is_installed({p.pconf.name, p.pconf.version}))
   {
     if_.info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return;
@@ -178,14 +176,14 @@ void Registry::uninstall(const std::string &pkg)
     fs::remove_all(pkg_path);
 }
 
-bool Registry::is_installed(const string &name, const Version &version)
+bool Registry::is_installed(const Target &target)
 {
   const auto it = ranges::find_if(
       pkgs_,
       [&](const RegistryPkg &p)
       {
-        return p.name == name &&
-               ranges::find_if(p.versions, [&](const Version &v) { return v == version; }) !=
+        return p.name == target.name &&
+               ranges::find_if(p.versions, [&](const Version &v) { return v == target.version; }) !=
                    p.versions.end();
       }
   );
@@ -282,7 +280,7 @@ std::vector<RegistryPkg>::iterator Registry::get_pkg_it(const std::string &name)
 {
   const auto it = ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; });
   if (it == pkgs_.end())
-    throw ZCException(ZCE_ALREADY_INSTALLED, "The package '" + name + "' was not found");
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
 
   return it;
 }
@@ -360,18 +358,19 @@ void Registry::clean() const
     fs::remove_all(tmp_dir_);
 }
 
-std::filesystem::path
-Registry::download_and_extract(const std::string &name, const std::string &version, const json &index) const
+std::filesystem::path Registry::download_and_extract(const Target &target, const json &index) const
 {
   if_.info("Downloading archive...");
-  const string archive_url = pkg_url(name, version, index); // throws error if pkg not found in index
-  const fs::path archive_path = tmp_dir_ / (name + ".tar.gz");
+  const string archive_url = pkg_url(target, index); // throws error if pkg not found in index
+  const fs::path archive_path = tmp_dir_ / (target.name + ".tar.gz");
   const fs::path extract_path = tmp_dir_; // extract directly in ~/.zc/tmp
   net_.download(archive_url, archive_path);
 
   // TODO : optimise with get_key()
   if_.info("Verifying archive hash...");
-  verify_archive_hash(archive_path, index["packages"][name]["versions"][version]["sha256"]);
+  verify_archive_hash(
+      archive_path, index["packages"][target.name]["versions"][target.version.string()]["sha256"]
+  );
 
   if_.info("Extracting archive...");
   fs::create_directories(extract_path);
@@ -403,22 +402,19 @@ void Registry::verify_archive_hash(const std::filesystem::path &archive, const s
   if_.success("Hash is correct");
 }
 
-std::string Registry::pkg_url(const string &name, const string &version, const nlohmann::json &index)
+std::string Registry::pkg_url(const Target &target, const nlohmann::json &index)
 {
   // TODO : optimise with get_key()
   if (!index.contains("packages"))
     throw ZCException(ZCE_MISSING_PROPERTY, "Index should contain hey 'packages'.");
 
-  if (!index["packages"].contains(name))
-    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' not found.");
+  if (!index["packages"].contains(target.name))
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + target.name + "' not found.");
 
-  const string version_to_install =
-      version.empty() ? index["packages"][name]["latest"].get<std::string>() : version;
+  if (!index["packages"][target.name]["versions"].contains(target.version.string()))
+    throw ZCException(ZCE_NOT_FOUND, "Version " + target.version.string() + " does not exist.");
 
-  if (!index["packages"][name]["versions"].contains(version_to_install))
-    throw ZCException(ZCE_NOT_FOUND, "Version " + version_to_install + " does not exist.");
-
-  return index["packages"][name]["versions"][version_to_install].value("url", "");
+  return index["packages"][target.name]["versions"][target.version.string()].value("url", "");
 }
 
 } // namespace zc

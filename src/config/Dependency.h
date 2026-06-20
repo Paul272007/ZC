@@ -15,7 +15,9 @@ struct Dependency
 {
   std::string name;
   bool static_link = false;
-  Version version = {0, 0, 0};
+  Version version;
+
+  bool operator==(const Dependency &) const = default;
 };
 
 } // namespace zc

@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "Version.h"
 #include "excepts/ZCException.h"
 
 #define ZC_DEV_CONFIG                                                                                        \
@@ -82,7 +83,7 @@ namespace zc
 
 struct Target {
   const std::string name;
-  const std::string version;
+  Version version;
 };
 
 using Targets = std::vector<Target>;

@@ -95,6 +95,7 @@ void Project::build(BuildMode current_mode)
     if_.success("Project is already up to date! Nothing to do.");
     return;
   }
+  if_.info(std::to_string(to_compile_) + " file(s) to compile");
 
   // Add linking as compilation step
   to_compile_ += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
@@ -347,21 +348,36 @@ void Project::remove_dependency(const string &name)
   generate_compile_commands();
 }
 
+void Project::change_dependency_version(const std::string &name, const Version &new_version)
+{
+  if (!reg_.is_installed({name, new_version}))
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
+
+  pconf.change_dependency_version(name, new_version);
+}
+
 void Project::install_dependencies() const
 {
   if_.info("Installing package dependencies...");
   const auto &net = Network::get();
   const json index = net.get_index();
-
-  for (const auto &dep : pconf.dependencies) reg_.install_from_server(dep.name, dep.version.string(), index);
+  for (const auto &dep : pconf.dependencies)
+  {
+    Target t{.name = dep.name, .version = dep.version};
+    reg_.install_from_server(t, index);
+  }
 }
 
 void Project::update_dependencies() const
 {
+  if_.info("Updating package dependencies...");
   const auto &net = Network::get();
   const json index = net.get_index();
-  // "" = get latest version
-  for (const auto &dep : pconf.dependencies) reg_.update_from_server(dep.name, "", index);
+  for (const auto &dep : pconf.dependencies)
+  {
+    Target t{.name = dep.name, .version = dep.version};
+    reg_.update_from_server(t, index);
+  }
 }
 
 void Project::generate_build_config()

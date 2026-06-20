@@ -94,6 +94,8 @@ add_library(zc-core STATIC
         src/commands/Uninstall.h
         src/commands/Update.cpp
         src/commands/Update.h
+        src/commands/Use.cpp
+        src/commands/Use.h
 )
 
 target_include_directories(zc-core PRIVATE src)

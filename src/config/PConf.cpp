@@ -4,6 +4,7 @@
  * @version 0.1
  */
 
+#include <algorithm>
 #include <string>
 #include <sys/stat.h>
 
@@ -33,14 +34,31 @@ PConf::~PConf()
 
 void PConf::add_dependency(const Dependency &d)
 {
+  // Already checked in Project::add_dependency() if pkg is installed
+  if (ranges::find_if(dependencies, [&d](const Dependency &dep) { return d.name == dep.name; }) !=
+      dependencies.end())
+    throw ZCException(ZCE_ALREADY_INSTALLED, "Dependency " + d.name + " already added");
+
   dependencies.push_back(d);
+  modified_ = true;
+}
+
+void PConf::change_dependency_version(const std::string &name, const Version &new_version)
+{
+  // Already checked in Project::change_dependency_version() if pkg is installed
+  const auto it = ranges::find_if(dependencies, [&name](const Dependency &d) { return d.name == name; });
+
+  if (it == dependencies.end())
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + name + " was not found.");
+
+  it->version = new_version;
   modified_ = true;
 }
 
 void PConf::remove_dependency(const std::string &dep_name)
 {
   const auto it =
-      ranges::find_if(dependencies, [dep_name](const Dependency &d) { return d.name == dep_name; });
+      ranges::find_if(dependencies, [&dep_name](const Dependency &d) { return d.name == dep_name; });
 
   if (it == dependencies.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + dep_name + " was not found.");

@@ -202,13 +202,12 @@ Targets parse_targets(const std::vector<std::string> &targets)
   Targets results;
   for (const auto &target : targets)
   {
-    string requested_version = "";
     size_t at_pos = target.find('@');
 
     if (at_pos != string::npos)
       results.push_back({target.substr(0, at_pos), target.substr(at_pos + 1)});
     else
-      results.push_back({target, ""});
+      results.push_back({target, {0, 0, 0}}); // 0.0.0 = empty version
   }
   return results;
 }

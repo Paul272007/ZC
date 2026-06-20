@@ -26,6 +26,7 @@
 #include "commands/Setup.h"
 #include "commands/Uninstall.h"
 #include "commands/Update.h"
+#include "commands/Use.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "ui/Interface.h"
@@ -94,6 +95,7 @@ int main(const int argc, char *argv[])
   const auto build     = app.add_subcommand("build",     "Build project");
   const auto add       = app.add_subcommand("add",       "Add dependencies to project");
   const auto remove    = app.add_subcommand("remove",    "Remove dependencies from project");
+  const auto use       = app.add_subcommand("use",       "Choose version of dependency to use");
   const auto publish   = app.add_subcommand("publish",   "Publish package to server");
   const auto clean     = app.add_subcommand("clean",     "Clean all temporary files and directories");
   // Packages
@@ -176,6 +178,15 @@ int main(const int argc, char *argv[])
   remove->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   remove->callback([&] { command = make_unique<Remove>(force, p_root, targets); });
+
+  // Use
+
+  use->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  use->add_option("targets", targets, "The dependencies and their version to use")->required();
+
+  use->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
+  use->callback([&] { command = make_unique<Use>(force, p_root, targets); });
 
   // Publish
 

@@ -26,7 +26,7 @@ public:
   std::string author;
   std::string target = name;
   PkgType type = UNDEF;
-  Version version = {0, 0, 0};
+  Version version; // default is 0.0.1
   std::vector<std::string> src_dirs = {SRC_DIR};
   std::vector<std::string> include_dirs = {SRC_DIR};
   std::vector<Dependency> dependencies;
@@ -37,8 +37,8 @@ public:
   ~PConf() override;
 
   void add_dependency(const Dependency &d);
-
   void remove_dependency(const std::string &dep_name);
+  void change_dependency_version(const std::string &name, const Version &new_version);
 
   LanguageConf get_lang_conf(Language l) const;
 
