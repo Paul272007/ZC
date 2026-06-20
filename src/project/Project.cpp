@@ -16,6 +16,7 @@
 #include "../helpers.h"
 #include "Language.h"
 #include "Project.h"
+#include "Version.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "pkgs/Network.h"
@@ -160,7 +161,6 @@ void Project::build(BuildMode current_mode, bool is_install)
   }
 
   if_.clear_loading_bar();
-  // if_.new_line();
 
   const int result = pclose(pipe);
   if (WEXITSTATUS(result) == 0) // FIX : find solution for windows
@@ -173,11 +173,11 @@ void Project::clean() const
 {
   if (fs::exists(build_dir) && fs::is_directory(build_dir))
     if (fs::remove_all(build_dir) > 0)
-      if_.info("Cleaned " + build_dir.string());
+      if_.info("Cleaned " + pretty_path(build_dir));
 
   if (fs::exists(cache_dir_) && fs::is_directory(cache_dir_))
     if (fs::remove_all(cache_dir_) > 0)
-      if_.info("Cleaned " + cache_dir_.string());
+      if_.info("Cleaned " + pretty_path(cache_dir_));
 }
 
 void Project::publish()
@@ -400,7 +400,7 @@ void Project::install_dependencies() const
   }
 }
 
-void Project::update_dependencies() const
+void Project::update_dependencies()
 {
   if_.info("Updating package dependencies...");
   const auto &net = Network::get();
@@ -410,8 +410,9 @@ void Project::update_dependencies() const
     if (dep.origin == "local" || dep.origin == "std")
       continue;
 
-    Target t{.name = dep.name, .version = dep.version};
+    Target t{.name = dep.name, .version = Version::latest()};
     reg_.update_from_server(t, index);
+    pconf.change_dependency_version(dep.name, Version::latest());
   }
 }
 

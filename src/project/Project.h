@@ -81,7 +81,7 @@ public:
   void change_dependency_version(const std::string &name, const Version &new_version);
 
   void install_dependencies() const;
-  void update_dependencies() const;
+  void update_dependencies();
 
   void generate_build_config();
 

@@ -150,6 +150,11 @@ std::string base64_encode(const std::string &in)
   return out;
 }
 
+std::string pretty_path(const std::filesystem::path &path)
+{
+  return fs::relative(path).string();
+}
+
 std::string join(const std::vector<std::string> &v, const std::string &separator)
 {
   stringstream s;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -13,12 +14,16 @@ namespace zc
 class Install : public Command
 {
 public:
-  Install(bool force, const std::string &path, std::vector<std::string> &targets);
+  Install(
+      bool force, const std::filesystem::path &p_root, const std::filesystem::path &path,
+      std::vector<std::string> &targets
+  );
 
   void operator()() override;
 
 private:
-  const std::string path_;
+  const std::filesystem::path p_root_;
+  const std::filesystem::path path_;
   Targets targets_;
   Registry &reg_ = Registry::get();
 };

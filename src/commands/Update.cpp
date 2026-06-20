@@ -10,8 +10,11 @@ ZC_DEV_CONFIG_JSON
 namespace zc
 {
 
-Update::Update(bool force, const std::string &path, std::vector<std::string> &targets)
-    : Command(force), path_(path), targets_(parse_targets(targets))
+Update::Update(
+    bool force, const fs::path &p_root, const fs::path &path, std::vector<std::string> &targets, bool sync
+)
+    : Command(force), p_root_(get_project_root(p_root)), path_(path), targets_(parse_targets(targets)),
+      sync_(sync)
 {
 }
 
@@ -21,21 +24,29 @@ void Update::operator()()
   {
     if (!targets_.empty())
       throw ZCException(
-          ZCE_INCOMPATIBLE_FLAGS, "Cannot update from remote and from local project at the same time"
+          ZCE_INCOMPATIBLE_FLAGS, "Cannot update from remote and local project at the same time"
       );
 
-    reg_.update_from_path(path_, force_);
-    return;
+    Project p = reg_.update_from_path(path_, force_);
+    if (sync_)
+      Project(p_root_).change_dependency_version(p.pconf.name, p.pconf.version);
   }
-  if (targets_.empty())
+  else if (targets_.empty())
   {
-    Project p;
-    p.update_dependencies();
-    return;
+    Project p(p_root_);
+    p.update_dependencies(); // --sync by default
   }
+  else
+  {
+    json index = Network::get().get_index();
+    for (auto &target : targets_) reg_.update_from_server(target, index, force_);
 
-  json index = Network::get().get_index();
-  for (auto &target : targets_) reg_.update_from_server(target, index, force_);
+    if (sync_)
+    {
+      Project p(p_root_); // target.version now contains the newly installed version :
+      for (const auto &target : targets_) p.change_dependency_version(target.name, target.version);
+    }
+  }
 }
 
 } // namespace zc

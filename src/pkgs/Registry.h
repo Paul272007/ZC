@@ -53,16 +53,16 @@ public:
    */
   void install_from_path(const std::filesystem::path &path, bool force = false);
 
-  /**
-   * Add a new version to a package (latest available version by default)
-   * @param name
-   * @param version
-   * @param index
-   * @param force
-   */
   void update_from_server(Target &target, const nlohmann::json &index, bool force = false);
 
-  void update_from_path(const std::filesystem::path &path, bool force = false);
+  /**
+   * @brief Update a project from local path
+   *
+   * @param path The path to the project to update
+   * @param force Whether to force update
+   * @return The created project at the root of the project
+   */
+  Project update_from_path(const std::filesystem::path &path, bool force = false);
 
   /**
    * Uninstall a package and all its versions

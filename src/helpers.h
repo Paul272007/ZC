@@ -83,7 +83,7 @@ namespace zc
 
 struct Target {
   const std::string name;
-  Version version;
+  Version version = Version::latest();
 };
 
 using Targets = std::vector<Target>;
@@ -106,6 +106,7 @@ void extract(const std::filesystem::path &archive, const std::filesystem::path &
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
+std::string pretty_path(const std::filesystem::path &path);
 std::string join(const std::vector<std::string> &v, const std::string &separator);
 std::string upper(const std::string &text);
 std::string lower(const std::string &text);

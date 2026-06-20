@@ -5,14 +5,18 @@
 #include "helpers.h"
 #include "pkgs/Network.h"
 #include "project/Project.h"
+#include <filesystem>
 
 ZC_DEV_CONFIG_JSON
 
 namespace zc
 {
 
-Install::Install(bool force, const std::string &path, std::vector<std::string> &targets)
-    : Command(force), path_(path), targets_(parse_targets(targets))
+Install::Install(
+    bool force, const std::filesystem::path &p_root, const filesystem::path &path,
+    std::vector<std::string> &targets
+)
+    : Command(force), p_root_(get_project_root(p_root)), path_(path), targets_(parse_targets(targets))
 {
 }
 
@@ -30,7 +34,7 @@ void Install::operator()()
   }
   if (targets_.empty())
   {
-    Project p;
+    Project p(p_root_);
     p.install_dependencies();
     return;
   }

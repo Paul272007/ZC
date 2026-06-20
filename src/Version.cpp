@@ -21,6 +21,12 @@ namespace zc
 
 Version::Version(const std::string &text)
 {
+  if (text == "latest")
+  {
+    (*this) = latest();
+    return;
+  }
+
   stringstream ss(text);
   vector<int> parts;
 

@@ -124,7 +124,7 @@ void Registry::update_from_server(Target &target, const nlohmann::json &index, c
   finish_update(p);
 }
 
-void Registry::update_from_path(const std::filesystem::path &path, const bool force)
+Project Registry::update_from_path(const std::filesystem::path &path, const bool force)
 {
   Project p(path);
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
@@ -133,9 +133,10 @@ void Registry::update_from_path(const std::filesystem::path &path, const bool fo
   if (!force && is_installed({p.pconf.name, p.pconf.version}))
   {
     if_.info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
-    return;
+    return p;
   }
   finish_update(p);
+  return p;
 }
 
 void Registry::finish_update(Project &p)

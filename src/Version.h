@@ -19,6 +19,11 @@ public:
 
   Version(int major = 0, int minor = 0, int patch = 1); // Default : first non-empty version
 
+  static Version latest()
+  {
+    return {0, 0, 0};
+  }
+
   [[nodiscard]] std::string string() const;
 
   [[nodiscard]] auto operator<=>(const Version &) const = default;

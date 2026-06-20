@@ -14,13 +14,18 @@ namespace zc
 class Update : public Command
 {
 public:
-  Update(bool force, const std::string &path, std::vector<std::string> &targets);
+  Update(
+      bool force, const std::filesystem::path &p_root, const std::filesystem::path &path,
+      std::vector<std::string> &targets, bool sync
+  );
 
   void operator()() override;
 
 private:
+  const std::filesystem::path p_root_;
   const std::filesystem::path path_;
   Targets targets_;
+  const bool sync_;
   Registry &reg_ = Registry::get();
 };
 

@@ -74,6 +74,8 @@ int main(const int argc, char *argv[])
   bool show_p_templates = false;
   bool simple_display   = false;
   bool show_remote      = false;
+  // Update
+  bool sync              = false;
 
   string author;
   string target;
@@ -220,10 +222,11 @@ int main(const int argc, char *argv[])
   // Install
   // TODO : add --project-path
 
+  install->add_option("--project-path,-P", p_root, "Directory to use as project root");
   install->add_option("--path,-p", path, "Install from local project instead of remote");
   install->add_option("targets", targets, "Targets to install");
 
-  install->callback([&] { command = make_unique<Install>(force, path, targets); });
+  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets); });
 
   // Uninstall
   // TODO : add --project-path to uninstall all project dependencies
@@ -234,10 +237,13 @@ int main(const int argc, char *argv[])
 
   // Update
 
+  update->add_option("--project-path,-P", p_root, "Directory to use as project root");
   update->add_option("--path,-p", path, "Update local package from its root path");
   update->add_option("targets", targets, "Targets to update");
 
-  update->callback([&] { command = make_unique<Update>(force, path, targets); });
+  update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
+
+  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync); });
 
   // Login
 
