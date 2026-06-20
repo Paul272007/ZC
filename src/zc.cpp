@@ -167,8 +167,9 @@ int main(const int argc, char *argv[])
   add->add_option("targets", targets, "The dependencies to be added")->required();
 
   add->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  add->add_flag("--static,-s", static_link, "Add dependency as static library instead of shared library");
 
-  add->callback([&] { command = make_unique<Add>(force, p_root, targets); });
+  add->callback([&] { command = make_unique<Add>(force, p_root, targets, static_link); });
 
   // Remove
 

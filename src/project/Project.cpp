@@ -332,16 +332,19 @@ void Project::publish()
   }
 }
 
-void Project::add_dependency(const string &name)
+void Project::add_dependency(const string &name, const bool is_static)
 {
   if (pconf.name == name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
 
   RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
+  if (pkg.type == BIN)
+    throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN as a dependency");
+
   const Dependency d{
       .name = pkg.name,
       .origin = pkg.origin,
-      .static_link = false,
+      .static_link = is_static,
       .version = *ranges::max_element(pkg.versions)
   };
 

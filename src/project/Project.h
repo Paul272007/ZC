@@ -75,7 +75,7 @@ public:
 
   void publish();
 
-  void add_dependency(const std::string &name);
+  void add_dependency(const std::string &name, bool is_static = false);
   void remove_dependency(const std::string &name);
   void change_dependency_version(const std::string &name, const Version &new_version);
 
