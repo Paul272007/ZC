@@ -73,6 +73,7 @@ void Registry::install_from_path(const std::filesystem::path &path, const bool f
 void Registry::finish_install(Project &p, const std::string &origin)
 {
   if_.info("Building package...");
+  p.install_dependencies();
   p.build(BuildMode::release);
 
   if_.info("Indexing package...");
@@ -139,6 +140,7 @@ void Registry::update_from_path(const std::filesystem::path &path, const bool fo
 void Registry::finish_update(Project &p)
 {
   if_.info("Building package...");
+  p.install_dependencies();
   p.build(BuildMode::release);
 
   if_.info("Indexing package...");

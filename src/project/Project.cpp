@@ -71,9 +71,7 @@ void Project::build(BuildMode current_mode)
 
   to_compile_ = get_sources();
 
-  if (current_mode == BuildMode::release)
-    install_dependencies();
-  else
+  if (current_mode == BuildMode::debug)
     generate_compile_commands();
 
   generate_Makefile(current_mode == BuildMode::release);
@@ -178,6 +176,12 @@ void Project::clean() const
 void Project::publish()
 {
   if_.info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
+
+  for (const auto &dep : pconf.dependencies)
+    if (reg_.get_pkg(dep.name).origin == "local")
+      throw ZCException(
+          ZCE_LOCAL_DEPENDENCY, "Cannot publish package depending on locally installed package: " + dep.name
+      );
 
   // Version is already in its constructor
   if (pconf.author.empty())
@@ -334,7 +338,12 @@ void Project::add_dependency(const string &name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
 
   RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
-  const Dependency d{.name = pkg.name, .static_link = false, .version = *ranges::max_element(pkg.versions)};
+  const Dependency d{
+      .name = pkg.name,
+      .origin = pkg.origin,
+      .static_link = false,
+      .version = *ranges::max_element(pkg.versions)
+  };
 
   pconf.add_dependency(d);
   fs::create_directories(build_dir);
@@ -363,6 +372,23 @@ void Project::install_dependencies() const
   const json index = net.get_index();
   for (const auto &dep : pconf.dependencies)
   {
+    if (dep.origin == "local")
+    {
+      if_.warning(
+          "Dependency '" + dep.name +
+          "' is a local package. Skipping server installation. Make sure it's installed locally."
+      );
+      continue;
+    }
+    if (dep.origin == "std")
+    {
+      if_.warning(
+          "Dependency '" + dep.name +
+          "' is a standard system package. Make sure it's installed on your system."
+      );
+      continue;
+    }
+
     Target t{.name = dep.name, .version = dep.version};
     reg_.install_from_server(t, index);
   }
@@ -375,6 +401,9 @@ void Project::update_dependencies() const
   const json index = net.get_index();
   for (const auto &dep : pconf.dependencies)
   {
+    if (dep.origin == "local" || dep.origin == "std")
+      continue;
+
     Target t{.name = dep.name, .version = dep.version};
     reg_.update_from_server(t, index);
   }
@@ -598,13 +627,13 @@ void Project::Makefile_rules(std::ostringstream &mk) const
     const string name = language_to_str(l.name);
     for (const auto &ext : extensions_for_language(l.name))
     {
-      mk << "%." << ext << ".o: %." << ext << "\n";
+      const string lower_ext = lower(ext);
+      mk << "%." << lower_ext << ".o: %." << lower_ext << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
 
-      const string lower_ext = lower(ext);
-      mk << "%." << lower_ext << ".o: %." << lower_ext << "\n";
+      mk << "%." << ext << ".o: %." << ext << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
       mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";

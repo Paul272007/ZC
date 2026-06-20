@@ -115,7 +115,8 @@ void PConf::load()
     {
       Dependency d;
       d.name = key;
-      get_key(value, "static_link", d.static_link);
+      get_key(value, "origin", d.origin, d.origin);
+      get_key(value, "static_link", d.static_link, d.static_link);
       get_key(value, "version", d.version);
       dependencies.push_back(d);
     }
@@ -144,7 +145,9 @@ void PConf::write()
 
   json deps_json = json::object();
   for (const auto &dep : dependencies)
-    deps_json[dep.name] = {{"static_link", dep.static_link}, {"version", dep.version}};
+    deps_json[dep.name] = {
+        {"origin", dep.origin}, {"static_link", dep.static_link}, {"version", dep.version}
+    };
   root["dependencies"] = deps_json;
 
   if_.write_json(root, file_);
