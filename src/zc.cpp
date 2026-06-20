@@ -207,6 +207,7 @@ int main(const int argc, char *argv[])
 
   // List
 
+  list->add_flag("--quiet,-q", quiet, "Do not show any messages");
   list->add_flag("--templates,-t", show_templates, "Show available templates instead of packages");
   list->add_flag("--project-templates,-p", show_p_templates, "Show available project templates instead of packages");
   list->add_flag("--remote,-r", show_remote, "Show remote packages instead of local ones");

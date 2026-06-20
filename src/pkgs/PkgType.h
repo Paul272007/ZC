@@ -23,6 +23,23 @@ enum PkgType
   UNDEF
 };
 
+inline std::string pkg_type_to_pretty_str(const PkgType type)
+{
+  switch (type)
+  {
+  case BIN:
+    return "Binary";
+  case LIB:
+    return "Library";
+  case HEADER:
+    return "Header-only library";
+  case COMPOSE:
+    return "Compose package";
+  default:
+    return "Undefined";
+  }
+}
+
 inline std::string pkg_type_to_str(const PkgType type)
 {
   switch (type)

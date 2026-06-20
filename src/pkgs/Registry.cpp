@@ -74,7 +74,7 @@ void Registry::finish_install(Project &p, const std::string &origin)
 {
   if_.info("Building package...");
   p.install_dependencies();
-  p.build(BuildMode::release);
+  p.build(BuildMode::release, true);
 
   if_.info("Indexing package...");
   index_add_pkg(
@@ -141,7 +141,7 @@ void Registry::finish_update(Project &p)
 {
   if_.info("Building package...");
   p.install_dependencies();
-  p.build(BuildMode::release);
+  p.build(BuildMode::release, true);
 
   if_.info("Indexing package...");
   index_add_pkg_version(p.pconf.name, p.pconf.version);
@@ -207,7 +207,9 @@ Table Registry::pkgs_table() const
   vector<vector<string>> str_pkgs{{"Package name", "Target", "Origin", "Latest version", "Type"}};
 
   for (const auto &p : pkgs_)
-    str_pkgs.push_back({p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_str(p.type)});
+    str_pkgs.push_back(
+        {p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_pretty_str(p.type)}
+    );
 
   return {false, true, str_pkgs};
 }

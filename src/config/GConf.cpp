@@ -107,9 +107,16 @@ void GConf::login()
 
 void GConf::logout()
 {
-  token = "";
-  modified_ = true;
-  if_.success("Successfully logged out.");
+  if (token.empty())
+  {
+    if_.info("Already logged out.");
+  }
+  else
+  {
+    token = "";
+    modified_ = true;
+    if_.success("Successfully logged out.");
+  }
 }
 
 void GConf::load()

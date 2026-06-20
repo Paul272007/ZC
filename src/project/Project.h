@@ -70,7 +70,7 @@ public:
    * @param current_mode
    * @param force
    */
-  void build(BuildMode current_mode = BuildMode::debug);
+  void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
 
   void clean() const;
 
@@ -92,7 +92,6 @@ private:
   Registry &reg_ = Registry::get();
   Interface &if_ = Interface::get();
   GConf &gc_ = GConf::get();
-  int to_compile_ = 0;
 
   void generate_Makefile(bool release = false) const;
 

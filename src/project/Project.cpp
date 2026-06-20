@@ -33,65 +33,66 @@ Project::Project(const std::filesystem::path &root)
 {
 }
 
-void Project::build(BuildMode current_mode)
+void Project::build(BuildMode current_mode, bool is_install)
 {
   if (pconf.type == HEADER)
     return;
 
-  const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
-  if (fs::exists(build_mode_file))
-  {
-    const BuildMode previous_mode = build_mode_from_str(read_file(build_mode_file));
-
-    if (current_mode == BuildMode::automatic)
-      current_mode = previous_mode;
-    else if (current_mode != previous_mode)
-    {
-      if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
-      clean();
-    }
-  }
-  else // if build mode file doesn't exist and mode is set to automatic, default is debug
-  {
-    current_mode = BuildMode::debug;
-  }
-
   fs::create_directories(build_dir);
 
-  write_file(build_mode_file, build_mode_to_str(current_mode));
+  if (!is_install)
+  {
+    const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
+    if (fs::exists(build_mode_file))
+    {
+      const BuildMode previous_mode = build_mode_from_str(read_file(build_mode_file));
+
+      if (current_mode == BuildMode::automatic)
+        current_mode = previous_mode;
+      else if (current_mode != previous_mode)
+      {
+        if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
+        clean();
+      }
+    }
+    else // if build mode file doesn't exist and mode is set to automatic, default is debug
+    {
+      current_mode = BuildMode::debug;
+    }
+    write_file(build_mode_file, build_mode_to_str(current_mode));
+  }
 
   const string make_cmd = "make --no-print-directory -C " + build_dir.string();
   int compiled = 0;
 
-  // to_compile_ = get_sources(); // TODO : don't count sources to compile in this function
-  get_sources();
+  int to_compile = get_sources();
 
-  if (current_mode == BuildMode::debug)
+  if (!is_install)
+  {
     generate_compile_commands();
+    to_compile = 0;
+    const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
+    FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
+    if (!dry_pipe)
+      throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
+
+    char buffer_dry[512];
+    while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
+      if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
+        to_compile++;
+    pclose(dry_pipe);
+  }
 
   generate_Makefile(current_mode == BuildMode::release);
-
-  to_compile_ = 0;
-  const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
-  FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
-  if (!dry_pipe)
-    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
-
-  char buffer_dry[512];
-  while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
-    if (string(buffer_dry).find("ZC_COMPILE|") != string::npos)
-      to_compile_++;
-  pclose(dry_pipe);
-
-  if (to_compile_ == 0)
+  if (to_compile == 0)
   {
     if_.success("Project is already up to date! Nothing to do.");
     return;
   }
-  if_.info(std::to_string(to_compile_) + " file(s) to compile");
+  if_.info(std::to_string(to_compile) + " file(s) to compile");
 
   // Add linking as compilation step
-  to_compile_ += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
+  to_compile += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (!pipe)
@@ -109,7 +110,7 @@ void Project::build(BuildMode current_mode)
     if (line.starts_with("ZC_"))
     {
       compiled++;
-      int percent = (compiled * 100) / to_compile_;
+      int percent = (compiled * 100) / to_compile;
       if (percent > 100)
         percent = 100;
 
