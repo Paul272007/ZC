@@ -26,8 +26,9 @@ using Sources = std::map<Language, std::vector<std::string>>;
 
 enum class BuildMode
 {
+  automatic,
   release,
-  debug
+  debug,
 };
 
 inline std::string build_mode_to_str(BuildMode mode)
@@ -93,7 +94,7 @@ private:
   GConf &gc_ = GConf::get();
   int to_compile_ = 0;
 
-  void generate_Makefile(bool release = false);
+  void generate_Makefile(bool release = false) const;
 
   void Makefile_bin(std::ostringstream &mk) const;
   void Makefile_lib(std::ostringstream &mk) const;

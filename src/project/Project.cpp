@@ -27,10 +27,6 @@ ZC_DEV_CONFIG_JSON
 namespace zc
 {
 
-/**
- * Project implementation
- */
-
 Project::Project(const std::filesystem::path &root)
     : root_dir(root), build_dir(root / BUILD_DIR), pconf(root / ZC_FILE),
       cache_dir_(root / PROJECT_CACHE_DIR), makefile_(build_dir / MAKEFILE)
@@ -45,31 +41,30 @@ void Project::build(BuildMode current_mode)
   const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
   if (fs::exists(build_mode_file))
   {
-    string previous_mode_str;
-    ifstream input(build_mode_file);
-    if (!input.is_open())
-      throw ZCException(ZCE_READING_ERROR, "The file couldn't be read: " + build_mode_file.string());
-    input >> previous_mode_str;
+    const BuildMode previous_mode = build_mode_from_str(read_file(build_mode_file));
 
-    const BuildMode previous_mode = build_mode_from_str(previous_mode_str);
-    if (current_mode != previous_mode)
+    if (current_mode == BuildMode::automatic)
+      current_mode = previous_mode;
+    else if (current_mode != previous_mode)
     {
       if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
       clean();
     }
   }
+  else // if build mode file doesn't exist and mode is set to automatic, default is debug
+  {
+    current_mode = BuildMode::debug;
+  }
 
   fs::create_directories(build_dir);
 
-  ofstream output(build_mode_file);
-  if (!output.is_open())
-    throw ZCException(ZCE_WRITING_ERROR, "The file couldn't be written: " + build_mode_file.string());
-  output << build_mode_to_str(current_mode);
+  write_file(build_mode_file, build_mode_to_str(current_mode));
 
   const string make_cmd = "make --no-print-directory -C " + build_dir.string();
   int compiled = 0;
 
-  to_compile_ = get_sources();
+  // to_compile_ = get_sources(); // TODO : don't count sources to compile in this function
+  get_sources();
 
   if (current_mode == BuildMode::debug)
     generate_compile_commands();
@@ -417,14 +412,19 @@ void Project::generate_build_config()
   if (pconf.type == HEADER)
     return;
   fs::create_directories(build_dir);
-  generate_Makefile();
+
+  bool is_release = false;
+  if (const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
+      fs::exists(build_mode_file) && read_file(build_mode_file) == "release")
+    is_release = true;
+
+  get_sources();
+  generate_Makefile(is_release);
   generate_compile_commands();
 }
 
-void Project::generate_Makefile(const bool release)
+void Project::generate_Makefile(const bool release) const
 {
-  const int to_compile = get_sources(); // also checks if include dirs exist
-
   std::ostringstream mk;
 
   Makefile_comment(mk);

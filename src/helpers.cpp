@@ -232,6 +232,24 @@ void check_name(const std::string &name)
   }
 }
 
+std::string read_file(const std::filesystem::path &file)
+{
+  string content;
+  ifstream input(file);
+  if (!input.is_open())
+    throw ZCException(ZCE_READING_ERROR, "The file couldn't be read: " + file.string());
+  input >> content;
+  return content;
+}
+
+void write_file(const std::filesystem::path &file, const std::string &content)
+{
+  ofstream output(file);
+  if (!output.is_open())
+    throw ZCException(ZCE_WRITING_ERROR, "The file couldn't be written: " + file.string());
+  output << content;
+}
+
 vector<fs::path> str_to_path(const vector<string> &vec)
 {
   vector<fs::path> v;

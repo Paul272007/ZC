@@ -12,7 +12,8 @@ namespace zc
 Build::Build(const bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug)
     : Command(force), clean_(clean), p_root_(get_project_root(p_root))
 {
-  mode_ = parse_mode<BuildMode>({{BuildMode::release, release}, {BuildMode::debug, debug}}, BuildMode::debug);
+  mode_ =
+      parse_mode<BuildMode>({{BuildMode::release, release}, {BuildMode::debug, debug}}, BuildMode::automatic);
 }
 
 void Build::operator()()

@@ -96,6 +96,8 @@ void create_zc_root();
 Targets parse_targets(const std::vector<std::string> &targets);
 void check_name(const std::string &name);
 
+std::string read_file(const std::filesystem::path &file);
+void write_file(const std::filesystem::path &file, const std::string &content);
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
