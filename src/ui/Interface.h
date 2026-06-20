@@ -17,6 +17,8 @@ class Interface
 {
 public:
   static Interface &get();
+  Interface(const Interface &) = delete;
+  void operator=(const Interface &) = delete;
 
   void set_quiet(bool quiet)
   {

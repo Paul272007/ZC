@@ -30,9 +30,7 @@ public:
   std::vector<std::string> src_dirs = {SRC_DIR};
   std::vector<std::string> include_dirs = {SRC_DIR};
   std::vector<Dependency> dependencies;
-  std::vector<LanguageConf> languages = {
-      {C, "c17", "clang", {"-Wall", "-Wextra"}}, {CXX, "c++20", "clang++", {"-Wall", "-Wextra"}}
-  };
+  std::vector<LanguageConf> languages;
 
   ~PConf() override;
 

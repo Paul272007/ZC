@@ -11,6 +11,7 @@
 #include "../helpers.h"
 #include "Conf.h"
 #include "PConf.h"
+#include "config/GConf.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
@@ -70,7 +71,7 @@ void PConf::remove_dependency(const std::string &dep_name)
 /**
  * @param file
  */
-PConf::PConf(const std::filesystem::path &file) : Conf(file)
+PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::get().languages)
 {
   if (fs::exists(file_))
     PConf::load();

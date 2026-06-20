@@ -18,6 +18,8 @@ class TemplateEngine
 {
 public:
   static TemplateEngine &get();
+  TemplateEngine(const TemplateEngine &) = delete;
+  void operator=(const TemplateEngine &) = delete;
 
   std::vector<std::filesystem::path> templates() const;
 

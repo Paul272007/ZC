@@ -23,24 +23,12 @@ ZC_DEV_CONFIG_JSON
 namespace zc
 {
 
-/**
- * GConf implementation
- *
- * ZC Global Configuration
- */
-
-/**
- * @return GConf
- */
 GConf &GConf::get()
 {
   static GConf instance;
   return instance;
 }
 
-/**
- * @return void
- */
 void GConf::login()
 {
   Network &net = Network::get();
@@ -117,9 +105,6 @@ void GConf::login()
   }
 }
 
-/**
- * @return void
- */
 void GConf::logout()
 {
   token = "";

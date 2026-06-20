@@ -17,5 +17,5 @@ private:
   const std::string compiler_;
   const std::vector<std::string> flags_;
   const std::vector<std::string> sources_;
-  const zc::Interface if_ = zc::Interface::get();
+  const zc::Interface &if_ = zc::Interface::get();
 };

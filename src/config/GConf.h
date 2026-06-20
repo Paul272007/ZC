@@ -34,6 +34,8 @@ public:
   };
 
   static GConf &get();
+  GConf(const GConf &) = delete;
+  void operator=(const GConf &) = delete;
 
   void login();
 

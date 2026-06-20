@@ -18,7 +18,7 @@ Build::Build(const bool force, const std::filesystem::path &p_root, bool clean, 
 void Build::operator()()
 {
   Project p(p_root_);
-  GConf gc(GConf::get());
+  GConf &gc(GConf::get());
 
   if (clean_)
     p.clean();
