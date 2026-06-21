@@ -152,6 +152,8 @@ std::string base64_encode(const std::string &in)
 
 std::string pretty_path(const std::filesystem::path &path)
 {
+  if (fs::exists(path) && fs::is_directory(path))
+    return fs::relative(path).string() + "/";
   return fs::relative(path).string();
 }
 

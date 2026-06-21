@@ -52,20 +52,20 @@ Table TemplateEngine::templates_table() const
 Table TemplateEngine::p_templates_table() const
 {
   vector<vector<string>> str_t = {{"Project Template"}};
-  for (const auto &t_path : p_templates()) str_t.push_back({t_path.filename().string()});
+  for (const auto &t_path : p_templates()) str_t.push_back({t_path});
 
   return {false, true, str_t};
 }
 
-std::vector<std::filesystem::path> TemplateEngine::p_templates() const
+std::vector<std::string> TemplateEngine::p_templates() const
 {
-  std::vector<fs::path> templates_list;
+  std::vector<std::string> templates_list;
   try
   {
     if (fs::exists(p_templates_dir_) && fs::is_directory(p_templates_dir_))
       for (const auto &entry : fs::directory_iterator(p_templates_dir_))
         if (entry.is_directory())
-          templates_list.push_back(entry.path());
+          templates_list.push_back(entry.path().filename());
   }
   catch (const fs::filesystem_error &e)
   {
@@ -78,6 +78,9 @@ void TemplateEngine::init_with_p_template(
     const std::filesystem::path &root, const std::string &p_template, const bool force
 ) const
 {
+  if (p_template == "none")
+    return;
+
   const fs::path t_path = p_templates_dir_ / p_template;
   if (!fs::exists(t_path))
     throw ZCException(ZCE_NOT_FOUND, "The template was not found: " + p_template);
@@ -92,8 +95,8 @@ void TemplateEngine::init_with_p_template(
 
     fs::path dest_path = root / rel_path;
     if (fs::exists(dest_path) && !force)
-      if (!Interface::get().ask(
-              "The entry " + dest_path.string() + " already exists. Do you want to overwrite it ?"
+      if (!if_.ask(
+              "The entry '" + pretty_path(dest_path) + "' already exists. Do you want to overwrite it ?"
           ))
         continue;
 

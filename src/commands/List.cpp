@@ -50,7 +50,7 @@ void List::operator()()
 
     case ZC_LIST_SHOW_P_TEMPLATES:
     default:
-      for (const auto &pt : te.p_templates()) v.emplace_back(pt.filename());
+      v = te.p_templates();
       break;
     }
     for (const auto &elt : v) cout << elt << endl;

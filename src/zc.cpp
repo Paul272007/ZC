@@ -139,6 +139,8 @@ int main(const int argc, char *argv[])
   init->add_option("--name,-n", name, "Name of the package");
   init->add_option("--languages,-l", languages, "Languages of the project");
 
+  init->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  init->add_flag("--force,-f", force, "Force initialization even if a project already exists");
   init->add_flag("--git,-g", git, "Initialize empty git repository at project root");
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--bin,-B", is_bin, "Make package of type BIN");

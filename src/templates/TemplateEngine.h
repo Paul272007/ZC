@@ -9,7 +9,8 @@
 #include <filesystem>
 #include <vector>
 
-#include "ui/Table.h"
+#include "../ui/Interface.h"
+#include "../ui/Table.h"
 
 namespace zc
 {
@@ -23,7 +24,7 @@ public:
 
   std::vector<std::filesystem::path> templates() const;
 
-  std::vector<std::filesystem::path> p_templates() const;
+  std::vector<std::string> p_templates() const;
 
   Table templates_table() const;
 
@@ -37,6 +38,7 @@ public:
   init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;
 
 private:
+  Interface &if_ = Interface::get();
   const std::filesystem::path templates_dir_;
   const std::filesystem::path p_templates_dir_;
 

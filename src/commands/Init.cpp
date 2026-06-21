@@ -60,7 +60,11 @@ void Init::operator()()
     author_ = if_.input("Package author", gconf_.username);
 
   if (p_template_.empty())
-    p_template_ = if_.input("Project template to use (none)");
+  {
+    vector<string> options = {"none"};
+    options.append_range(te_.p_templates());
+    p_template_ = options.at(if_.radios("Project template to use:", options));
+  }
 
   if (type_ == UNDEF)
   {
@@ -68,8 +72,7 @@ void Init::operator()()
     type_ = (PkgType)if_.radios("Package type:", options);
   }
 
-  if (!p_template_.empty())
-    TemplateEngine::get().init_with_p_template(p_root_, p_template_, force_);
+  te_.init_with_p_template(p_root_, p_template_, force_);
 
   if (languages_.empty())
   {

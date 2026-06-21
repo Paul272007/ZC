@@ -4,6 +4,7 @@
 
 #include "../config/GConf.h"
 #include "../pkgs/PkgType.h"
+#include "../templates/TemplateEngine.h"
 #include "Command.h"
 
 namespace zc
@@ -22,6 +23,7 @@ public:
 
 private:
   const GConf &gc_ = GConf::get();
+  const TemplateEngine &te_ = TemplateEngine::get();
   const std::filesystem::path p_root_;
   const bool git_;
   const bool edit_;
