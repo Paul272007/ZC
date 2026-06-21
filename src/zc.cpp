@@ -75,7 +75,7 @@ int main(const int argc, char *argv[])
   bool simple_display   = false;
   bool show_remote      = false;
   // Update
-  bool sync              = false;
+  bool sync             = false;
 
   string author;
   string target;
@@ -91,7 +91,7 @@ int main(const int argc, char *argv[])
   // --- Subcommands
   // Files
   const auto run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)"); // TODO : implement
-  // const auto create  = app.add_subcommand("create",  "Create file based on template"²);
+  // const auto create  = app.add_subcommand("create",  "Create file based on template"²);     // TODO : implement
   // Projects
   const auto init      = app.add_subcommand("init",      "Initialize empty project");
   const auto setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
@@ -112,7 +112,7 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands arguments
   // Run
-  // TODO : add --force,-f and --quiet,-q flags for each command
+  // TODO : add --force,-f flag for each command
 
   run->add_option("files", targets, "Files to compile and run")->required();
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
@@ -154,18 +154,26 @@ int main(const int argc, char *argv[])
 
   setup->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
+  setup->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
   setup->callback([&] { command = make_unique<Setup>(force, p_root); });
 
   // Build
 
   build->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  auto opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionnally add parameters")->expected(0, -1);
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_before, "Clean before building");
   build->add_flag("--release,-r", release, "Build in release mode");
   build->add_flag("--debug,-d", debug, "Build in debug mode");
 
-  build->callback([&] { command = make_unique<Build>(force, p_root, clean_before, release, debug); });
+  build->callback([&] {
+    if (*opt)
+      command = make_unique<Build>(force, p_root, clean_before, release, debug, true, run_args);
+    else
+      command = make_unique<Build>(force, p_root, clean_before, release, debug);
+  });
 
   // Add
 
@@ -228,12 +236,16 @@ int main(const int argc, char *argv[])
   install->add_option("--path,-p", path, "Install from local project instead of remote");
   install->add_option("targets", targets, "Targets to install");
 
+  install->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
   install->callback([&] { command = make_unique<Install>(force, p_root, path, targets); });
 
   // Uninstall
   // TODO : add --project-path to uninstall all project dependencies
 
   uninstall->add_option("targets", targets, "Targets to uninstall");
+
+  uninstall->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   uninstall->callback([&] { command = make_unique<Uninstall>(force, targets); });
 
@@ -243,15 +255,20 @@ int main(const int argc, char *argv[])
   update->add_option("--path,-p", path, "Update local package from its root path");
   update->add_option("targets", targets, "Targets to update");
 
+  update->add_flag("--quiet,-q", quiet, "Do not show any messages");
   update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
 
   update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync); });
 
   // Login
 
+  login->add_flag("--quiet,-q", quiet, "Do not show any messages");
+
   login->callback([&] { command = make_unique<Login>(force); });
 
   // Logout
+
+  logout->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   logout->callback([&] { command = make_unique<Logout>(force); });
 
