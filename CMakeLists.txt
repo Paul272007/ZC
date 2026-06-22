@@ -53,6 +53,8 @@ add_library(zc-core STATIC
         src/ui/Table.h
         src/ui/ui_utils.h
 
+        src/clang_utils.cpp
+        src/clang_utils.h
         src/CLI11.h
         src/CompileMode.h
         src/helpers.cpp

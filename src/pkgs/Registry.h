@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -95,15 +96,12 @@ protected:
 
 private:
   const std::filesystem::path cache_dir_;
-  /* ! useless for the moment ! */
-  const std::filesystem::path bin_dir_;
-  const std::filesystem::path lib_dir_;
-  const std::filesystem::path include_dir_;
-  /* */
-  const std::filesystem::path bin_links_dir_;
   const std::filesystem::path tmp_dir_;
+  const std::filesystem::path include_links_dir_;
+  const std::filesystem::path lib_links_dir_;
+  const std::filesystem::path bin_links_dir_;
   std::vector<RegistryPkg> pkgs_;
-  const Network &net_;
+  const Network &net_ = Network::get();
 
   explicit Registry(const std::filesystem::path &root = get_zc_root());
 

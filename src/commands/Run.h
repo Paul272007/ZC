@@ -10,7 +10,9 @@
 #include <vector>
 
 #include "../CompileMode.h"
+#include "../config/Dependency.h"
 #include "../config/GConf.h"
+#include "../pkgs/Registry.h"
 #include "Command.h"
 
 namespace zc
@@ -27,21 +29,22 @@ public:
 
 private:
   GConf &gc_ = GConf::get();
+  Registry &rg_ = Registry::get();
   CompileMode mode_;
+  const std::vector<std::filesystem::path> files_;
   const bool plus_ = false;
   const bool add_std_ = false;
   const bool keep_ = false;
   const bool static_ = false;
   const bool add_flags_ = true;
   const std::vector<std::string> args_;
-  const std::vector<std::filesystem::path> files_;
   std::string output_name_;
   std::string build_cmd_;
 
   bool has_cpp();
   std::string get_build_command();
   std::string get_output_name();
-  std::vector<std::string> get_dependencies();
+  std::vector<Dependency> get_dependencies();
 };
 
 } // namespace zc

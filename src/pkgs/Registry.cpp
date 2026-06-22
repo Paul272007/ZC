@@ -255,9 +255,8 @@ void Registry::write()
 }
 
 Registry::Registry(const std::filesystem::path &root)
-    : Conf(root / REGISTRY_FILE), cache_dir_(root / ZC_CACHE_DIR), bin_dir_(cache_dir_ / BIN_DIR),
-      lib_dir_(cache_dir_ / LIB_DIR), include_dir_(cache_dir_ / INCLUDE_DIR), bin_links_dir_(root / BIN_DIR),
-      tmp_dir_(root / TMP_DIR), net_(Network::get())
+    : Conf(root / REGISTRY_FILE), cache_dir_(root / ZC_CACHE_DIR), tmp_dir_(root / TMP_DIR),
+      include_links_dir_(root / INCLUDE_DIR), lib_links_dir_(root / LIB_DIR), bin_links_dir_(root / BIN_DIR)
 {
   if (!fs::exists(file_))
     throw ZCException(ZCE_NOT_FOUND, "Registry file was not found: " + file_.string());
@@ -328,7 +327,7 @@ void Registry::copy_headers(const Project &p) const
 {
   if_.info("Installing header(s)...");
 
-  const auto source_dir = p.root_dir / INCLUDE_DIR; // FIX : only headers from include/ are moved
+  const auto source_dir = p.root_dir / INCLUDE_DIR; // FIX : here only headers from project/include/ are moved
   const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR;
 
   if (!fs::exists(source_dir))
@@ -338,6 +337,17 @@ void Registry::copy_headers(const Project &p) const
 
   fs::create_directories(dest_dir);
   fs::copy(source_dir, dest_dir, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+  // Edit symlink in ~/.zc/include for zc run
+  const auto link = include_links_dir_ / p.pconf.name;
+  fs::create_directories(include_links_dir_);
+  if (fs::exists(link) || fs::is_symlink(link))
+  {
+    if (fs::is_directory(link))
+      fs::remove_all(link);
+    else
+      fs::remove(link);
+  }
+  fs::create_directory_symlink(dest_dir, link);
 }
 
 void Registry::copy_libs(const Project &p) const
@@ -359,6 +369,17 @@ void Registry::copy_libs(const Project &p) const
       source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
       fs::copy_options::overwrite_existing
   );
+  // Edit symlink in ~/.zc/lib for zc run
+  const auto link = lib_links_dir_ / p.pconf.name;
+  fs::create_directories(lib_links_dir_);
+  if (fs::exists(link) || fs::is_symlink(link))
+  {
+    if (fs::is_directory(link))
+      fs::remove_all(link);
+    else
+      fs::remove(link);
+  }
+  fs::create_directory_symlink(dest_dir, link);
 }
 
 void Registry::clean() const

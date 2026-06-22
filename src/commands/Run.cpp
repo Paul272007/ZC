@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "../clang_utils.h"
 #include "../helpers.h"
 #include "CompileMode.h"
 #include "Language.h"
@@ -21,10 +22,6 @@ ZC_DEV_CONFIG
 
 namespace zc
 {
-
-/**
- * Run implementation
- */
 
 Run::Run(
     const bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
@@ -42,9 +39,6 @@ Run::Run(
   );
 }
 
-/**
- * @return int
- */
 void Run::operator()()
 {
   for (const auto &f : files_)
@@ -135,7 +129,7 @@ std::string Run::get_build_command()
   cmd << "-o " << escape_shell_arg(output_name_) << " ";
 
   // Include directories
-  // cmd << "-I" << escape_shell_arg(gc_.include_dir_.string()) << " ";
+  cmd << "-I" << get_zc_root() / INCLUDE_DIR << " ";
 
   // Mode and libraries for normal mode
   switch (mode_)
@@ -149,18 +143,22 @@ std::string Run::get_build_command()
   case zc::CompileMode::assemble:
     cmd << "-c ";
     break;
-  case zc::CompileMode::full:
+  case zc::CompileMode::full: // Else link libraries
   default:
-    // for (const vector<string> libs = get_dependencies(); const auto lib : libs) // Link libraries
-    // {
-    //   fs::path lib_dir = (g_.lib_dir_ / lib);
-    //   if (fs::exists(lib_dir))
-    //   {
-    //     cmd << "-L" << escape_shell_arg(lib_dir.string()) << " "; // Path to libraries
-    //     cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir.string()) << " ";
-    //   }
-    //   cmd << "-l" << lib << " ";
-    // }
+    for (const auto &lib : get_dependencies())
+    {
+      const string target = rg_.get_pkg(lib.name).target;
+      if (lib.origin != "std")
+      {
+        fs::path lib_dir = get_zc_root() / LIB_DIR / lib.name;
+        if (fs::exists(lib_dir))
+        {
+          cmd << "-L" << lib_dir << " ";
+          cmd << "-Wl,-rpath," << lib_dir << " ";
+        }
+      }
+      cmd << "-l" << escape_shell_arg(target) << " ";
+    }
     break;
   }
 
@@ -192,9 +190,22 @@ string Run::get_output_name()
   }
 }
 
-vector<string> Run::get_dependencies()
+vector<Dependency> Run::get_dependencies()
 {
-  return vector<string>();
+  vector<Dependency> libs_to_link;
+
+  for (const auto &f : files_)
+  {
+    for (const auto &include : get_file_includes(f, rg_.pkgs()))
+    {
+      const bool already_present =
+          std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
+
+      if (!already_present)
+        libs_to_link.push_back(include);
+    }
+  }
+  return libs_to_link;
 }
 
 } // namespace zc

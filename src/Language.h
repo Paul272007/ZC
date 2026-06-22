@@ -26,7 +26,7 @@ enum Language
   C,
   CXX,
   ASM_NASM,
-  UNKNOWN_LANGUAGE
+  UNKNOWN_LANGUAGE,
 };
 
 inline std::vector<std::string> extensions_for_language(const Language l)
@@ -64,7 +64,7 @@ inline Language language_from_str(const std::string &txt)
 
 inline bool is_of_language(Language l, const std::filesystem::path &file)
 {
-  if (!std::filesystem::is_regular_file(file))
+  if (!std::filesystem::exists(file) || !std::filesystem::is_regular_file(file))
     return false;
 
   std::string ext = file.extension();
