@@ -1,12 +1,7 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Version.h"
 
 #include <format>
 
-#include "Version.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
 
@@ -14,10 +9,6 @@ ZC_DEV_CONFIG
 
 namespace zc
 {
-
-/**
- * Version implementation
- */
 
 Version::Version(const std::string &text)
 {
@@ -28,7 +19,7 @@ Version::Version(const std::string &text)
   }
 
   stringstream ss(text);
-  vector<int> parts;
+  vector<int>  parts;
 
   try
   {
@@ -51,7 +42,7 @@ Version::Version(const std::string &text)
 }
 
 Version::Version(const int major, const int minor, const int patch)
-    : major_(major), minor_(minor), patch_(patch)
+  : major_(major), minor_(minor), patch_(patch)
 {
 }
 

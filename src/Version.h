@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <nlohmann/json.hpp>
@@ -19,10 +13,7 @@ public:
 
   Version(int major = 0, int minor = 0, int patch = 1); // Default : first non-empty version
 
-  static Version latest()
-  {
-    return {0, 0, 0};
-  }
+  static Version latest() { return { 0, 0, 0 }; }
 
   [[nodiscard]] std::string string() const;
 

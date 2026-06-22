@@ -1,8 +1,4 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "PConf.h"
 
 #include <algorithm>
 #include <string>
@@ -10,7 +6,6 @@
 
 #include "../helpers.h"
 #include "Conf.h"
-#include "PConf.h"
 #include "config/GConf.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
@@ -20,12 +15,6 @@ ZC_DEV_CONFIG_JSON
 
 namespace zc
 {
-
-/**
- * PConf implementation
- *
- * Project configuration
- */
 
 PConf::~PConf()
 {
@@ -53,13 +42,13 @@ void PConf::change_dependency_version(const std::string &name, const Version &ne
     throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + name + " was not found.");
 
   it->version = new_version;
-  modified_ = true;
+  modified_   = true;
 }
 
 void PConf::remove_dependency(const std::string &dep_name)
 {
   const auto it =
-      ranges::find_if(dependencies, [&dep_name](const Dependency &d) { return d.name == dep_name; });
+    ranges::find_if(dependencies, [&dep_name](const Dependency &d) { return d.name == dep_name; });
 
   if (it == dependencies.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + dep_name + " was not found.");
@@ -104,7 +93,7 @@ void PConf::load()
     for (const auto &[key, value] : root["languages"].items())
     {
       LanguageConf l = value.get<LanguageConf>();
-      l.name = language_from_str(key);
+      l.name         = language_from_str(key);
       languages.push_back(l);
     }
   }
@@ -128,9 +117,9 @@ void PConf::write()
 {
   json root;
 
-  root["type"] = type;
-  root["version"] = version;
-  root["src_dirs"] = src_dirs;
+  root["type"]         = type;
+  root["version"]      = version;
+  root["src_dirs"]     = src_dirs;
   root["include_dirs"] = include_dirs;
 
   if (!name.empty())
@@ -141,13 +130,16 @@ void PConf::write()
     root["target"] = target;
 
   json lang_json = json::object();
-  for (const auto &l : languages) lang_json[language_to_str(l.name)] = l;
+  for (const auto &l : languages)
+    lang_json[language_to_str(l.name)] = l;
   root["languages"] = lang_json;
 
   json deps_json = json::object();
   for (const auto &dep : dependencies)
     deps_json[dep.name] = {
-        {"origin", dep.origin}, {"static_link", dep.static_link}, {"version", dep.version}
+      {      "origin",      dep.origin },
+      { "static_link", dep.static_link },
+      {     "version",     dep.version }
     };
   root["dependencies"] = deps_json;
 
@@ -157,7 +149,7 @@ void PConf::write()
 LanguageConf PConf::get_lang_conf(Language l) const
 {
   const auto it = std::find_if(
-      languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
+    languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
   );
   return *it;
 }

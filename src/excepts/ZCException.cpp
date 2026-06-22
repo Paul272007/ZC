@@ -1,10 +1,5 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #include "ZCException.h"
+
 #include "../helpers.h"
 #include "../ui/ui_utils.h"
 
@@ -13,29 +8,16 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-/**
- * ZCException implementation
- */
-
-/**
- * @param code
- * @param message
- */
-ZCException::ZCException(const ExitCode code, const std::string &message) : message_(message), code_(code)
+ZCException::ZCException(const ExitCode code, const std::string &message)
+  : message_(message), code_(code)
 {
 }
 
-/**
- * @return const char*
- */
 const char *ZCException::what() const noexcept
 {
   return message_.c_str();
 }
 
-/**
- * @return int
- */
 int ZCException::code() const
 {
   return code_;

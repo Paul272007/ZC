@@ -1,32 +1,19 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Registry.h"
 
 #include <filesystem>
 
 #include "../config/PConf.h"
 #include "../helpers.h"
 #include "../project/Project.h"
+#include "excepts/ExitCode.h"
 #include "Network.h"
 #include "PkgType.h"
-#include "Registry.h"
-#include "excepts/ExitCode.h"
 
 ZC_DEV_CONFIG_JSON
 
 namespace zc
 {
 
-/**
- * Registry implementation
- */
-
-/**
- * Get the user registry : ~/.zc/registry.json
- * @return Registry
- */
 Registry &Registry::get()
 {
   static Registry instance(get_zc_root());
@@ -50,11 +37,10 @@ void Registry::install_from_server(Target &target, const json &index, const bool
     return;
   }
 
-  target.version =
-      target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>() : target.version;
+  target.version = target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>()
+                                          : target.version;
 
-  const fs::path project_root = download_and_extract(target, index);
-  Project p(project_root);
+  Project p(download_and_extract(target, index));
 
   finish_install(p, "main");
 }
@@ -78,13 +64,11 @@ void Registry::finish_install(Project &p, const std::string &origin)
 
   if_.info("Indexing package...");
   index_add_pkg(
-      RegistryPkg{
-          .name = p.pconf.name,
-          .target = p.pconf.target,
-          .origin = origin,
-          .type = p.pconf.type,
-          .versions = {p.pconf.version}
-      }
+    { .name     = p.pconf.name,
+      .target   = p.pconf.target,
+      .origin   = origin,
+      .type     = p.pconf.type,
+      .versions = { p.pconf.version } }
   );
   switch (p.pconf.type)
   {
@@ -112,15 +96,14 @@ void Registry::update_from_server(Target &target, const nlohmann::json &index, c
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update local package with distant package");
 
   // Check if version is already installed
-  target.version =
-      target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>() : target.version;
+  target.version = target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>()
+                                          : target.version;
   if (force && is_installed(target))
   {
     if_.info("Skipped package " + target.name + ": already up-to-date at v" + target.version.string());
     return;
   }
-  const fs::path project_root = download_and_extract(target, index);
-  Project p(project_root);
+  Project p(download_and_extract(target, index));
   finish_update(p);
 }
 
@@ -130,7 +113,7 @@ Project Registry::update_from_path(const std::filesystem::path &path, const bool
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update distant package with local package");
 
-  if (!force && is_installed({p.pconf.name, p.pconf.version}))
+  if (!force && is_installed({ p.pconf.name, p.pconf.version }))
   {
     if_.info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return p;
@@ -183,13 +166,13 @@ void Registry::uninstall(const std::string &pkg)
 bool Registry::is_installed(const Target &target)
 {
   const auto it = ranges::find_if(
-      pkgs_,
-      [&](const RegistryPkg &p)
-      {
-        return p.name == target.name &&
-               ranges::find_if(p.versions, [&](const Version &v) { return v == target.version; }) !=
-                   p.versions.end();
-      }
+    pkgs_,
+    [&](const RegistryPkg &p)
+    {
+      return p.name == target.name &&
+             ranges::find_if(p.versions, [&](const Version &v) { return v == target.version; }) !=
+               p.versions.end();
+    }
   );
   return it != pkgs_.end();
 }
@@ -206,32 +189,36 @@ std::vector<RegistryPkg> Registry::pkgs() const
 
 Table Registry::pkgs_table() const
 {
-  vector<vector<string>> str_pkgs{{"Package name", "Target", "Origin", "Latest version", "Type"}};
+  vector<vector<string>> str_pkgs{
+    { "Package name", "Target", "Origin", "Latest version", "Type" }
+  };
 
   for (const auto &p : pkgs_)
     str_pkgs.push_back(
-        {p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_pretty_str(p.type)}
+      { p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_pretty_str(p.type) }
     );
 
-  return {false, true, str_pkgs};
+  return { false, true, str_pkgs };
 }
 
 std::vector<std::string> Registry::remote_pkgs() const
 {
-  const Network &n(Network::get());
-  json index = n.get_index();
+  json index = net_.get_index();
+
   vector<std::string> v;
   if (index.contains("packages") && index["packages"].is_object())
-    for (auto it = index["packages"].begin(); it != index["packages"].end(); ++it) v.push_back(it.key());
+    for (auto it = index["packages"].begin(); it != index["packages"].end(); ++it)
+      v.push_back(it.key());
   clean();
   return v;
 }
 
 Table Registry::remote_pkgs_table() const
 {
-  vector<vector<string>> str_pkgs{{"Package name"}};
-  for (const auto &p : remote_pkgs()) str_pkgs.push_back({p});
-  return {false, true, str_pkgs};
+  vector<vector<string>> str_pkgs{ { "Package name" } };
+  for (const auto &p : remote_pkgs())
+    str_pkgs.push_back({ p });
+  return { false, true, str_pkgs };
 }
 
 Registry::~Registry()
@@ -250,13 +237,19 @@ void Registry::load()
 
 void Registry::write()
 {
-  const json root{{"packages", pkgs_}};
+  const json root{
+    { "packages", pkgs_ }
+  };
   write_json(root, file_);
 }
 
 Registry::Registry(const std::filesystem::path &root)
-    : Conf(root / REGISTRY_FILE), cache_dir_(root / ZC_CACHE_DIR), tmp_dir_(root / TMP_DIR),
-      include_links_dir_(root / INCLUDE_DIR), lib_links_dir_(root / LIB_DIR), bin_links_dir_(root / BIN_DIR)
+  : Conf(root / REGISTRY_FILE),
+    cache_dir_(root / ZC_CACHE_DIR),
+    tmp_dir_(root / TMP_DIR),
+    include_links_dir_(root / INCLUDE_DIR),
+    lib_links_dir_(root / LIB_DIR),
+    bin_links_dir_(root / BIN_DIR)
 {
   if (!fs::exists(file_))
     throw ZCException(ZCE_NOT_FOUND, "Registry file was not found: " + file_.string());
@@ -265,7 +258,6 @@ Registry::Registry(const std::filesystem::path &root)
 
 void Registry::index_add_pkg(const RegistryPkg &pkg)
 {
-  // Check if already installed
   if (is_installed(pkg.name))
     throw ZCException(ZCE_ALREADY_INSTALLED, "Package " + pkg.name + " is already installed.");
 
@@ -292,8 +284,8 @@ std::vector<RegistryPkg>::iterator Registry::get_pkg_it(const std::string &name)
 
 RegistryPkg Registry::unindex_pkg(const string &name)
 {
-  const auto removed_pkg_it = get_pkg_it(name);
-  RegistryPkg pkg = *removed_pkg_it;
+  const auto  removed_pkg_it = get_pkg_it(name);
+  RegistryPkg pkg            = *removed_pkg_it;
   pkgs_.erase(removed_pkg_it);
   modified_ = true;
   return pkg;
@@ -303,9 +295,9 @@ void Registry::copy_bin(const Project &p) const
 {
   if_.info("Installing binary...");
 
-  const auto source = p.build_dir / p.pconf.target;
+  const auto source   = p.build_dir / p.pconf.target;
   const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / BIN_DIR;
-  const auto dest = dest_dir / p.pconf.target;
+  const auto dest     = dest_dir / p.pconf.target;
 
   if (!fs::exists(source))
     throw ZCException(ZCE_NOT_FOUND, "The compiled binary was not found : " + source.string());
@@ -313,7 +305,7 @@ void Registry::copy_bin(const Project &p) const
   fs::create_directories(dest_dir);
   fs::copy_file(source, dest, fs::copy_options::overwrite_existing);
   fs::permissions(
-      dest, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add
+    dest, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add
   );
   // Edit symlink in ~/.zc/bin
   const auto link = bin_links_dir_ / p.pconf.target;
@@ -327,12 +319,13 @@ void Registry::copy_headers(const Project &p) const
 {
   if_.info("Installing header(s)...");
 
-  const auto source_dir = p.root_dir / INCLUDE_DIR; // FIX : here only headers from project/include/ are moved
+  const auto source_dir =
+    p.root_dir / INCLUDE_DIR; // FIX : here only headers from project/include/ are moved
   const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR;
 
   if (!fs::exists(source_dir))
     throw ZCException(
-        ZCE_NOT_FOUND, "The include directory of the package was not found : " + source_dir.string()
+      ZCE_NOT_FOUND, "The include directory of the package was not found : " + source_dir.string()
     );
 
   fs::create_directories(dest_dir);
@@ -355,19 +348,21 @@ void Registry::copy_libs(const Project &p) const
   if_.info("Installing libraries...");
 
   const auto source_dir = p.root_dir / BUILD_DIR;
-  const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / LIB_DIR;
+  const auto dest_dir   = cache_dir_ / p.pconf.name / p.pconf.version.string() / LIB_DIR;
 
   if (!fs::exists(source_dir))
-    throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());
+    throw ZCException(
+      ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string()
+    );
 
   fs::create_directories(dest_dir);
   fs::copy_file(
-      source_dir / STATIC_LIB_NAME(p.pconf.target), dest_dir / STATIC_LIB_NAME(p.pconf.target),
-      fs::copy_options::overwrite_existing
+    source_dir / STATIC_LIB_NAME(p.pconf.target), dest_dir / STATIC_LIB_NAME(p.pconf.target),
+    fs::copy_options::overwrite_existing
   );
   fs::copy_file(
-      source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
-      fs::copy_options::overwrite_existing
+    source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
+    fs::copy_options::overwrite_existing
   );
   // Edit symlink in ~/.zc/lib for zc run
   const auto link = lib_links_dir_ / p.pconf.name;
@@ -391,15 +386,15 @@ void Registry::clean() const
 std::filesystem::path Registry::download_and_extract(const Target &target, const json &index) const
 {
   if_.info("Downloading archive...");
-  const string archive_url = pkg_url(target, index); // throws error if pkg not found in index
+  const string   archive_url  = pkg_url(target, index); // throws error if pkg not found in index
   const fs::path archive_path = tmp_dir_ / (target.name + ".tar.gz");
-  const fs::path extract_path = tmp_dir_; // extract directly in ~/.zc/tmp
+  const fs::path extract_path = tmp_dir_;               // extract directly in ~/.zc/tmp
   net_.download(archive_url, archive_path);
 
   // TODO : optimise with get_key()
   if_.info("Verifying archive hash...");
   verify_archive_hash(
-      archive_path, index["packages"][target.name]["versions"][target.version.string()]["sha256"]
+    archive_path, index["packages"][target.name]["versions"][target.version.string()]["sha256"]
   );
 
   if_.info("Extracting archive...");
@@ -426,7 +421,8 @@ void Registry::verify_archive_hash(const std::filesystem::path &archive, const s
   {
     fs::remove(archive);
     throw ZCException(
-        ZCE_HASH_MISMATCH, "SECURITY ALERT: Hash mismatch!\nExpected: " + expected + "\nActual:   " + actual
+      ZCE_HASH_MISMATCH,
+      "SECURITY ALERT: Hash mismatch! Expected: " + expected + ", Received:   " + actual
     );
   }
   if_.success("Hash is correct");

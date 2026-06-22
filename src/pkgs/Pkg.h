@@ -1,15 +1,9 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <string>
 
-#include "../Version.h"
 #include "../helpers.h"
+#include "../Version.h"
 #include "PkgType.h"
 
 namespace zc
@@ -20,7 +14,9 @@ struct RegistryPkg
   std::string name;
   std::string target;
   std::string origin = "main";
+
   PkgType type = UNDEF;
+
   std::vector<Version> versions;
 
   bool operator==(const RegistryPkg &) const = default;
@@ -29,7 +25,12 @@ struct RegistryPkg
 inline void to_json(nlohmann::json &j, const RegistryPkg &p)
 {
   j = nlohmann::json{
-      {"name", p.name}, {"type", p.type}, {"target", p.target}, {"origin", p.origin}, {"versions", p.versions}};
+    {     "name",     p.name },
+    {     "type",     p.type },
+    {   "target",   p.target },
+    {   "origin",   p.origin },
+    { "versions", p.versions }
+  };
 }
 
 inline void from_json(const nlohmann::json &j, RegistryPkg &p)

@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <exception>
@@ -22,7 +16,9 @@ public:
    * @param code
    * @param message
    */
-  explicit ZCException(ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented");
+  explicit ZCException(
+    ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented"
+  );
 
   const char *what() const noexcept override;
 
@@ -32,7 +28,7 @@ public:
 
 private:
   const std::string message_;
-  const ExitCode code_;
+  const ExitCode    code_;
 };
 
 } // namespace zc

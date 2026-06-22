@@ -1,8 +1,9 @@
+#include "commands/List.h"
+
 #include <iostream>
 #include <vector>
 
 #include "commands/Command.h"
-#include "commands/List.h"
 #include "helpers.h"
 #include "pkgs/Pkg.h"
 #include "pkgs/Registry.h"
@@ -15,19 +16,21 @@ namespace zc
 {
 
 List::List(bool force, bool templates, bool p_templates, bool remote, bool simple)
-    : Command(force), simple_(simple)
+  : Command(force), simple_(simple)
 {
   type_ = parse_mode<ListType>(
-      {{ZC_LIST_SHOW_REMOTE, remote},
-       {ZC_LIST_SHOW_TEMPLATES, templates},
-       {ZC_LIST_SHOW_P_TEMPLATES, p_templates}},
-      ZC_LIST_SHOW_PKGS, "Cannot show multiple things at the same time"
+    {
+      {      ZC_LIST_SHOW_REMOTE,      remote },
+      {   ZC_LIST_SHOW_TEMPLATES,   templates },
+      { ZC_LIST_SHOW_P_TEMPLATES, p_templates }
+  },
+    ZC_LIST_SHOW_PKGS, "Cannot show multiple things at the same time"
   );
 }
 
 void List::operator()()
 {
-  Registry &reg(Registry::get());
+  Registry       &reg(Registry::get());
   TemplateEngine &te(TemplateEngine::get());
 
   if (simple_)
@@ -37,7 +40,8 @@ void List::operator()()
     switch (type_)
     {
     case ZC_LIST_SHOW_PKGS:
-      for (const auto &p : reg.pkgs()) v.emplace_back(p.name);
+      for (const auto &p : reg.pkgs())
+        v.emplace_back(p.name);
       break;
 
     case ZC_LIST_SHOW_REMOTE:
@@ -45,7 +49,8 @@ void List::operator()()
       break;
 
     case ZC_LIST_SHOW_TEMPLATES:
-      for (const auto &t : te.templates()) v.emplace_back(t.filename());
+      for (const auto &t : te.templates())
+        v.emplace_back(t.filename());
       break;
 
     case ZC_LIST_SHOW_P_TEMPLATES:
@@ -53,7 +58,8 @@ void List::operator()()
       v = te.p_templates();
       break;
     }
-    for (const auto &elt : v) cout << elt << endl;
+    for (const auto &elt : v)
+      cout << elt << endl;
   }
   else
   {

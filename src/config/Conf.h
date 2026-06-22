@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <filesystem>
@@ -21,16 +15,13 @@ public:
   virtual ~Conf() = default;
 
 protected:
-  const std::filesystem::path file_;
   const Interface &if_ = Interface::get();
+
+  const std::filesystem::path file_;
+
   bool modified_ = false;
 
-  /**
-   * @param file
-   */
-  explicit Conf(std::filesystem::path file) : file_(std::move(file))
-  {
-  }
+  explicit Conf(std::filesystem::path file) : file_(std::move(file)) {}
 
   virtual void load() = 0;
 

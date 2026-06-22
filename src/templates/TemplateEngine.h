@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <filesystem>
@@ -34,11 +28,12 @@ public:
    * @param root
    * @param p_template
    */
-  void
-  init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;
+  void init_with_p_template(
+    const std::filesystem::path &root, const std::string &p_template, bool force
+  ) const;
 
 private:
-  Interface &if_ = Interface::get();
+  Interface                  &if_ = Interface::get();
   const std::filesystem::path templates_dir_;
   const std::filesystem::path p_templates_dir_;
 

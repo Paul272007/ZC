@@ -1,8 +1,4 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Run.h"
 
 #include <filesystem>
 #include <string>
@@ -10,13 +6,12 @@
 
 #include "../clang_utils.h"
 #include "../helpers.h"
-#include "CompileMode.h"
-#include "Language.h"
-#include "Run.h"
 #include "commands/Command.h"
+#include "CompileMode.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "Language.h"
 
 ZC_DEV_CONFIG
 
@@ -24,19 +19,29 @@ namespace zc
 {
 
 Run::Run(
-    const bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-    const bool preprocess, const bool compile, const bool assemble, const bool plus, const bool keep,
-    const bool add_std, const bool static_link, const bool no_flags
+  const bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
+  const bool preprocess, const bool compile, const bool assemble, const bool plus, const bool keep,
+  const bool add_std, const bool static_link, const bool no_flags
 )
-    : Command(force), files_(str_to_path(files)), plus_(plus || has_cpp()), keep_(keep), add_std_(add_std),
-      static_(static_link), add_flags_(!no_flags), args_(args)
+  : Command(force),
+    files_(str_to_path(files)),
+    args_(args),
+    add_flags_(!no_flags),
+    plus_(plus || has_cpp()),
+    add_std_(add_std),
+    keep_(keep),
+    static_(static_link)
 {
   mode_ = parse_mode<CompileMode>(
-      {{CompileMode::preprocess, preprocess},
-       {CompileMode::compile, compile},
-       {CompileMode::assemble, assemble}},
-      CompileMode::full
+    {
+      { CompileMode::preprocess, preprocess },
+      {    CompileMode::compile,    compile },
+      {   CompileMode::assemble,   assemble },
+  },
+    CompileMode::full
   );
+  output_name_ = get_output_name();
+  build_cmd_   = get_build_command();
 }
 
 void Run::operator()()
@@ -48,9 +53,6 @@ void Run::operator()()
   if (fs::exists(output_name_) && !force_)
     if (!if_.ask("The file '" + output_name_ + "' already exists. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Compilation aborted.");
-
-  output_name_ = get_output_name();
-  build_cmd_ = get_build_command();
 
 #ifdef DEBUG_MODE
   if_.debug(build_cmd_);
@@ -79,11 +81,12 @@ void Run::operator()()
   if_.debug(exec_cmd);
 #endif
 
-  for (const auto &arg : args_) exec_cmd += " " + escape_shell_arg(arg);
+  for (const auto &arg : args_)
+    exec_cmd += " " + escape_shell_arg(arg);
 
   const int run_res = system(exec_cmd.c_str());
 
-  if (gc_.always_keep && !keep_ && fs::exists(output_name_))
+  if (!gc_.always_keep && !keep_ && fs::exists(output_name_))
   {
     fs::remove(output_name_);
 #ifdef DEBUG_MODE
@@ -120,10 +123,12 @@ std::string Run::get_build_command()
 
   // User flags
   if (add_flags_)
-    for (const auto &flag : lc.flags) cmd << escape_shell_arg(flag) << " ";
+    for (const auto &flag : lc.flags)
+      cmd << escape_shell_arg(flag) << " ";
 
   // Source files
-  for (const auto &file : files_) cmd << escape_shell_arg(file.string()) << " ";
+  for (const auto &file : files_)
+    cmd << escape_shell_arg(file.string()) << " ";
 
   // Output
   cmd << "-o " << escape_shell_arg(output_name_) << " ";
@@ -198,8 +203,9 @@ vector<Dependency> Run::get_dependencies()
   {
     for (const auto &include : get_file_includes(f, rg_.pkgs()))
     {
-      const bool already_present =
-          std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
+      const bool already_present = std::any_of(
+        libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; }
+      );
 
       if (!already_present)
         libs_to_link.push_back(include);

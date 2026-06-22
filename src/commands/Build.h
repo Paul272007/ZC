@@ -13,18 +13,19 @@ class Build : public Command
 {
 public:
   Build(
-      bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run = false,
-      const std::vector<std::string> &run_args = {}
+    bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug,
+    bool run = false, const std::vector<std::string> &run_args = {}
   );
 
   void operator()() override;
 
 private:
-  const bool clean_;
-  const std::filesystem::path p_root_;
-  BuildMode mode_;
-  const bool run_;
   const std::vector<std::string> run_args_;
+  const std::filesystem::path    p_root_;
+
+  const bool run_;
+  const bool clean_;
+  BuildMode  mode_;
 };
 
 } // namespace zc

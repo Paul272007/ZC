@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <string>
@@ -21,23 +15,27 @@ namespace zc
 class Run : public Command
 {
 public:
-  Run(bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-      bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std, bool static_link,
-      bool no_flags);
+  Run(
+    bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
+    bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std,
+    bool static_link, bool no_flags
+  );
 
   void operator()() override;
 
 private:
-  GConf &gc_ = GConf::get();
+  GConf    &gc_ = GConf::get();
   Registry &rg_ = Registry::get();
-  CompileMode mode_;
+
   const std::vector<std::filesystem::path> files_;
-  const bool plus_ = false;
-  const bool add_std_ = false;
-  const bool keep_ = false;
-  const bool static_ = false;
-  const bool add_flags_ = true;
-  const std::vector<std::string> args_;
+  const std::vector<std::string>           args_;
+
+  CompileMode mode_;
+  const bool  add_flags_ = true;
+  const bool  plus_      = false;
+  const bool  add_std_   = false;
+  const bool  keep_      = false;
+  const bool  static_    = false;
   std::string output_name_;
   std::string build_cmd_;
 

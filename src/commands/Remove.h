@@ -1,7 +1,3 @@
-//
-// Created by paul on 15/06/2026.
-//
-
 #pragma once
 
 #include "Command.h"
@@ -17,7 +13,7 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path p_root_;
+  const std::filesystem::path    p_root_;
   const std::vector<std::string> targets_;
 };
 

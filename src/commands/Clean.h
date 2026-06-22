@@ -1,7 +1,3 @@
-//
-// Created by paul on 14/06/2026.
-//
-
 #pragma once
 
 #include "Command.h"

@@ -1,15 +1,10 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Interface.h"
 
 #include <iostream>
 #include <nlohmann/json.hpp>
 
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
-#include "Interface.h"
 #include "excepts/ExitCode.h"
 #include "ui/ui_utils.h"
 
@@ -80,7 +75,8 @@ void Interface::error(const std::string &message) const
 
 bool Interface::ask(const std::string &question, const bool default_ans) const
 {
-  vector<string> options = {"Yes", "No"};
+  vector<string> options = { "Yes", "No" };
+
   int selected = radios(question, options);
   return selected == 0;
 }
@@ -138,13 +134,16 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
     return;
 
   string pct_str = std::to_string(percent_filled);
-  while (pct_str.length() < 3) pct_str = " " + pct_str; // Percentage always takes 3 characters
+  while (pct_str.length() < 3)
+    pct_str = " " + pct_str; // Percentage always takes 3 characters
 
-  int filled = (percent_filled * bar_width) / 100;
-  string bar = "";
-  for (int i = 0; i < bar_width; i++) bar += (i < filled) ? "█" : "░";
+  int    filled = (percent_filled * bar_width) / 100;
+  string bar    = "";
+  for (int i = 0; i < bar_width; i++)
+    bar += (i < filled) ? "█" : "░";
 
-  cout << "\r" CLEAR_LINE B_GREEN "◇ " << bar << " " B_GREEN << pct_str << "% " RESET << message << flush;
+  cout << "\r" CLEAR_LINE B_GREEN "◇ " << bar << " " B_GREEN << pct_str << "% " RESET << message
+       << flush;
 }
 
 void Interface::clear_loading_bar() const
@@ -155,7 +154,7 @@ void Interface::clear_loading_bar() const
 
 vector<string> Interface::checkboxes(const string &question, const vector<string> &options) const
 {
-  int cursor = 0;
+  int          cursor = 0;
   vector<bool> selected(options.size(), false);
   cout << BLUE "? " RESET << question << endl << HIDE_CURSOR;
 
@@ -230,7 +229,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
 }
 
 int Interface::radios(
-    const std::string &question, const std::vector<std::string> &options, int default_ans
+  const std::string &question, const std::vector<std::string> &options, int default_ans
 ) const
 {
   int cursor = default_ans;

@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <filesystem>
@@ -28,7 +22,7 @@ public:
    * Get the user registry, which index is stored in ~/.zc/registry.json
    */
   [[nodiscard]] static Registry &get();
-  Registry(const Registry &) = delete;
+  Registry(const Registry &)       = delete;
   void operator=(const Registry &) = delete;
 
   /**
@@ -39,7 +33,6 @@ public:
   /**
    * Install a package from the server
    * If already installed, throw an error
-   * TODO : add latest as default version here and make version a Version + use Target struct
    * @param name
    * @param version
    * @param index
@@ -95,13 +88,15 @@ protected:
   void write() override;
 
 private:
+  const Network &net_ = Network::get();
+
   const std::filesystem::path cache_dir_;
   const std::filesystem::path tmp_dir_;
   const std::filesystem::path include_links_dir_;
   const std::filesystem::path lib_links_dir_;
   const std::filesystem::path bin_links_dir_;
+
   std::vector<RegistryPkg> pkgs_;
-  const Network &net_ = Network::get();
 
   explicit Registry(const std::filesystem::path &root = get_zc_root());
 

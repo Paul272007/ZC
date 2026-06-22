@@ -1,8 +1,4 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Project.h"
 
 #include <chrono>
 #include <filesystem>
@@ -14,14 +10,13 @@
 
 #include "../config/GConf.h"
 #include "../helpers.h"
-#include "Language.h"
-#include "Project.h"
-#include "Version.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "Language.h"
 #include "pkgs/Network.h"
 #include "pkgs/PkgType.h"
 #include "pkgs/Registry.h"
+#include "Version.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -29,8 +24,11 @@ namespace zc
 {
 
 Project::Project(const std::filesystem::path &root)
-    : root_dir(root), build_dir(root / BUILD_DIR), pconf(root / ZC_FILE),
-      cache_dir_(root / PROJECT_CACHE_DIR), makefile_(build_dir / MAKEFILE)
+  : root_dir(root),
+    build_dir(root / BUILD_DIR),
+    pconf(root / ZC_FILE),
+    cache_dir_(root / PROJECT_CACHE_DIR),
+    makefile_(build_dir / MAKEFILE)
 {
 }
 
@@ -41,7 +39,7 @@ void Project::build(BuildMode current_mode, bool is_install)
 
   fs::create_directories(build_dir);
   const string make_cmd = "make --no-print-directory -C " + build_dir.string() + " all";
-  int compiled = 0;
+  int          compiled = 0;
   get_sources();
 
   if (!is_install)
@@ -55,9 +53,13 @@ void Project::build(BuildMode current_mode, bool is_install)
         current_mode = previous_mode;
       else if (current_mode != previous_mode)
       {
-        if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
+        if_.info(
+          "Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild..."
+        );
         clean();
-        fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
+        fs::create_directories(
+          build_dir
+        ); // so we can write into the build_mode_file and it doesn't crash
       }
     }
     else // if build mode file doesn't exist and mode is set to automatic, default is debug
@@ -70,10 +72,10 @@ void Project::build(BuildMode current_mode, bool is_install)
 
   generate_Makefile(current_mode == BuildMode::release);
 
-  int to_compile = 0;
-  int to_link = 0;
+  int          to_compile  = 0;
+  int          to_link     = 0;
   const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
-  FILE *dry_pipe = popen(dry_run_cmd.c_str(), "r");
+  FILE        *dry_pipe    = popen(dry_run_cmd.c_str(), "r");
   if (!dry_pipe)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
@@ -83,10 +85,8 @@ void Project::build(BuildMode current_mode, bool is_install)
     string line(buffer_dry);
     if (line.find("ZC_COMPILE|") != string::npos)
       to_compile++;
-    else if (
-        line.find("ZC_BIN|") != string::npos || line.find("ZC_STATIC|") != string::npos ||
-        line.find("ZC_SHARED|") != string::npos
-    )
+    else if (line.find("ZC_BIN|") != string::npos || line.find("ZC_STATIC|") != string::npos ||
+             line.find("ZC_SHARED|") != string::npos)
       to_link++;
   }
   pclose(dry_pipe);
@@ -104,7 +104,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   if (!pipe)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
-  char buffer[1024];
+  char      buffer[1024];
   const int bar_width = 20;
 
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
@@ -126,22 +126,22 @@ void Project::build(BuildMode current_mode, bool is_install)
 
       if (rest.starts_with("COMPILE|"))
       {
-        message = "Compiling object ";
+        message     = "Compiling object ";
         target_name = rest.substr(8);
       }
       else if (rest.starts_with("STATIC|"))
       {
-        message = "Linking static library ";
+        message     = "Linking static library ";
         target_name = rest.substr(7);
       }
       else if (rest.starts_with("SHARED|"))
       {
-        message = "Linking shared library ";
+        message     = "Linking shared library ";
         target_name = rest.substr(7);
       }
       else if (rest.starts_with("BIN|"))
       {
-        message = "Linking executable ";
+        message     = "Linking executable ";
         target_name = rest.substr(4);
       }
 
@@ -166,28 +166,33 @@ void Project::build(BuildMode current_mode, bool is_install)
   if (WEXITSTATUS(result) == 0) // FIX : find solution for windows
     if_.success("Project was successfully built in " + build_dir.string());
   else
-    throw ZCException(ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result)));
+    throw ZCException(
+      ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result))
+    );
 }
 
-void Project::clean() const
+void Project::clean(bool cache) const
 {
   if (fs::exists(build_dir) && fs::is_directory(build_dir))
     if (fs::remove_all(build_dir) > 0)
       if_.info("Cleaned " + pretty_path(build_dir));
 
-  if (fs::exists(cache_dir_) && fs::is_directory(cache_dir_))
+  if (cache && fs::exists(cache_dir_) && fs::is_directory(cache_dir_))
     if (fs::remove_all(cache_dir_) > 0)
       if_.info("Cleaned " + pretty_path(cache_dir_));
 }
 
 void Project::publish()
 {
-  if_.info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
+  if_.info(
+    "Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "..."
+  );
 
   for (const auto &dep : pconf.dependencies)
     if (reg_.get_pkg(dep.name).origin == "local")
       throw ZCException(
-          ZCE_LOCAL_DEPENDENCY, "Cannot publish package depending on locally installed package: " + dep.name
+        ZCE_LOCAL_DEPENDENCY,
+        "Cannot publish package depending on locally installed package: " + dep.name
       );
 
   // Version is already in its constructor
@@ -198,37 +203,37 @@ void Project::publish()
 
   if (gc_.token.empty())
     throw ZCException(
-        ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first."
+      ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first."
     );
 
   if_.info("Verifying GitHub identity...");
   Network &net(Network::get());
-  string user_info_raw = net.get("https://api.github.com/user", "", gc_.token); // empty payload
-  auto user_info = nlohmann::json::parse(user_info_raw);
-  string github_login = user_info["login"];
+  string   user_info_raw = net.get("https://api.github.com/user", "", gc_.token); // empty payload
+  auto     user_info     = nlohmann::json::parse(user_info_raw);
+  string   github_login  = user_info["login"];
 
   if (github_login != pconf.author)
     throw ZCException(
-        ZCE_AUTHENTICATION_ERROR, "Identity mismatch: You are logged in as '" + github_login +
-                                      "' but the author in zc.json is '" + pconf.author +
-                                      "'. Publication blocked for security reasons."
+      ZCE_AUTHENTICATION_ERROR, "Identity mismatch: You are logged in as '" + github_login +
+                                  "' but the author in zc.json is '" + pconf.author +
+                                  "'. Publication blocked for security reasons."
     );
 
   if_.success("Authenticated as " + github_login);
 
   string tag = "v" + pconf.version.string();
   string archive_url =
-      "https://github.com/" + pconf.author + "/" + pconf.name + "/archive/refs/tags/" + tag + ".tar.gz";
+    "https://github.com/" + pconf.author + "/" + pconf.name + "/archive/refs/tags/" + tag + ".tar.gz";
 
   if_.info("Expected archive URL: " + archive_url);
 
-  const fs::path tmp_dir = get_zc_root() / TMP_DIR;
+  const fs::path tmp_dir      = get_zc_root() / TMP_DIR;
   const fs::path archive_path = tmp_dir / (pconf.name + "_" + tag + ".tar.gz");
   fs::create_directories(tmp_dir);
 
   // Ensure the release exists on GitHub
   string release_api_url =
-      "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases/tags/" + tag;
+    "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases/tags/" + tag;
 
   try
   {
@@ -244,13 +249,13 @@ void Project::publish()
       return;
 
     nlohmann::json release_payload;
-    release_payload["tag_name"] = tag;
-    release_payload["name"] = "Release " + tag;
-    release_payload["body"] = "Automated release by ZC build tool.";
+    release_payload["tag_name"]               = tag;
+    release_payload["name"]                   = "Release " + tag;
+    release_payload["body"]                   = "Automated release by ZC build tool.";
     release_payload["generate_release_notes"] = true;
 
     string create_release_url =
-        "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases";
+      "https://api.github.com/repos/" + pconf.author + "/" + pconf.name + "/releases";
 
     try
     {
@@ -260,7 +265,8 @@ void Project::publish()
     catch (const ZCException &) // TODO : handle different error types directly in Network.cpp
     {
       throw ZCException(
-          ZCE_NETWORK_ERROR, "Failed to create release. Ensure the tag exists or you have enough permissions."
+        ZCE_NETWORK_ERROR,
+        "Failed to create release. Ensure the tag exists or you have enough permissions."
       );
     }
   }
@@ -275,14 +281,14 @@ void Project::publish()
 
   // Upload recipe to registry
   json recipe;
-  recipe["name"] = pconf.name;
+  recipe["name"]    = pconf.name;
   recipe["version"] = pconf.version.string();
-  recipe["url"] = archive_url;
-  recipe["sha256"] = sha;
-  recipe["owner"] = pconf.author;
+  recipe["url"]     = archive_url;
+  recipe["sha256"]  = sha;
+  recipe["owner"]   = pconf.author;
 
   string file_path = "packages/" + pconf.name + "/" + pconf.version.string() + ".json";
-  json payload;
+  json   payload;
   payload["message"] = "Publish " + pconf.name + " v" + pconf.version.string();
   payload["content"] = base64_encode(recipe.dump(2));
 
@@ -309,9 +315,9 @@ void Project::publish()
             first_version_json.contains("owner") && first_version_json["owner"] != pconf.author)
         {
           throw ZCException(
-              ZCE_AUTHENTICATION_ERROR, "Security Violation: This package is owned by '" +
-                                            first_version_json["owner"].get<string>() +
-                                            "'. You cannot publish a new version."
+            ZCE_AUTHENTICATION_ERROR, "Security Violation: This package is owned by '" +
+                                        first_version_json["owner"].get<string>() +
+                                        "'. You cannot publish a new version."
           );
         }
       }
@@ -332,7 +338,8 @@ void Project::publish()
     if (string(e.what()).find("422") != string::npos)
     {
       throw ZCException(
-          ZCE_VERSION_ALREADY_EXISTS, "Version " + pconf.version.string() + " already exists in the registry."
+        ZCE_VERSION_ALREADY_EXISTS,
+        "Version " + pconf.version.string() + " already exists in the registry."
       );
     }
     throw ZCException(ZCE_NETWORK_ERROR, "Failed to upload recipe: " + string(e.what()));
@@ -348,12 +355,10 @@ void Project::add_dependency(const string &name, const bool is_static)
   if (pkg.type == BIN)
     throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN as a dependency");
 
-  const Dependency d{
-      .name = pkg.name,
-      .origin = pkg.origin,
-      .static_link = is_static,
-      .version = *ranges::max_element(pkg.versions)
-  };
+  const Dependency d{ .name        = pkg.name,
+                      .origin      = pkg.origin,
+                      .static_link = is_static,
+                      .version     = *ranges::max_element(pkg.versions) };
 
   pconf.add_dependency(d);
   fs::create_directories(build_dir);
@@ -369,7 +374,7 @@ void Project::remove_dependency(const string &name)
 
 void Project::change_dependency_version(const std::string &name, const Version &new_version)
 {
-  if (!reg_.is_installed({name, new_version}))
+  if (!reg_.is_installed({ name, new_version }))
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
 
   pconf.change_dependency_version(name, new_version);
@@ -378,8 +383,8 @@ void Project::change_dependency_version(const std::string &name, const Version &
 void Project::install_dependencies() const
 {
   if_.info("Installing package dependencies...");
-  const auto &net = Network::get();
-  const json index = net.get_index();
+  const auto &net   = Network::get();
+  const json  index = net.get_index();
   for (const auto &dep : pconf.dependencies)
   {
     if (dep.origin == "local")
@@ -390,12 +395,12 @@ void Project::install_dependencies() const
     if (dep.origin == "std")
     {
       if_.warning(
-          "Dependency '" + dep.name + "' is a standard package. Make sure it's installed on your system."
+        "Dependency '" + dep.name + "' is a standard package. Make sure it's installed on your system."
       );
       continue;
     }
 
-    Target t{.name = dep.name, .version = dep.version};
+    Target t{ .name = dep.name, .version = dep.version };
     reg_.install_from_server(t, index);
   }
 }
@@ -403,14 +408,14 @@ void Project::install_dependencies() const
 void Project::update_dependencies()
 {
   if_.info("Updating package dependencies...");
-  const auto &net = Network::get();
-  const json index = net.get_index();
+  const auto &net   = Network::get();
+  const json  index = net.get_index();
   for (const auto &dep : pconf.dependencies)
   {
     if (dep.origin == "local" || dep.origin == "std")
       continue;
 
-    Target t{.name = dep.name, .version = Version::latest()};
+    Target t{ .name = dep.name, .version = Version::latest() };
     reg_.update_from_server(t, index);
     pconf.change_dependency_version(dep.name, Version::latest());
   }
@@ -465,7 +470,8 @@ void Project::Makefile_bin(std::ostringstream &mk) const
   mk << "all: $(TARGET)\n\n";
 
   mk << "$(TARGET):";
-  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  for (const auto &l : pconf.languages)
+    mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_BIN|$@\"\n";
   mk << "\t@" << get_linker() << " -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
@@ -478,13 +484,15 @@ void Project::Makefile_lib(std::ostringstream &mk) const
   mk << "all: $(TARGET_STATIC) $(TARGET_SHARED)\n\n";
 
   mk << "$(TARGET_STATIC):";
-  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  for (const auto &l : pconf.languages)
+    mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_STATIC|$@\"\n";
   mk << "\t@" << gc_.archive << " $@ $^\n\n";
 
   mk << "$(TARGET_SHARED):";
-  for (const auto &l : pconf.languages) mk << " $(" << language_to_str(l.name) << "_OBJS)";
+  for (const auto &l : pconf.languages)
+    mk << " $(" << language_to_str(l.name) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_SHARED|$@\"\n";
   mk << "\t@" << get_linker() << " -shared -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
@@ -498,11 +506,12 @@ void Project::Makefile_compose(std::ostringstream &mk) const
 
 void Project::generate_compile_commands() const
 {
-  json compile_commands = nlohmann::json::array();
-  const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
+  json           compile_commands = nlohmann::json::array();
+  const fs::path cache_dir        = get_zc_root() / ZC_CACHE_DIR;
 
   string includes = "";
-  for (const auto &inc : pconf.include_dirs) includes += " -I../" + inc;
+  for (const auto &inc : pconf.include_dirs)
+    includes += " -I../" + inc;
   for (const auto &dep : pconf.dependencies)
     includes += " -I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string();
 
@@ -512,7 +521,8 @@ void Project::generate_compile_commands() const
       continue;
 
     string flags = "-std=" + l.std + " -MMD -MP";
-    for (const auto &flag : l.flags) flags += " " + escape_shell_arg(flag);
+    for (const auto &flag : l.flags)
+      flags += " " + escape_shell_arg(flag);
     if (pconf.type == LIB)
       flags += " -fPIC";
     flags += " -g -DZC_DEBUG"; // Always generate compile_commands in debug mode by default for LSP
@@ -521,9 +531,9 @@ void Project::generate_compile_commands() const
     {
       nlohmann::json cmd;
       cmd["directory"] = fs::absolute(build_dir).string();
-      cmd["file"] = "../" + file;
-      cmd["output"] = file + ".o";
-      cmd["command"] = l.compiler + " " + flags + includes + " -c ../" + file + " -o " + file + ".o";
+      cmd["file"]      = "../" + file;
+      cmd["output"]    = file + ".o";
+      cmd["command"]   = l.compiler + " " + flags + includes + " -c ../" + file + " -o " + file + ".o";
       compile_commands.push_back(cmd);
     }
   }
@@ -534,8 +544,8 @@ void Project::generate_compile_commands() const
 
 void Project::Makefile_comment(std::ostringstream &mk) const
 {
-  auto now_sec = chrono::floor<chrono::seconds>(chrono::system_clock::now());
-  const string s = std::format("{:%F %T}", now_sec);
+  auto         now_sec = chrono::floor<chrono::seconds>(chrono::system_clock::now());
+  const string s       = std::format("{:%F %T}", now_sec);
   mk << "# --- This file was automatically generated by ZC\n";
   mk << "# --- Date of creation: " << s << " (UTC)\n";
   mk << "# --- Do not edit this file manually !\n\n";
@@ -564,14 +574,15 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "VPATH = ..\n\n";
   mk << ".PHONY: all clean install\n\n";
 
-  mk << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
+  mk
+    << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
 
   for (const auto &l : pconf.languages)
   {
     if (auto it = sources_.find(l.name); it == sources_.end())
       throw ZCException(
-          ZCE_NO_SOURCE_FILES,
-          "Language " + language_to_str(l.name) + " is given but no source files of this language were found"
+        ZCE_NO_SOURCE_FILES, "Language " + language_to_str(l.name) +
+                               " is given but no source files of this language were found"
       );
 
     // Languages configuration and flags
@@ -579,7 +590,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
     mk << name << "_COMPILER := " << l.compiler << "\n";
     mk << name << "_STD      := " << l.std << "\n";
     mk << name << "_FLAGS    := -std=$(" << name << "_STD) -MMD -MP -fdiagnostics-color=always";
-    for (const auto &flag : l.flags) mk << " " << escape_shell_arg(flag);
+    for (const auto &flag : l.flags)
+      mk << " " << escape_shell_arg(flag);
 
     if (pconf.type == LIB)
       mk << " -fPIC";
@@ -591,7 +603,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 
     // Files to compile into objects
     mk << name << "_OBJS     :=";
-    for (const auto &file : sources_.at(l.name)) mk << " " << file << ".o";
+    for (const auto &file : sources_.at(l.name))
+      mk << " " << file << ".o";
     mk << "\n";
 
     // Dependencies files
@@ -605,7 +618,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   // Include dirs
   const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
   mk << "INCLUDE_DIRS :=";
-  for (const auto &inc : pconf.include_dirs) mk << " -I../" << inc;
+  for (const auto &inc : pconf.include_dirs)
+    mk << " -I../" << inc;
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
     mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string();
   mk << "\n";
@@ -614,7 +628,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "LIB_DIRS     :=";
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
   {
-    if (dep.static_link) // We add the archive directly as a source
+    if (dep.static_link)                     // We add the archive directly as a source
       continue;
     const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
     mk << " -L" << dep_lib_dir << " -Wl,-rpath," << dep_lib_dir;
@@ -636,7 +650,8 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
+  mk
+    << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
   mk << "install:\n\tzc install --path ..\n\n";
   mk << "help:\n";
   mk << "\t@echo \"Available targets:\"\n";
@@ -687,7 +702,7 @@ int Project::get_sources()
         if (sources_.find(l) != sources_.end())
           sources_[l].push_back(fs::relative(file, root_dir).string());
         else
-          sources_[l] = {fs::relative(file, root_dir).string()};
+          sources_[l] = { fs::relative(file, root_dir).string() };
         total_files_to_compile++;
       }
     }

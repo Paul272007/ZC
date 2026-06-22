@@ -1,17 +1,11 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <string>
 #include <vector>
 
-#include "../Version.h"
 #include "../helpers.h"
 #include "../pkgs/PkgType.h"
+#include "../Version.h"
 #include "Conf.h"
 #include "Dependency.h"
 #include "LanguageConf.h"
@@ -25,11 +19,13 @@ public:
   std::string name;
   std::string author;
   std::string target = name;
+
   PkgType type = UNDEF;
   Version version; // default is 0.0.1
-  std::vector<std::string> src_dirs = {SRC_DIR};
-  std::vector<std::string> include_dirs = {SRC_DIR};
-  std::vector<Dependency> dependencies;
+
+  std::vector<std::string>  src_dirs     = { SRC_DIR };
+  std::vector<std::string>  include_dirs = { SRC_DIR };
+  std::vector<Dependency>   dependencies;
   std::vector<LanguageConf> languages;
 
   ~PConf() override;

@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <nlohmann/json_fwd.hpp>
@@ -17,7 +11,7 @@ class Interface
 {
 public:
   static Interface &get();
-  Interface(const Interface &) = delete;
+  Interface(const Interface &)      = delete;
   void operator=(const Interface &) = delete;
 
   void clear() const;
@@ -59,17 +53,13 @@ public:
   std::vector<std::string>
   checkboxes(const std::string &question, const std::vector<std::string> &options) const;
 
-  int radios(const std::string &question, const std::vector<std::string> &options, int default_ans = 0) const;
+  int radios(
+    const std::string &question, const std::vector<std::string> &options, int default_ans = 0
+  ) const;
 
-  bool is_quiet() const
-  {
-    return quiet_;
-  }
+  bool is_quiet() const { return quiet_; }
 
-  void set_quiet(bool quiet)
-  {
-    quiet_ = quiet;
-  }
+  void set_quiet(bool quiet) { quiet_ = quiet; }
 
 private:
   bool quiet_ = false;

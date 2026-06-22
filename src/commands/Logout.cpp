@@ -3,9 +3,7 @@
 namespace zc
 {
 
-Logout::Logout(const bool force) : Command(force)
-{
-}
+Logout::Logout(const bool force) : Command(force) {}
 
 void Logout::operator()()
 {

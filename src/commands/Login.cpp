@@ -3,9 +3,7 @@
 namespace zc
 {
 
-Login::Login(const bool force) : Command(force)
-{
-}
+Login::Login(const bool force) : Command(force) {}
 
 void Login::operator()()
 {

@@ -1,21 +1,15 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <filesystem>
 #include <string>
 #include <vector>
 
-#include "../Language.h"
 #include "../config/GConf.h"
 #include "../config/PConf.h"
 #include "../excepts/ExitCode.h"
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
+#include "../Language.h"
 #include "../pkgs/Registry.h"
 #include "../ui/Interface.h"
 
@@ -60,6 +54,7 @@ public:
   // expose configuration for the registry
   const std::filesystem::path root_dir;
   const std::filesystem::path build_dir;
+
   PConf pconf;
 
   explicit Project(const std::filesystem::path &root = get_project_root());
@@ -72,7 +67,7 @@ public:
    */
   void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
 
-  void clean() const;
+  void clean(bool cache = false) const;
 
   void publish();
 
@@ -86,12 +81,14 @@ public:
   void generate_build_config();
 
 private:
+  GConf     &gc_  = GConf::get();
+  Registry  &reg_ = Registry::get();
+  Interface &if_  = Interface::get();
+
   const std::filesystem::path cache_dir_;
   const std::filesystem::path makefile_;
+
   Sources sources_;
-  Registry &reg_ = Registry::get();
-  Interface &if_ = Interface::get();
-  GConf &gc_ = GConf::get();
 
   void generate_Makefile(bool release = false) const;
 

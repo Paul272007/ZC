@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <filesystem>
@@ -64,7 +58,8 @@ inline Language language_from_str(const std::string &txt)
 
 inline bool is_of_language(Language l, const std::filesystem::path &file)
 {
-  if (!std::filesystem::exists(file) || !std::filesystem::is_regular_file(file))
+  // We suppose the file exists
+  if (!std::filesystem::is_regular_file(file))
     return false;
 
   std::string ext = file.extension();

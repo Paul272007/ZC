@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include "../config/GConf.h"
@@ -20,16 +14,15 @@ public:
   virtual void operator()() = 0;
 
 protected:
+  GConf     &gc_ = GConf::get();
+  Interface &if_ = Interface::get(); // Could be const since it practically only has const methods
+
   const bool force_;
-  const Interface &if_ = Interface::get();
-  const GConf &gconf_ = GConf::get();
 
   /**
    * @param force
    */
-  explicit Command(const bool force = false) : force_(force)
-  {
-  }
+  explicit Command(const bool force = false) : force_(force) {}
 };
 
 } // namespace zc

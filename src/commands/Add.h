@@ -1,7 +1,3 @@
-//
-// Created by paul on 14/06/2026.
-//
-
 #pragma once
 
 #include "Command.h"
@@ -12,15 +8,18 @@ namespace zc
 class Add : public Command
 {
 public:
-  Add(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets,
-      bool is_static);
+  Add(
+    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets,
+    bool is_static
+  );
 
   void operator()() override;
 
 private:
-  const bool static_;
-  const std::filesystem::path p_root_;
   const std::vector<std::string> targets_;
+  const std::filesystem::path    p_root_;
+
+  const bool static_;
 };
 
 } // namespace zc

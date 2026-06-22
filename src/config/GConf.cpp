@@ -1,8 +1,4 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "GConf.h"
 
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -14,10 +10,9 @@
 #include "../pkgs/Network.cpp"
 #include "../ui/ui_utils.h"
 #include "Conf.h"
-#include "GConf.h"
-#include "Language.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
+#include "Language.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -33,19 +28,21 @@ GConf &GConf::get()
 void GConf::login()
 {
   Network &net = Network::get();
-  std::string response = net.post(DEVICE_CODE_URL, "client_id=" CLIENT_ID "&scope=public_repo");
-  auto json_resp = nlohmann::json::parse(response);
+
+  auto json_resp =
+    nlohmann::json::parse(net.post(DEVICE_CODE_URL, "client_id=" CLIENT_ID "&scope=public_repo"));
 
   if (json_resp.contains("error"))
   {
     throw ZCException(
-        ZCE_NETWORK_ERROR, "Failed to initiate login: " + json_resp["error_description"].get<std::string>()
+      ZCE_NETWORK_ERROR, "Failed to initiate login: " + json_resp["error_description"].get<string>()
     );
   }
 
-  const std::string device_code = json_resp["device_code"];
-  const std::string user_code = json_resp["user_code"];
-  const std::string verification_uri = json_resp["verification_uri"];
+  const string device_code      = json_resp["device_code"];
+  const string user_code        = json_resp["user_code"];
+  const string verification_uri = json_resp["verification_uri"];
+
   int interval = json_resp["interval"];
 
   if_.info("");
@@ -63,10 +60,9 @@ void GConf::login()
 
   while (true)
   {
-    std::this_thread::sleep_for(std::chrono::seconds(interval));
+    this_thread::sleep_for(std::chrono::seconds(interval));
 
-    std::string poll_resp = net.post(TOKEN_URL, token_payload);
-    auto poll_json = nlohmann::json::parse(poll_resp);
+    auto poll_json = nlohmann::json::parse(net.post(TOKEN_URL, token_payload));
 
     if (poll_json.contains("error"))
     {
@@ -82,21 +78,21 @@ void GConf::login()
       }
       else if (err == "expired_token")
       {
-        throw ZCException(ZCE_AUTHENTICATION_ERROR, "The code has expired. Please run `zc login` again.");
+        throw ZCException(
+          ZCE_AUTHENTICATION_ERROR, "The code has expired. Please run `zc login` again."
+        );
       }
       else
       {
         throw ZCException(
-            ZCE_NETWORK_ERROR, "Authorization failed: " + poll_json["error_description"].get<std::string>()
+          ZCE_NETWORK_ERROR, "Authorization failed: " + poll_json["error_description"].get<string>()
         );
       }
     }
     else if (poll_json.contains("access_token"))
     {
       if_.new_line();
-      std::string access_token = poll_json["access_token"];
-
-      token = access_token;
+      token     = poll_json["access_token"];
       modified_ = true;
 
       if_.success("Successfully authenticated with GitHub!");
@@ -114,7 +110,7 @@ void GConf::logout()
   }
   else
   {
-    token = "";
+    token     = "";
     modified_ = true;
     if_.success("Successfully logged out.");
   }
@@ -140,7 +136,7 @@ void GConf::load()
     for (const auto &[key, value] : root["languages"].items())
     {
       LanguageConf l = value.get<LanguageConf>();
-      l.name = language_from_str(key);
+      l.name         = language_from_str(key);
       languages.push_back(l);
     }
   }
@@ -149,17 +145,18 @@ void GConf::load()
 void GConf::write()
 {
   json root;
-  root["always_keep"] = always_keep;
-  root["always_add_std"] = always_add_std;
-  root["open_after_init"] = open_after_init;
-  root["open_after_create"] = open_after_create;
-  root["clear_before_run"] = clear_before_run;
+  root["always_keep"]              = always_keep;
+  root["always_add_std"]           = always_add_std;
+  root["open_after_init"]          = open_after_init;
+  root["open_after_create"]        = open_after_create;
+  root["clear_before_run"]         = clear_before_run;
   root["move_bin_to_current_path"] = move_bin_to_current_path;
-  root["editor"] = editor;
-  root["archive"] = archive;
+  root["editor"]                   = editor;
+  root["archive"]                  = archive;
 
   json lang_json = json::object();
-  for (const auto &l : languages) lang_json[language_to_str(l.name)] = l;
+  for (const auto &l : languages)
+    lang_json[language_to_str(l.name)] = l;
   root["languages"] = lang_json;
 
   if (!token.empty())
@@ -186,7 +183,7 @@ GConf::GConf() : Conf(get_zc_root() / CONFIG_FILE)
 LanguageConf GConf::get_lang_conf(Language l) const
 {
   const auto it = std::find_if(
-      languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
+    languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
   );
   if (it == languages.end())
     throw ZCException(ZCE_NOT_FOUND, "No configuration available for language " + language_to_str(l));

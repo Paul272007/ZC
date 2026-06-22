@@ -8,89 +8,92 @@
 #include <utility>
 #include <vector>
 
-#include "Version.h"
 #include "excepts/ZCException.h"
+#include "Version.h"
 
-#define ZC_DEV_CONFIG                                                                                        \
-  using namespace std;                                                                                       \
+#define ZC_DEV_CONFIG             \
+  using namespace std;            \
   namespace fs = std::filesystem;
 
 #define ZC_DEV_CONFIG_JSON ZC_DEV_CONFIG using json = nlohmann::json;
 
-// clang-format off
 #if defined(_WIN32) || defined(_WIN64)
-#define BIN_NAME(name)        (name + ".exe")
-#define STATIC_LIB_NAME(name) (name + ".a")
-#define SHARED_LIB_NAME(name) (name + ".dll")
-#define RM_COMMAND            "del"
-#define MKDIR_COMMAND         "mkdir"
-#define USER_HOME_ENV         "USERPROFILE"
-#define HIDE_OUTPUT           " > NUL 2>&1" // Powershell : " *> $null"
+  #define BIN_NAME(name)        (name + ".exe")
+  #define STATIC_LIB_NAME(name) (name + ".a")
+  #define SHARED_LIB_NAME(name) (name + ".dll")
+  #define RM_COMMAND            "del"
+  #define MKDIR_COMMAND         "mkdir"
+  #define USER_HOME_ENV         "USERPROFILE"
+  #define HIDE_OUTPUT           " > NUL 2>&1" // Powershell : " *> $null"
 #elifdef __APPLE__
-#define BIN_NAME(name)        name
-#define STATIC_LIB_NAME(name) ("lib" + name + ".a")
-#define SHARED_LIB_NAME(name) ("lib" + name + ".dylib")
-#define RM_COMMAND            "rm"
-#define MKDIR_COMMAND         "mkdir -p"
-#define USER_HOME_ENV         "HOME"
-#define HIDE_OUTPUT           " &>/dev/null"
+  #define BIN_NAME(name)        name
+  #define STATIC_LIB_NAME(name) ("lib" + name + ".a")
+  #define SHARED_LIB_NAME(name) ("lib" + name + ".dylib")
+  #define RM_COMMAND            "rm"
+  #define MKDIR_COMMAND         "mkdir -p"
+  #define USER_HOME_ENV         "HOME"
+  #define HIDE_OUTPUT           " &>/dev/null"
 #else
-#define BIN_NAME(name)        name
-#define STATIC_LIB_NAME(name) ("lib" + name + ".a")
-#define SHARED_LIB_NAME(name) ("lib" + name + ".so")
-#define RM_COMMAND            "rm"
-#define MKDIR_COMMAND         "mkdir -p"
-#define USER_HOME_ENV         "HOME"
-#define HIDE_OUTPUT           " &>/dev/null"
+  #define BIN_NAME(name)        name
+  #define STATIC_LIB_NAME(name) ("lib" + name + ".a")
+  #define SHARED_LIB_NAME(name) ("lib" + name + ".so")
+  #define RM_COMMAND            "rm"
+  #define MKDIR_COMMAND         "mkdir -p"
+  #define USER_HOME_ENV         "HOME"
+  #define HIDE_OUTPUT           " &>/dev/null"
 #endif
 
-#define FORBIDDEN_NAMES    {"Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache"}
-#define FORBIDDEN_CHARS    {'@', '#', ' ', '*', '!', '?', '{', '}', '[', ']', '(', ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '$'}
+#define FORBIDDEN_NAMES \
+  { "Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache" }
+#define FORBIDDEN_CHARS                                       \
+  { '@', '#', ' ',  '*', '!',  '?', '{', '}', '[', ']', '(',  \
+    ')', '"', '\'', '/', '\\', '|', '~', '&', ';', ':', '$' }
 
 // Global directories and files
-#define ZC_DIR             ".zc"
-#define ZC_CACHE_DIR       "cache"
-#define BIN_DIR            "bin"
-#define LIB_DIR            "lib"
-#define INCLUDE_DIR        "include"
-#define TMP_DIR            "tmp"
-#define TEMPLATES_DIR      "templates"
-#define P_TEMPLATES_DIR    "project_templates"
+#define ZC_DIR            ".zc"
+#define ZC_CACHE_DIR      "cache"
+#define BIN_DIR           "bin"
+#define LIB_DIR           "lib"
+#define INCLUDE_DIR       "include"
+#define TMP_DIR           "tmp"
+#define TEMPLATES_DIR     "templates"
+#define P_TEMPLATES_DIR   "project_templates"
 
-#define CONFIG_FILE        "config.json"
-#define REGISTRY_FILE      "registry.json"
+#define CONFIG_FILE       "config.json"
+#define REGISTRY_FILE     "registry.json"
 
 // Project-wide directories and files
-#define SRC_DIR            "src"
-#define BUILD_DIR          "build"
-#define PROJECT_CACHE_DIR  ".cache"
+#define SRC_DIR           "src"
+#define BUILD_DIR         "build"
+#define PROJECT_CACHE_DIR ".cache"
 
-#define ZC_FILE            "zc.json"
-#define MAKEFILE           "Makefile"
-#define BUILD_MODE_FILE    ".zc_build_mode"
+#define ZC_FILE           "zc.json"
+#define MAKEFILE          "Makefile"
+#define BUILD_MODE_FILE   ".zc_build_mode"
 
 // Distant server files and useful things
-#define INDEX_FILE         "index.json"
-#define CLIENT_ID          "Ov23liDOGFHUp7VKXTJ7"
-#define GH_REPO            "Paul272007/ZC-Registry"
+#define INDEX_FILE        "index.json"
+#define CLIENT_ID         "Ov23liDOGFHUp7VKXTJ7"
+#define GH_REPO           "Paul272007/ZC-Registry"
 
-#define DEVICE_CODE_URL    "https://github.com/login/device/code"
-#define TOKEN_URL          "https://github.com/login/oauth/access_token"
-#define INDEX_URL          "https://paul272007.github.io/ZC-Registry/index.json"
+#define DEVICE_CODE_URL   "https://github.com/login/device/code"
+#define TOKEN_URL         "https://github.com/login/oauth/access_token"
+#define INDEX_URL         "https://paul272007.github.io/ZC-Registry/index.json"
 
 namespace zc
 {
 
-struct Target {
+struct Target
+{
   const std::string name;
+
   Version version = Version::latest();
 };
 
 using Targets = std::vector<Target>;
 
-// clang-format on
-
-std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
+std::filesystem::path
+get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
 const std::filesystem::path &get_zc_root();
 void create_zc_root();
 Targets parse_targets(const std::vector<std::string> &targets);
@@ -114,13 +117,13 @@ std::string escape_shell_arg(const std::string &arg);
 std::string exec_command(const std::string &cmd);
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
 
-template <typename EnumType>
+template<typename EnumType>
 EnumType parse_mode(
-    std::initializer_list<std::pair<EnumType, bool>> flags, EnumType default_mode,
-    const std::string &error_msg = "Incompatible flags: multiple modes selected."
+  std::initializer_list<std::pair<EnumType, bool>> flags, EnumType default_mode,
+  const std::string &error_msg = "Incompatible flags: multiple modes selected."
 )
 {
-  int count = 0;
+  int      count  = 0;
   EnumType result = default_mode;
 
   for (const auto &pair : flags)
@@ -138,7 +141,8 @@ EnumType parse_mode(
   return result;
 }
 
-template <typename T> void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable)
+template<typename T>
+void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable)
 {
   if (!json_conf.contains(key))
     throw ZCException(ZCE_MISSING_PROPERTY, "Expected property '" + key + "' missing.");
@@ -153,7 +157,7 @@ template <typename T> void get_key(const nlohmann::json &json_conf, const std::s
   }
 }
 
-template <typename T>
+template<typename T>
 void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable, T default_value)
 {
   if (!json_conf.contains(key))

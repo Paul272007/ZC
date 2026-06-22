@@ -1,3 +1,4 @@
+// clang-format off
 // ZCC: Version 0.1.1
 //
 //  ________  ________  ________
@@ -9,14 +10,15 @@
 //     \|_______|\|_______|\|_______|
 //
 // Copyright (c) 2026 Paul Maillard. All Rights Reserved.
+// clang-format on
 
 #include <string>
 
 #include "CLI11.h"
-#include "ZCCompiler.h"
 #include "helpers.h"
 #include "ui/Interface.h"
 #include "ui/ui_utils.h"
+#include "ZCCompiler.h"
 
 using namespace zc;
 
@@ -24,9 +26,9 @@ ZC_DEV_CONFIG
 
 int main(const int argc, char *argv[])
 {
-  bool quiet = false;
-  bool link = false;
-  string compiler;
+  bool           quiet = false;
+  bool           link  = false;
+  string         compiler;
   vector<string> sources;
   vector<string> flags;
 

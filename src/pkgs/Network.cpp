@@ -1,16 +1,10 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
+#include "Network.h"
 
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
-#include "Network.h"
-
 #include "../ui/Interface.h"
 
 ZC_DEV_CONFIG_JSON
@@ -18,13 +12,6 @@ ZC_DEV_CONFIG_JSON
 namespace zc
 {
 
-/**
- * Network implementation
- */
-
-/**
- * @return Network
- */
 Network &Network::get()
 {
   static Network instance;
@@ -49,10 +36,10 @@ void Network::download(const std::string &url, const std::filesystem::path &dest
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1l);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1l);
 
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1l);
 
   const CURLcode res = curl_easy_perform(curl);
 
@@ -69,21 +56,11 @@ void Network::download(const std::string &url, const std::filesystem::path &dest
   curl_easy_cleanup(curl);
 }
 
-/**
- * @param url
- * @param payload
- * @return void
- */
 std::string Network::post(const std::string &url, const std::string &payload, const std::string &token)
 {
   return request(url, "POST", payload, token);
 }
 
-/**
- * @param url
- * @param payload
- * @return void
- */
 std::string Network::put(const std::string &url, const std::string &payload, const std::string &token)
 {
   return request(url, "PUT", payload, token);
@@ -100,7 +77,7 @@ const nlohmann::json &Network::get_index() const
   {
     Interface::get().info("Fetching registry index...");
     const fs::path tmp_dir = get_zc_root() / TMP_DIR;
-    const fs::path index = tmp_dir / INDEX_FILE;
+    const fs::path index   = tmp_dir / INDEX_FILE;
     fs::create_directories(tmp_dir);
     download(INDEX_URL, index);
     return read_json(index);
@@ -120,7 +97,7 @@ Network::Network()
 }
 
 string Network::request(
-    const std::string &url, const std::string &method, const std::string &payload, const std::string &token
+  const std::string &url, const std::string &method, const std::string &payload, const std::string &token
 )
 {
   {
@@ -130,6 +107,7 @@ string Network::request(
 
     std::string readBuffer;
     curl_slist *headers = nullptr;
+
     headers = curl_slist_append(headers, "Accept: application/vnd.github+json");
     headers = curl_slist_append(headers, "User-Agent: zc-cli");
     headers = curl_slist_append(headers, "X-GitHub-Api-Version: 2022-11-28");
@@ -144,19 +122,19 @@ string Network::request(
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     curl_easy_setopt(
-        curl, CURLOPT_WRITEFUNCTION,
-        +static_cast<size_t (*)(void *, size_t, size_t, void *)>(
-            [](void *contents, const size_t size, const size_t nmemb, void *userp) -> size_t
-            {
-              static_cast<std::string *>(userp)->append(static_cast<char *>(contents), size * nmemb);
-              return size * nmemb;
-            }
-        )
+      curl, CURLOPT_WRITEFUNCTION,
+      +static_cast<size_t (*)(void *, size_t, size_t, void *)>(
+        [](void *contents, const size_t size, const size_t nmemb, void *userp) -> size_t
+        {
+          static_cast<std::string *>(userp)->append(static_cast<char *>(contents), size * nmemb);
+          return size * nmemb;
+        }
+      )
     );
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 
-    const CURLcode res = curl_easy_perform(curl);
-    long http_code = 0;
+    const CURLcode res       = curl_easy_perform(curl);
+    long           http_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
     curl_slist_free_all(headers);
@@ -164,11 +142,13 @@ string Network::request(
 
     if (res != CURLE_OK)
       throw ZCException(
-          ZCE_NETWORK_ERROR, "Network error during " + method + " request: " + curl_easy_strerror(res)
+        ZCE_NETWORK_ERROR, "Network error during " + method + " request: " + curl_easy_strerror(res)
       );
 
     if (http_code >= 400)
-      throw ZCException(ZCE_NETWORK_ERROR, "API Error (" + std::to_string(http_code) + "): " + readBuffer);
+      throw ZCException(
+        ZCE_NETWORK_ERROR, "API Error (" + std::to_string(http_code) + "): " + readBuffer
+      );
 
     return readBuffer;
   }

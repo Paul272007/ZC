@@ -1,9 +1,3 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #pragma once
 
 #include <nlohmann/json.hpp>
@@ -20,7 +14,7 @@ enum PkgType
   LIB,
   HEADER,
   COMPOSE,
-  UNDEF
+  UNDEF,
 };
 
 inline std::string pkg_type_to_pretty_str(const PkgType type)

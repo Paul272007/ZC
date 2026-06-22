@@ -1,4 +1,5 @@
 #include "Setup.h"
+
 #include "commands/Command.h"
 #include "helpers.h"
 #include "project/Project.h"
@@ -9,7 +10,7 @@ namespace zc
 {
 
 Setup::Setup(bool force, const std::filesystem::path &p_root)
-    : Command(force), p_root_(get_project_root(p_root))
+  : Command(force), p_root_(get_project_root(p_root))
 {
 }
 

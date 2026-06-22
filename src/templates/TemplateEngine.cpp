@@ -1,10 +1,5 @@
-/**
- * Project ZC
- * @author Paul Maillard
- * @version 0.1
- */
-
 #include "TemplateEngine.h"
+
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "../ui/Interface.h"
@@ -13,10 +8,6 @@ ZC_DEV_CONFIG
 
 namespace zc
 {
-
-/**
- * TemplateEngine implementation
- */
 
 TemplateEngine &TemplateEngine::get()
 {
@@ -43,18 +34,20 @@ std::vector<std::filesystem::path> TemplateEngine::templates() const
 
 Table TemplateEngine::templates_table() const
 {
-  vector<vector<string>> str_t = {{"Template"}};
-  for (const auto &t_path : templates()) str_t.push_back({t_path.filename().string()});
+  vector<vector<string>> str_t = { { "Template" } };
+  for (const auto &t_path : templates())
+    str_t.push_back({ t_path.filename().string() });
 
-  return {false, true, str_t};
+  return { false, true, str_t };
 }
 
 Table TemplateEngine::p_templates_table() const
 {
-  vector<vector<string>> str_t = {{"Project Template"}};
-  for (const auto &t_path : p_templates()) str_t.push_back({t_path});
+  vector<vector<string>> str_t = { { "Project Template" } };
+  for (const auto &t_path : p_templates())
+    str_t.push_back({ t_path });
 
-  return {false, true, str_t};
+  return { false, true, str_t };
 }
 
 std::vector<std::string> TemplateEngine::p_templates() const
@@ -75,7 +68,7 @@ std::vector<std::string> TemplateEngine::p_templates() const
 }
 
 void TemplateEngine::init_with_p_template(
-    const std::filesystem::path &root, const std::string &p_template, const bool force
+  const std::filesystem::path &root, const std::string &p_template, const bool force
 ) const
 {
   if (p_template == "none")
@@ -88,7 +81,7 @@ void TemplateEngine::init_with_p_template(
   for (const auto &entry : fs::recursive_directory_iterator(t_path))
   {
     const fs::path &src_path = entry.path();
-    fs::path rel_path = fs::relative(src_path, t_path);
+    const fs::path  rel_path = fs::relative(src_path, t_path);
 
     if (rel_path.empty() || rel_path == ".")
       continue;
@@ -96,7 +89,7 @@ void TemplateEngine::init_with_p_template(
     fs::path dest_path = root / rel_path;
     if (fs::exists(dest_path) && !force)
       if (!if_.ask(
-              "The entry '" + pretty_path(dest_path) + "' already exists. Do you want to overwrite it ?"
+            "The entry '" + pretty_path(dest_path) + "' already exists. Do you want to overwrite it ?"
           ))
         continue;
 
@@ -123,7 +116,7 @@ void TemplateEngine::init_with_p_template(
 }
 
 TemplateEngine::TemplateEngine(const std::filesystem::path &root)
-    : templates_dir_(root / TEMPLATES_DIR), p_templates_dir_(root / P_TEMPLATES_DIR)
+  : templates_dir_(root / TEMPLATES_DIR), p_templates_dir_(root / P_TEMPLATES_DIR)
 {
 }
 

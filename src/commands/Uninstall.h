@@ -19,8 +19,9 @@ public:
   void operator()() override;
 
 private:
-  std::vector<std::string> targets_;
   Registry &reg_ = Registry::get();
+
+  std::vector<std::string> targets_;
 };
 
 } // namespace zc

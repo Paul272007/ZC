@@ -65,8 +65,8 @@ public:
    * @brief Set the thickness of each border of the table
    */
   void set_thickness(
-      bool rowThickness, bool colThickness, bool rowSeparatorThickness, bool colSeparatorThickness,
-      bool rowBorderThickness, bool colBorderThickness
+    bool rowThickness, bool colThickness, bool rowSeparatorThickness, bool colSeparatorThickness,
+    bool rowBorderThickness, bool colBorderThickness
   );
 
   /**
@@ -137,12 +137,12 @@ private:
    */
   std::vector<std::vector<std::string>> content_;
 
-  bool row_headers_ = false;
-  bool col_headers_ = false;
-  bool row_thickness_ = false;
-  bool col_thickness_ = false;
-  bool row_border_thickness_ = false;
-  bool col_border_thickness_ = false;
+  bool row_headers_             = false;
+  bool col_headers_             = false;
+  bool row_thickness_           = false;
+  bool col_thickness_           = false;
+  bool row_border_thickness_    = false;
+  bool col_border_thickness_    = false;
   bool row_separator_thickness_ = false;
   bool col_separator_thickness_ = false;
 };

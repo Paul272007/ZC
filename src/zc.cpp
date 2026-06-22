@@ -1,3 +1,4 @@
+// clang-format off
 // ZC: Version 0.1.1
 //
 //   ________  ________
@@ -9,6 +10,7 @@
 //      \|_______|\|_______|
 //
 // Copyright (c) 2026 Paul Maillard. All Rights Reserved.
+// clang-format on
 
 #include "CLI11.h"
 #include "commands/Add.h"
@@ -44,38 +46,37 @@ int main(const int argc, char *argv[])
   app.set_version_flag("--version,-v", "ZC v0.1.1 (unstable)");
   app.require_subcommand(1);
   unique_ptr<Command> command(nullptr);
-  // clang-format off
 
   // --- Command line arguments and flags as variables
-  bool quiet            = false;
-  bool force            = false;
+  bool quiet = false;
+  bool force = false;
   // Run
-  bool preprocess       = false;
-  bool compile          = false;
-  bool assemble         = false;
-  bool plus             = false;
-  bool keep             = false;
-  bool add_std          = false;
-  bool static_link      = false;
-  bool no_flags         = false;
+  bool preprocess  = false;
+  bool compile     = false;
+  bool assemble    = false;
+  bool plus        = false;
+  bool keep        = false;
+  bool add_std     = false;
+  bool static_link = false;
+  bool no_flags    = false;
   // Build
-  bool clean_before     = false;
-  bool debug            = false;
-  bool release          = false;
+  bool clean_before = false;
+  bool debug        = false;
+  bool release      = false;
   // Init
-  bool git              = false;
-  bool edit             = false;
-  bool is_bin           = false;
-  bool is_lib           = false;
-  bool is_header        = false;
-  bool is_compose       = false;
+  bool git        = false;
+  bool edit       = false;
+  bool is_bin     = false;
+  bool is_lib     = false;
+  bool is_header  = false;
+  bool is_compose = false;
   // List
   bool show_templates   = false;
   bool show_p_templates = false;
   bool simple_display   = false;
   bool show_remote      = false;
   // Update
-  bool sync             = false;
+  bool sync = false;
 
   string author;
   string target;
@@ -87,6 +88,8 @@ int main(const int argc, char *argv[])
   vector<string> run_args;
   vector<string> targets;
   vector<string> languages;
+
+  // clang-format off
 
   // --- Subcommands
   // Files

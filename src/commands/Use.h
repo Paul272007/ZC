@@ -19,9 +19,11 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path p_root_;
-  Targets targets_;
   Registry &reg_ = Registry::get();
+
+  const std::filesystem::path p_root_;
+
+  Targets targets_;
 };
 
 } // namespace zc

@@ -21,7 +21,7 @@ public:
   void operator()() override;
 
 private:
-  ListType type_;
+  ListType   type_;
   const bool simple_;
 };
 
