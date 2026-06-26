@@ -34,6 +34,11 @@
 #include "ui/Interface.h"
 #include "ui/ui_utils.h"
 
+#define ZC_DEV_MAJOR   0
+#define ZC_DEV_MINOR   1
+#define ZC_DEV_PATCH   1
+#define ZC_DEV_VERSION "0.1.1"
+
 ZC_DEV_CONFIG
 
 using namespace zc;
@@ -43,7 +48,7 @@ int main(const int argc, char *argv[])
   // --- Initialize app
   CLI::App app("ZC utility for C and C++");
   argv = app.ensure_utf8(argv);
-  app.set_version_flag("--version,-v", "ZC v0.1.1 (unstable)");
+  app.set_version_flag("--version,-v", "ZC v" ZC_DEV_VERSION " (unstable)");
   app.require_subcommand(1);
   unique_ptr<Command> command(nullptr);
 

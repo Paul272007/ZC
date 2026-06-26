@@ -19,7 +19,13 @@ public:
 
   [[nodiscard]] auto operator<=>(const Version &) const = default;
 
-  bool empty() const;
+  [[nodiscard]] bool empty() const;
+
+  [[nodiscard]] int major() const { return major_; }
+
+  [[nodiscard]] int minor() const { return minor_; }
+
+  [[nodiscard]] int patch() const { return patch_; }
 
 private:
   int major_ = 0; // Initialize at 0 => if string is empty, so is the version

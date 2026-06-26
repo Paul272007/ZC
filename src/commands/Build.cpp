@@ -13,16 +13,16 @@ namespace zc
 {
 
 Build::Build(
-  const bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug,
-  bool run, const std::vector<std::string> &run_args
+  const bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run,
+  const std::vector<std::string> &run_args
 )
   : Command(force), clean_(clean), p_root_(get_project_root(p_root)), run_(run), run_args_(run_args)
 {
   mode_ = parse_mode<BuildMode>(
     {
-      {BuildMode::release, release},
-      {  BuildMode::debug,   debug},
-  },
+      { BuildMode::release, release },
+      { BuildMode::debug, debug },
+    },
     BuildMode::automatic
   );
 }

@@ -16,7 +16,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-const fs::path &get_zc_root()
+const fs::path &zc_root()
 {
   static const fs::path zc_root = []
   {
@@ -58,7 +58,7 @@ std::filesystem::path get_project_root(const std::filesystem::path &base)
 
 void create_zc_root()
 {
-  fs::create_directories(get_zc_root());
+  fs::create_directories(zc_root());
 }
 
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest)

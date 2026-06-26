@@ -43,6 +43,8 @@ add_library(zc-core STATIC
 
         src/project/Project.cpp
         src/project/Project.h
+        src/project/MakeVariable.cpp
+        src/project/MakeVariable.h
 
         src/templates/TemplateEngine.cpp
         src/templates/TemplateEngine.h

@@ -26,8 +26,8 @@ public:
   std::string archive = "ar rcs";
 
   std::vector<LanguageConf> languages = {
-    {   C,   "c17",   "clang", { "-Wall", "-Wextra" } },
-    { CXX, "c++20", "clang++", { "-Wall", "-Wextra" } }
+    { C, "c17", "clang", { "-Wall", "-Wextra" } },
+    { CXX, "c++20", "clang++", { "-Wall", "-Wextra" } },
   };
 
   static GConf &get();

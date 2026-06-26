@@ -174,7 +174,7 @@ GConf::~GConf()
     GConf::write();
 }
 
-GConf::GConf() : Conf(get_zc_root() / CONFIG_FILE)
+GConf::GConf() : Conf(zc_root() / CONFIG_FILE)
 {
   if (fs::exists(file_))
     GConf::load();

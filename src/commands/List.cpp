@@ -19,11 +19,9 @@ List::List(bool force, bool templates, bool p_templates, bool remote, bool simpl
   : Command(force), simple_(simple)
 {
   type_ = parse_mode<ListType>(
-    {
-      {      ZC_LIST_SHOW_REMOTE,      remote },
-      {   ZC_LIST_SHOW_TEMPLATES,   templates },
-      { ZC_LIST_SHOW_P_TEMPLATES, p_templates }
-  },
+    { { ZC_LIST_SHOW_REMOTE, remote },
+      { ZC_LIST_SHOW_TEMPLATES, templates },
+      { ZC_LIST_SHOW_P_TEMPLATES, p_templates } },
     ZC_LIST_SHOW_PKGS, "Cannot show multiple things at the same time"
   );
 }

@@ -43,7 +43,7 @@
   #define HIDE_OUTPUT           " &>/dev/null"
 #endif
 
-#define FORBIDDEN_NAMES \
+#define FORBIDDEN_NAMES                                                                                  \
   { "Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache" }
 #define FORBIDDEN_CHARS                                       \
   { '@', '#', ' ',  '*', '!',  '?', '{', '}', '[', ']', '(',  \
@@ -92,9 +92,8 @@ struct Target
 
 using Targets = std::vector<Target>;
 
-std::filesystem::path
-get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
-const std::filesystem::path &get_zc_root();
+std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
+const std::filesystem::path &zc_root();
 void create_zc_root();
 Targets parse_targets(const std::vector<std::string> &targets);
 void check_name(const std::string &name);

@@ -16,6 +16,7 @@
 #include "pkgs/Network.h"
 #include "pkgs/PkgType.h"
 #include "pkgs/Registry.h"
+#include "project/MakeVariable.h"
 #include "Version.h"
 
 ZC_DEV_CONFIG_JSON
@@ -53,13 +54,9 @@ void Project::build(BuildMode current_mode, bool is_install)
         current_mode = previous_mode;
       else if (current_mode != previous_mode)
       {
-        if_.info(
-          "Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild..."
-        );
+        if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
         clean();
-        fs::create_directories(
-          build_dir
-        ); // so we can write into the build_mode_file and it doesn't crash
+        fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
       }
     }
     else // if build mode file doesn't exist and mode is set to automatic, default is debug
@@ -67,8 +64,11 @@ void Project::build(BuildMode current_mode, bool is_install)
       current_mode = BuildMode::debug;
     }
     write_file(build_mode_file, build_mode_to_str(current_mode));
+    init_variables(current_mode == BuildMode::release);
     generate_compile_commands();
   }
+  else
+    init_variables(current_mode == BuildMode::release);
 
   generate_Makefile(current_mode == BuildMode::release);
 
@@ -184,15 +184,12 @@ void Project::clean(bool cache) const
 
 void Project::publish()
 {
-  if_.info(
-    "Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "..."
-  );
+  if_.info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
 
   for (const auto &dep : pconf.dependencies)
     if (reg_.get_pkg(dep.name).origin == "local")
       throw ZCException(
-        ZCE_LOCAL_DEPENDENCY,
-        "Cannot publish package depending on locally installed package: " + dep.name
+        ZCE_LOCAL_DEPENDENCY, "Cannot publish package depending on locally installed package: " + dep.name
       );
 
   // Version is already in its constructor
@@ -227,7 +224,7 @@ void Project::publish()
 
   if_.info("Expected archive URL: " + archive_url);
 
-  const fs::path tmp_dir      = get_zc_root() / TMP_DIR;
+  const fs::path tmp_dir      = zc_root() / TMP_DIR;
   const fs::path archive_path = tmp_dir / (pconf.name + "_" + tag + ".tar.gz");
   fs::create_directories(tmp_dir);
 
@@ -265,8 +262,7 @@ void Project::publish()
     catch (const ZCException &) // TODO : handle different error types directly in Network.cpp
     {
       throw ZCException(
-        ZCE_NETWORK_ERROR,
-        "Failed to create release. Ensure the tag exists or you have enough permissions."
+        ZCE_NETWORK_ERROR, "Failed to create release. Ensure the tag exists or you have enough permissions."
       );
     }
   }
@@ -338,8 +334,7 @@ void Project::publish()
     if (string(e.what()).find("422") != string::npos)
     {
       throw ZCException(
-        ZCE_VERSION_ALREADY_EXISTS,
-        "Version " + pconf.version.string() + " already exists in the registry."
+        ZCE_VERSION_ALREADY_EXISTS, "Version " + pconf.version.string() + " already exists in the registry."
       );
     }
     throw ZCException(ZCE_NETWORK_ERROR, "Failed to upload recipe: " + string(e.what()));
@@ -433,6 +428,7 @@ void Project::generate_build_config()
     is_release = true;
 
   get_sources();
+  init_variables(is_release);
   generate_Makefile(is_release);
   generate_compile_commands();
 }
@@ -506,26 +502,24 @@ void Project::Makefile_compose(std::ostringstream &mk) const
 
 void Project::generate_compile_commands() const
 {
-  json           compile_commands = nlohmann::json::array();
-  const fs::path cache_dir        = get_zc_root() / ZC_CACHE_DIR;
+  json compile_commands = nlohmann::json::array();
 
-  string includes = "";
-  for (const auto &inc : pconf.include_dirs)
-    includes += " -I../" + inc;
-  for (const auto &dep : pconf.dependencies)
-    includes += " -I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string();
+  string includes;
+  if (auto it = variables_.find("INCLUDE_DIRS"); it != variables_.end())
+    includes = it->string();
+
+  string macros;
+  if (auto it = variables_.find("MACROS"); it != variables_.end())
+    macros = it->string();
 
   for (const auto &l : pconf.languages)
   {
     if (sources_.find(l.name) == sources_.end())
       continue;
 
-    string flags = "-std=" + l.std + " -MMD -MP";
-    for (const auto &flag : l.flags)
-      flags += " " + escape_shell_arg(flag);
-    if (pconf.type == LIB)
-      flags += " -fPIC";
-    flags += " -g -DZC_DEBUG"; // Always generate compile_commands in debug mode by default for LSP
+    string flags;
+    if (auto it = variables_.find(language_to_str(l.name) + "_FLAGS"); it != variables_.end())
+      flags = it->string();
 
     for (const auto &file : sources_.at(l.name))
     {
@@ -533,7 +527,8 @@ void Project::generate_compile_commands() const
       cmd["directory"] = fs::absolute(build_dir).string();
       cmd["file"]      = "../" + file;
       cmd["output"]    = file + ".o";
-      cmd["command"]   = l.compiler + " " + flags + includes + " -c ../" + file + " -o " + file + ".o";
+      cmd["command"] =
+        l.compiler + " " + flags + " " + includes + " " + macros + " -c ../" + file + " -o " + file + ".o";
       compile_commands.push_back(cmd);
     }
   }
@@ -544,17 +539,12 @@ void Project::generate_compile_commands() const
 
 void Project::Makefile_comment(std::ostringstream &mk) const
 {
-  auto         now_sec = chrono::floor<chrono::seconds>(chrono::system_clock::now());
-  const string s       = std::format("{:%F %T}", now_sec);
+  const string s = std::format("{:%F %T}", chrono::floor<chrono::seconds>(chrono::system_clock::now()));
   mk << "# --- This file was automatically generated by ZC\n";
   mk << "# --- Date of creation: " << s << " (UTC)\n";
-  mk << "# --- Do not edit this file manually !\n\n";
-}
+  mk << "# --- !! Do not edit this file manually !!\n\n";
 
-void Project::Makefile_variables(ostringstream &mk, const bool release) const
-{
-  // Make boilerplate
-#ifdef DEBUG_MODE
+#ifdef DEBUG_MODE // Make boilerplate
   mk << "# Remove implicit rules to analyse the Makefile faster\n";
 #endif
   mk << "MAKEFLAGS += --no-builtin-rules\n";
@@ -574,84 +564,20 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   mk << "VPATH = ..\n\n";
   mk << ".PHONY: all clean install\n\n";
 
-  mk
-    << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
+  mk << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
+}
 
+void Project::Makefile_variables(ostringstream &mk, const bool release) const
+{
+  for (const auto &v : variables_)
+    mk << v.make_declaration();
   for (const auto &l : pconf.languages)
-  {
-    if (auto it = sources_.find(l.name); it == sources_.end())
-      throw ZCException(
-        ZCE_NO_SOURCE_FILES, "Language " + language_to_str(l.name) +
-                               " is given but no source files of this language were found"
-      );
-
-    // Languages configuration and flags
-    string name = language_to_str(l.name);
-    mk << name << "_COMPILER := " << l.compiler << "\n";
-    mk << name << "_STD      := " << l.std << "\n";
-    mk << name << "_FLAGS    := -std=$(" << name << "_STD) -MMD -MP -fdiagnostics-color=always";
-    for (const auto &flag : l.flags)
-      mk << " " << escape_shell_arg(flag);
-
-    if (pconf.type == LIB)
-      mk << " -fPIC";
-    if (release)
-      mk << " -O3 -DZC_RELEASE";
-    else
-      mk << " -g -DZC_DEBUG";
-    mk << "\n";
-
-    // Files to compile into objects
-    mk << name << "_OBJS     :=";
-    for (const auto &file : sources_.at(l.name))
-      mk << " " << file << ".o";
-    mk << "\n";
-
-    // Dependencies files
-    mk << name << "_DEPS     := $(" << name << "_OBJS:.o=.d)\n\n";
-#ifdef DEBUG_MODE
-    mk << "# Do not crash if dependencies do not exist yet\n";
-#endif
-    mk << "-include $(" << name << "_DEPS)\n\n";
-  }
-
-  // Include dirs
-  const fs::path cache_dir = get_zc_root() / ZC_CACHE_DIR;
-  mk << "INCLUDE_DIRS :=";
-  for (const auto &inc : pconf.include_dirs)
-    mk << " -I../" << inc;
-  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
-    mk << " -I" << (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string();
-  mk << "\n";
-
-  // Library dirs
-  mk << "LIB_DIRS     :=";
-  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
-  {
-    if (dep.static_link)                     // We add the archive directly as a source
-      continue;
-    const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
-    mk << " -L" << dep_lib_dir << " -Wl,-rpath," << dep_lib_dir;
-  }
-  mk << "\n";
-
-  // Libraries for linker
-  mk << "LIBS         :=";
-  for (const auto &dep : pconf.dependencies)
-  {
-    const string dep_target = reg_.get_pkg(dep.name).target;
-    if (dep.static_link)
-      mk << " " << (cache_dir / dep.name / dep.version.string() / LIB_DIR / STATIC_LIB_NAME(dep_target));
-    else
-      mk << " -l" << dep_target;
-  }
-  mk << "\n\n";
+    mk << "-include $(" << language_to_str(l.name) << "_DEPS)\n\n";
 }
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk
-    << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
+  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
   mk << "install:\n\tzc install --path ..\n\n";
   mk << "help:\n";
   mk << "\t@echo \"Available targets:\"\n";
@@ -669,12 +595,14 @@ void Project::Makefile_rules(std::ostringstream &mk) const
       mk << "%." << lower_ext << ".o: %." << lower_ext << " ../" << ZC_FILE << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
-      mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
+      mk << "\t@$(" << name << "_COMPILER) $(" << name
+         << "_FLAGS) $(INCLUDE_DIRS) $(MACROS) -c $< -o $@\n\n";
 
       mk << "%." << ext << ".o: %." << ext << " ../" << ZC_FILE << "\n";
       mk << "\t@" MKDIR_COMMAND " $(dir $@)\n";
       mk << "\t@echo \"ZC_COMPILE|$@\"\n";
-      mk << "\t@$(" << name << "_COMPILER) $(" << name << "_FLAGS) $(INCLUDE_DIRS) -c $< -o $@\n\n";
+      mk << "\t@$(" << name << "_COMPILER) $(" << name
+         << "_FLAGS) $(INCLUDE_DIRS) $(MACROS) -c $< -o $@\n\n";
     }
   }
 }
@@ -720,6 +648,95 @@ std::string Project::get_linker() const
     return "$(CXX_COMPILER)";
   else
     return "$(C_COMPILER)";
+}
+
+void Project::init_variables(bool release)
+{
+  for (const auto &l : pconf.languages)
+  {
+    if (auto it = sources_.find(l.name); it == sources_.end())
+      throw ZCException(
+        ZCE_NO_SOURCE_FILES,
+        "Language " + language_to_str(l.name) + " is given but no source files of this language were found"
+      );
+
+    // Languages configuration and flags
+    string name = language_to_str(l.name);
+
+    MakeVariable compiler{ name + "_COMPILER" };
+    compiler.add(l.compiler);
+    variables_.insert(compiler);
+
+    MakeVariable std{ name + "_STD" };
+    std.add(l.std);
+    variables_.insert(std);
+
+    MakeVariable flags{ name + "_FLAGS" };
+    flags.add("-std=$(" + name + "_STD)");
+    flags.add("-MMD");
+    flags.add("-MP");
+    flags.add("-fdiagnostics-color=always");
+    if (pconf.type == LIB)
+      flags.add("-fPIC");
+    if (release)
+      flags.add("-O3");
+    else
+      flags.add("-g");
+    for (const auto &flag : l.flags)
+      flags.add(flag);
+    variables_.insert(flags);
+
+    MakeVariable objs{ name + "_OBJS" };
+    for (const auto &file : sources_.at(l.name))
+      objs.add_no_esc(file + ".o");
+    variables_.insert(objs);
+
+    MakeVariable deps{ name + "_DEPS" };
+    deps.add_make_var(name + "_OBJS:.o=.d");
+    variables_.insert(deps);
+  }
+
+  // Macros
+  MakeVariable macros{ "MACROS" };
+  macros.add(release ? "-DZC_RELEASE" : "-DZC_DEBUG");
+  macros.add("-DZC_MAJOR=" + to_string(pconf.version.major()));
+  macros.add("-DZC_MINOR=" + to_string(pconf.version.minor()));
+  macros.add("-DZC_PATCH=" + to_string(pconf.version.patch()));
+  macros.add("-DZC_VERSION=\"" + pconf.version.string() + "\"");
+  variables_.insert(macros);
+
+  // Include dirs
+  const fs::path cache_dir = zc_root() / ZC_CACHE_DIR;
+  MakeVariable   incdirs{ "INCLUDE_DIRS" };
+  for (const auto &inc : pconf.include_dirs)
+    incdirs.add("-I../" + inc);
+  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
+    incdirs.add("-I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string());
+  variables_.insert(incdirs);
+
+  // Library dirs
+  MakeVariable libdirs{ "LIB_DIRS" };
+  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
+  {
+    if (dep.static_link)                     // We add the archive directly as a source
+      continue;
+    const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
+    libdirs.add("-L" + dep_lib_dir);
+    libdirs.add("-Wl,-rpath," + dep_lib_dir);
+  }
+  variables_.insert(libdirs);
+
+  // Libraries for linker
+  MakeVariable libs{ "LIBS" };
+  for (const auto &dep : pconf.dependencies)
+  {
+    const string dep_target = reg_.get_pkg(dep.name).target;
+    if (dep.static_link)
+      libs.add(cache_dir / dep.name / dep.version.string() / LIB_DIR / STATIC_LIB_NAME(dep_target));
+    else
+      libs.add("-l" + dep_target);
+  }
+  variables_.insert(libs);
 }
 
 } // namespace zc

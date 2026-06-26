@@ -11,7 +11,7 @@ namespace zc
 
 TemplateEngine &TemplateEngine::get()
 {
-  static TemplateEngine instance(get_zc_root());
+  static TemplateEngine instance(zc_root());
   return instance;
 }
 

@@ -98,7 +98,7 @@ private:
 
   std::vector<RegistryPkg> pkgs_;
 
-  explicit Registry(const std::filesystem::path &root = get_zc_root());
+  explicit Registry(const std::filesystem::path &root = zc_root());
 
   /**
    * @param pkg

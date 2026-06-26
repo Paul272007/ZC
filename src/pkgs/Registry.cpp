@@ -16,7 +16,7 @@ namespace zc
 
 Registry &Registry::get()
 {
-  static Registry instance(get_zc_root());
+  static Registry instance(zc_root());
   return instance;
 }
 

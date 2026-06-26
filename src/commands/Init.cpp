@@ -20,10 +20,9 @@ namespace zc
 {
 
 Init::Init(
-  const bool force, const std::filesystem::path &p_root, bool git, bool edit,
-  const std::string &author, const std::string &target, const std::string &p_template,
-  const std::string &name, bool is_bin, bool is_lib, bool is_header, bool is_compose,
-  const vector<string> &languages
+  const bool force, const std::filesystem::path &p_root, bool git, bool edit, const std::string &author,
+  const std::string &target, const std::string &p_template, const std::string &name, bool is_bin,
+  bool is_lib, bool is_header, bool is_compose, const vector<string> &languages
 )
   : Command(force),
     p_root_(p_root.empty() ? fs::current_path() : p_root),
@@ -34,13 +33,8 @@ Init::Init(
     name_(name)
 {
   type_ = parse_mode<PkgType>(
-    {
-      {     BIN,     is_bin },
-      {     LIB,     is_lib },
-      {  HEADER,  is_header },
-      { COMPOSE, is_compose }
-  },
-    UNDEF, "Project cannot have multiple types"
+    { { BIN, is_bin }, { LIB, is_lib }, { HEADER, is_header }, { COMPOSE, is_compose } }, UNDEF,
+    "Project cannot have multiple types"
   );
 
   for (const auto &l_str : languages)
@@ -55,9 +49,7 @@ void Init::operator()()
   if (fs::exists(p_root_ / ZC_FILE))
   {
     if (!force_ &&
-        !if_.ask(
-          "A ZC project seems to already exist in this directory. Do you want to overwrite it ?"
-        ))
+        !if_.ask("A ZC project seems to already exist in this directory. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Project creation aborted.");
     else
       fs::remove(p_root_ / ZC_FILE);
@@ -114,8 +106,7 @@ void Init::operator()()
   pconf.languages.clear();
   for (const auto l : languages_)
     if (auto it = ranges::find_if(
-          gc_.languages.begin(), gc_.languages.end(),
-          [l](const LanguageConf &lc) { return lc.name == l; }
+          gc_.languages.begin(), gc_.languages.end(), [l](const LanguageConf &lc) { return lc.name == l; }
         );
         it == gc_.languages.end())
       throw ZCException(

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <set>
 #include <string>
-#include <vector>
 
 #include "../config/GConf.h"
 #include "../config/PConf.h"
@@ -12,6 +12,7 @@
 #include "../Language.h"
 #include "../pkgs/Registry.h"
 #include "../ui/Interface.h"
+#include "MakeVariable.h"
 
 namespace zc
 {
@@ -61,10 +62,6 @@ public:
 
   ~Project() = default;
 
-  /**
-   * @param current_mode
-   * @param force
-   */
   void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
 
   void clean(bool cache = false) const;
@@ -88,6 +85,8 @@ private:
   const std::filesystem::path cache_dir_;
   const std::filesystem::path makefile_;
 
+  std::set<MakeVariable, MakeVariableCmp> variables_;
+
   Sources sources_;
 
   void generate_Makefile(bool release = false) const;
@@ -104,6 +103,7 @@ private:
 
   int get_sources();
   std::string get_linker() const;
+  void init_variables(bool release);
 };
 
 } // namespace zc

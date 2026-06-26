@@ -35,9 +35,9 @@ Run::Run(
   mode_ = parse_mode<CompileMode>(
     {
       { CompileMode::preprocess, preprocess },
-      {    CompileMode::compile,    compile },
-      {   CompileMode::assemble,   assemble },
-  },
+      { CompileMode::compile, compile },
+      { CompileMode::assemble, assemble },
+    },
     CompileMode::full
   );
   output_name_ = get_output_name();
@@ -134,7 +134,7 @@ std::string Run::get_build_command()
   cmd << "-o " << escape_shell_arg(output_name_) << " ";
 
   // Include directories
-  cmd << "-I" << get_zc_root() / INCLUDE_DIR << " ";
+  cmd << "-I" << zc_root() / INCLUDE_DIR << " ";
 
   // Mode and libraries for normal mode
   switch (mode_)
@@ -155,7 +155,7 @@ std::string Run::get_build_command()
       const string target = rg_.get_pkg(lib.name).target;
       if (lib.origin != "std")
       {
-        fs::path lib_dir = get_zc_root() / LIB_DIR / lib.name;
+        fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
         if (fs::exists(lib_dir))
         {
           cmd << "-L" << lib_dir << " ";
@@ -203,9 +203,8 @@ vector<Dependency> Run::get_dependencies()
   {
     for (const auto &include : get_file_includes(f, rg_.pkgs()))
     {
-      const bool already_present = std::any_of(
-        libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; }
-      );
+      const bool already_present =
+        std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
 
       if (!already_present)
         libs_to_link.push_back(include);

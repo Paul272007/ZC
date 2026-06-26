@@ -13,8 +13,8 @@ class Build : public Command
 {
 public:
   Build(
-    bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug,
-    bool run = false, const std::vector<std::string> &run_args = {}
+    bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run = false,
+    const std::vector<std::string> &run_args = {}
   );
 
   void operator()() override;

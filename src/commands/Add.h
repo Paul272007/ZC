@@ -9,8 +9,7 @@ class Add : public Command
 {
 public:
   Add(
-    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets,
-    bool is_static
+    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets, bool is_static
   );
 
   void operator()() override;
