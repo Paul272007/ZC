@@ -109,7 +109,7 @@ std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
 std::string pretty_path(const std::filesystem::path &path);
-std::string join(const std::vector<std::string> &v, const std::string &separator);
+std::string join(const std::vector<std::string> &v, const std::string &separator = " ");
 std::string upper(const std::string &text);
 std::string lower(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);

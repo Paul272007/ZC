@@ -527,8 +527,7 @@ void Project::generate_compile_commands() const
       cmd["directory"] = fs::absolute(build_dir).string();
       cmd["file"]      = "../" + file;
       cmd["output"]    = file + ".o";
-      cmd["command"] =
-        l.compiler + " " + flags + " " + includes + " " + macros + " -c ../" + file + " -o " + file + ".o";
+      cmd["command"] = join({ l.compiler, flags, includes, macros, "-c", "../" + file, "-o", file + ".o" });
       compile_commands.push_back(cmd);
     }
   }
@@ -667,12 +666,8 @@ void Project::init_variables(bool release)
     compiler.add(l.compiler);
     variables_.insert(compiler);
 
-    MakeVariable std{ name + "_STD" };
-    std.add(l.std);
-    variables_.insert(std);
-
     MakeVariable flags{ name + "_FLAGS" };
-    flags.add("-std=$(" + name + "_STD)");
+    flags.add("-std=" + l.std);
     flags.add("-MMD");
     flags.add("-MP");
     flags.add("-fdiagnostics-color=always");
@@ -714,28 +709,26 @@ void Project::init_variables(bool release)
     incdirs.add("-I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string());
   variables_.insert(incdirs);
 
-  // Library dirs
+  // Libraries
   MakeVariable libdirs{ "LIB_DIRS" };
+  MakeVariable libs{ "LIBS" };
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
   {
-    if (dep.static_link)                     // We add the archive directly as a source
+    RegistryPkg pkg = reg_.get_pkg(dep.name);
+    if (pkg.type == HEADER)
       continue;
-    const string dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
-    libdirs.add("-L" + dep_lib_dir);
-    libdirs.add("-Wl,-rpath," + dep_lib_dir);
+
+    const fs::path dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
+
+    if (dep.static_link) // We add the archive directly as a source
+      libs.add((dep_lib_dir / STATIC_LIB_NAME(pkg.target)).string());
+    else
+      libs.add("-l" + pkg.target);
+
+    libdirs.add("-L" + dep_lib_dir.string());
+    libdirs.add("-Wl,-rpath," + dep_lib_dir.string());
   }
   variables_.insert(libdirs);
-
-  // Libraries for linker
-  MakeVariable libs{ "LIBS" };
-  for (const auto &dep : pconf.dependencies)
-  {
-    const string dep_target = reg_.get_pkg(dep.name).target;
-    if (dep.static_link)
-      libs.add(cache_dir / dep.name / dep.version.string() / LIB_DIR / STATIC_LIB_NAME(dep_target));
-    else
-      libs.add("-l" + dep_target);
-  }
   variables_.insert(libs);
 }
 

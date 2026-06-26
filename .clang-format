@@ -1,0 +1,330 @@
+AccessModifierOffset: -2                # Access modifier ("public:", , "protected:", "private:") are indented twice left
+AlignAfterOpenBracket: true             # Align arguments that are on separate lines
+AlignArrayOfStructures: None            # (change to right to) Align struct arguments at the right when initializing a struct array
+AlignConsecutiveAssignments:            # Align consecutive variables assignments (Also aligns enum assignments)
+  Enabled: true
+  AcrossEmptyLines: false               # Align even with empty lines in the middle
+  AcrossComments:   false               # Align even with comments in the middle
+  AlignCompound:    true                # Also align += with the =
+  AlignFunctionDeclarations: false      # Do not align function declarations
+  AlignFunctionPointers: false          # Do not align function pointers
+  PadOperators:     true                # Assignment operators are left-padded to the same length as long ones
+AlignConsecutiveBitFields:              # Style of aligning consecutive bit fields
+  Enabled: true
+  AcrossEmptyLines: false               # Align even with empty lines in the middle
+  AcrossComments:   false               # Align even with comments in the middle
+  AlignCompound:    true                # Also align += with the =
+  AlignFunctionDeclarations: false      # Do not align function declarations
+  AlignFunctionPointers: false          # Do not align function pointers
+  PadOperators:     true                # Assignment operators are left-padded to the same length as long ones
+AlignConsecutiveDeclarations:           # Style of aligning consecutive declarations
+  Enabled: true
+  AcrossEmptyLines: false               # Align even with empty lines in the middle
+  AcrossComments:   false               # Align even with comments in the middle
+  AlignCompound:    true                # Also align += with the =
+  AlignFunctionDeclarations: false      # Do not align function declarations
+  AlignFunctionPointers: false          # Do not align function pointers
+  PadOperators:     true                # Assignment operators are left-padded to the same length as long ones
+AlignConsecutiveMacros:                 # Style of aligning consecutive macros
+  Enabled: true
+  AcrossEmptyLines: true                # Align even with empty lines in the middle
+  AcrossComments:   true                # Align even with comments in the middle
+  AlignCompound:    true                # Also align += with the =
+  AlignFunctionDeclarations: false      # Do not align function declarations
+  AlignFunctionPointers: false          # Do not align function pointers
+  PadOperators:     true                # Assignment operators are left-padded to the same length as long ones
+AlignConsecutiveShortCaseStatements:    # Style of aligning consecutive short case labels
+  Enabled: true
+  AcrossEmptyLines: false               # Align even with empty lines in the middle
+  AcrossComments:   false               # Align even with comments in the middle
+  AlignCaseArrows:  true                # Align case arrows at the right
+  AlignCaseColons:  false               # Do not Align case colons at the right
+AlignConsecutiveTableGenBreakingDAGArgColons: # No idea what this is. Tooks LLVM's configuration.
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:    false
+AlignConsecutiveTableGenCondOperatorColons: # Same
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:    false
+AlignConsecutiveTableGenDefinitionColons: # same
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionDeclarations: false
+  AlignFunctionPointers: false
+  PadOperators:    false
+AlignEscapedNewlines: LeftWithLastLine            # Align backslashes in escaped newlines at the left, counting last line
+AlignOperands: AlignAfterOperator                 # Horizontally align operands of binary and ternary expressions after operator
+AlignTrailingComments:
+  Kind:            Always                         # Always align consecutive trailing comments
+  OverEmptyLines:  1                              # Align after no more than 1 empty line
+  AlignPPAndNotPP: true                           # Align even after switching from preprocessor directives to normal code
+AllowAllArgumentsOnNextLine: true                 # Allow putting all arguments only on the next line if they don't fit it the first
+AllowAllParametersOfDeclarationOnNextLine: true   # More or less the same
+AllowBreakBeforeNoexceptSpecifier: Never          # No line break before a noexcept specifier.
+AllowBreakBeforeQtProperty: false                 # No line breaks before Qt property keywords
+AllowShortBlocksOnASingleLine: Empty              # No blocks are on a single line. (Empty doesn't work and non-empty blocks are all blocked elsewhere)
+AllowShortCaseExpressionOnASingleLine: true       # Short case expressions are on a single line.
+AllowShortCaseLabelsOnASingleLine: false          # Short case labels are on a single line.                 TODO : is it that bad ?
+AllowShortCompoundRequirementOnASingleLine: true  # Short compound requirements are on a single line.
+AllowShortEnumsOnASingleLine: false               # Short enums are not on a single line.
+AllowShortFunctionsOnASingleLine: Inline          # Rules for short functions (inline and empty functions) (overriden by AllowShortBlocksOnASingleLine)
+AllowShortIfStatementsOnASingleLine: Never        # Ifs are always on min. 2 lines
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false               # No loops on a single line
+AllowShortNamespacesOnASingleLine: true           # Short namespaces are wrapped
+# AllowShortRecordOnASingleLine: Empty              # Empty structs on a single line - Clang-format 23
+AlwaysBreakBeforeMultilineStrings: false          # Do not break before multiline string literal
+AttributeMacros:                                  # Strings that should be interpreted as attributes/qualifiers instead of identifiers
+  - __capability
+# BinPackArguments: true                            # Deprecated
+BinPackLongBracedList: true                       # More than 20 elts in an initializer list = pack arguments
+BitFieldColonSpacing: Both                        # Spaces before and after colon
+BraceWrapping:
+  AfterCaseLabel:  false
+  AfterClass:      true
+  AfterControlStatement: MultiLine                # Brace wrapping only after multiline statements
+  AfterEnum:       true
+  AfterExternBlock: false
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterStruct:     true
+  AfterUnion:      true
+  BeforeCatch:     true
+  BeforeElse:      true
+  BeforeLambdaBody: false
+  BeforeWhile:     true
+  IndentBraces:    false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BracedInitializerIndentWidth: 2                   # Indent width in a multiline initializer list
+BreakAdjacentStringLiterals: false
+BreakAfterAttributes: Never
+BreakAfterJavaFieldAnnotations: false
+BreakAfterOpenBracketBracedList: true
+BreakAfterOpenBracketFunction: true
+BreakAfterOpenBracketIf: false
+BreakAfterOpenBracketLoop: false
+BreakAfterOpenBracketSwitch: false
+BreakAfterReturnType: Automatic
+BreakArrays:     false
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Allman                         # Always break before braces        TODO : or Linux/Mozilla ?
+BreakBeforeCloseBracketBracedList: true           # Break before closing bracket
+BreakBeforeCloseBracketFunction: true             # Break before closing parenthese
+BreakBeforeCloseBracketIf: true
+BreakBeforeCloseBracketLoop: true
+BreakBeforeCloseBracketSwitch: true
+BreakBeforeConceptDeclarations: Always
+BreakBeforeInlineASMColon: OnlyMultiline
+# BreakBeforeReturnType: None                       # Clang-format 23
+BreakBeforeTemplateCloser: true
+BreakBeforeTernaryOperators: true
+BreakBinaryOperations: Never
+BreakConstructorInitializers: BeforeColon           # Colon on next line on long Constructor initializers
+# BreakFunctionDeclarationParameters: false           # Do not always break before parameters - Clang-format 23
+BreakFunctionDefinitionParameters: false            # Same but for definition
+BreakInheritanceList: AfterColon                    # Break inheritance list after colon
+BreakStringLiterals: false                          # Do not break my string literals
+BreakTemplateDeclarations: Yes                      # Always break after template declaration
+ColumnLimit: 108                                    # Size of a line
+# CommentPragmas:  '^ IWYU pragma:'                   # Useless in my case
+CompactNamespaces: false
+ConstructorInitializerIndentWidth: 2                # Constructor initializer indent width (same as usual)
+ContinuationIndentWidth: 2                          # Indent width for line continuations.
+Cpp11BracedListStyle: Block                         # Spaces inside the braced list, line break before closing brace, indentation with block indent
+DerivePointerAlignment: false                       # For the moment
+DisableFormat:   false                              # Of course
+EmptyLineAfterAccessModifier: Never                 # No empty lines after public: and private: labels
+EmptyLineBeforeAccessModifier: Always               # Always add an empty line before an access modifier
+EnumTrailingComma: Insert                           # Change to Leave if bugs
+ExperimentalAutoDetectBinPacking: false             # Some buggy thing
+FixNamespaceComments: true                          # Add comments at the end of namespaces
+ForEachMacros:                                      # Macros to be interpreted as foreach loops instead of function calls
+  - foreach
+  - Q_FOREACH
+  - BOOST_FOREACH
+IfMacros:                                           # Macros to be interpreted as if statements instead of function calls
+  - KJ_IF_MAYBE
+IncludeBlocks:   Regroup                            # Regroup #include blocks and split following category priority
+IncludeCategories:
+  - Regex:    '^<.*>'                               # #include <...>
+    Priority: 1                                     # Top of the file
+    CaseSensitive:   false
+  - Regex:    '^".*"'                               # #include "..."
+    Priority: 2                                     # Below the other ones
+    CaseSensitive:   false
+IncludeIsMainRegex: '(_test)?$'                     # a.h is the main include of a.cc and a_test.cc
+IncludeIsMainSourceRegex: ''                        # No additional regex to find the source of a header file
+IndentAccessModifiers: false                        # Do not indent access modifiers
+IndentCaseBlocks: false                             # Do not indent case blocks
+IndentExportBlock: true                             # Indent export blocks
+IndentExternBlock: NoIndent                         # Do not indent extern blocks
+# IndentGotoLabels: InnerIndent                       # Indent goto labels
+IndentGotoLabels: true                              # Indent goto labels
+IndentPPDirectives: BeforeHash                      # Indent PP directives before hashtag
+IndentRequiresClause: false
+IndentWidth: 2                                      # 2 spaces indent width
+IndentWrappedFunctionNames: false                   # Do NOT wrap function names
+InsertBraces:    false                              # Do NOT always insert braces around control statements
+InsertNewlineAtEOF: false
+InsertTrailingCommas: None
+IntegerLiteralSeparator:                            # Do not insert int literal separators
+  Binary:          0
+  BinaryMinDigitsInsert: 0
+  BinaryMaxDigitsRemove: 0
+  Decimal:         0
+  DecimalMinDigitsInsert: 0
+  DecimalMaxDigitsRemove: 0
+  Hex:             0
+  HexMinDigitsInsert: 0
+  HexMaxDigitsRemove: 0
+  BinaryMinDigits: 0
+  DecimalMinDigits: 0
+  HexMinDigits:    0
+JavaImportGroups: [com.example, com, org]           # Java import groups following source
+JavaScriptQuotes: Double                            # Always use double quotes for JS string literals
+JavaScriptWrapImports: true                         # Wrap JS imports
+KeepEmptyLines:                                     # Do not keep empty lines
+  AtEndOfFile:     false
+  AtStartOfBlock:  false
+  AtStartOfFile:   false
+KeepFormFeed:    false                              # No idea what this is
+LambdaBodyIndentation: Signature                    # Indent lambda body relative to its signature
+LineEnding:      DeriveLF                           # New line is \n unless file already has more \r\n than \n
+MacroBlockBegin: ''                                 # Regex for macros that start a block
+MacroBlockEnd:   ''                                 # Regex for macros that end a block
+# Macros:                                             # Macros to be not interpreted as functions
+# MacrosSkippedByRemoveParentheses                    # A vector of function-like macros whose invocations should be skipped by RemoveParentheses.
+MainIncludeChar: Quote                              # Use quotes for main #include
+MaxEmptyLinesToKeep: 1                              # Only keep max. 1 empty line
+NamespaceIndentation: None                          # Do not indent in namespaces
+# NamespaceMacros:                                    # A vector of macros which are used to open namespace blocks.
+NumericLiteralCase:
+  ExponentLetter:  Lower
+  HexDigit:        Upper
+  Prefix:          Lower
+  Suffix:          Lower
+ObjCBinPackProtocolList: Auto
+ObjCBlockIndentWidth: 2
+ObjCBreakBeforeNestedBlockParam: false
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+OneLineFormatOffRegex: ''                           # A regex that indicates to turn off formatting for one line
+PPIndentWidth:   -1                                 # Same indent width as normal code
+# PackArguments:                                      # Clang-format 23
+  # BinPack: BinPack
+  # BreakAfter: 3
+PackConstructorInitializers: NextLine               # Try to put constructor initializers on the next line, if they don't fit then each one on their line
+# PackParameters:                                      # Clang-format 23
+  # BinPack: BinPack
+  # BreakAfter: 3
+PenaltyBreakAssignment: 2                           # Whatever this is
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakBeforeMemberAccess: 150
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakOpenParenthesis: 0
+PenaltyBreakScopeResolution: 500
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 1000
+PenaltyIndentedWhitespace: 0
+PenaltyReturnTypeOnItsOwnLine: 60
+PointerAlignment: Right
+QualifierAlignment: Left                            # If bugs -> change to Leave
+# QualifierOrder: [inline, static, restrict, friend, volatile, constexpr, const, type] # Order of qualifiers - doesn't work
+# RawStringFormats:                                   # Useless
+ReferenceAlignment: Pointer
+ReflowComments:     IndentOnly                      # Indent comments but do not respect column limit (else it would be 'Always')
+RemoveBracesLLVM: true                              # Set to false if it bugs
+RemoveEmptyLinesInUnwrappedLines: true              # Why would you add empty lines ?
+RemoveParentheses: ReturnStatement                  # Always remove useless parentheses (can bug)
+RemoveSemicolon: true                               # Remove useless ; (can bug)
+RequiresClausePosition: WithPreceding               # With the template
+RequiresExpressionIndentation: OuterScope
+SeparateDefinitionBlocks: Always                    #                                                   TODO : change to leave if too ugly
+ShortNamespaceLines: 0                              # Always add comment at the end of a namespace
+SkipMacroDefinitionBody: false                      # Format macro definition body
+SortIncludes:                                       # How to sort #includes
+  Enabled:         true
+  IgnoreCase:      true
+  IgnoreExtension: true
+SortJavaStaticImport: Before
+SortUsingDeclarations: LexicographicNumeric
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterOperatorKeyword: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Before
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+# SpaceBeforeEnumUnderlyingTypeColon: true            # Clang-format 23
+SpaceBeforeJsonColon: false
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+# SpaceBeforeParensOptions:                           # Is ignored since SpaceBeforeParens != Custom
+#   AfterControlStatements: true
+#   AfterForeachMacros: true
+#   AfterFunctionDefinitionName: false
+#   AfterFunctionDeclarationName: false
+#   AfterIfMacros:   true
+#   AfterNot:        false
+#   AfterOverloadedOperator: false
+#   AfterPlacementOperator: true
+#   AfterRequiresInClause: false
+#   AfterRequiresInExpression: false
+#   BeforeNonEmptyParentheses: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBraces: Never
+SpacesBeforeTrailingComments: 1
+SpacesInAngles:  Never
+SpacesInContainerLiterals: true
+SpacesInLineCommentPrefix:
+  Minimum:         1
+  Maximum:         1
+SpacesInParens:  Never
+# SpacesInParensOptions:                              # Ignored since SpacesInParens != Custom
+#   ExceptDoubleParentheses: false
+#   InCStyleCasts:   false
+#   InConditionalStatements: false
+#   InEmptyParentheses: false
+#   Other:           false
+SpacesInSquareBrackets: false
+Standard:        Latest
+StatementAttributeLikeMacros:                         # Macros which are ignored in front of a statement, as if they were an attribute. So that they are not parsed as identifier, for example for Qts emit.
+  - Q_EMIT
+StatementMacros:                                      # A vector of macros that should be interpreted as complete statements.
+  - Q_UNUSED
+  - QT_REQUIRE_VERSION
+TabWidth:        8                                    # No idea
+TableGenBreakInsideDAGArg: DontBreak                  # No idea
+# TableGenBreakingDAGArgOperators:
+# TemplateNames:
+# TypeNames:
+# TypenameMacros:
+UseTab:          Never                                # Never use tabs
+# VariableTemplates:
+VerilogBreakBetweenInstancePorts: true                # No idea
+WhitespaceSensitiveMacros:                            # No idea
+  - BOOST_PP_STRINGIZE
+  - CF_SWIFT_NAME
+  - NS_SWIFT_NAME
+  - PP_STRINGIZE
+  - STRINGIZE
+WrapNamespaceBodyWithEmptyLines: Always               # Add empty lines at the beginning/end of namespaces
+
