@@ -9,7 +9,7 @@
 namespace zc
 {
 
-// TODO : Uninstall a particular version instead of the entire package each time
+// TODO: Uninstall a particular version instead of the entire package each time
 
 class Uninstall : public Command
 {

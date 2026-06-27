@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <vector>
 
 #include "../config/PConf.h"
 #include "../helpers.h"
@@ -61,6 +62,34 @@ Dependency Registry::get_dependency(const Target &target)
     .origin  = it->second.origin,
     .version = version_to_use,
   };
+}
+
+void Registry::install_std(const std::string &name)
+{
+  std::string target = name;
+
+  if (name == "math")
+    target = "m";
+  elif (name == "opengl")
+    target = "GL";
+
+  if (get_pkg_config_flags(name, false).empty())
+    if_.warning(
+      "Package '" + name + "' not found by pkg-config. Assuming it's a built-in OS library (-l" + target +
+      ")."
+    );
+  else
+    if_.success("System package found: " + name);
+
+  index_add_pkg(
+    {
+      .name     = name,
+      .target   = target,
+      .origin   = "std",
+      .type     = PkgType::LIB,
+      .versions = { Version::latest() },
+    }
+  );
 }
 
 void Registry::install_from_server(Target &target, const json &index, const bool force)
@@ -441,22 +470,18 @@ std::filesystem::path Registry::download_and_extract(const Target &target, const
   if_.info("Downloading archive...");
   const string   archive_url  = pkg_url(target, index); // throws error if pkg not found in index
   const fs::path archive_path = tmp_dir_ / (target.name + ".tar.gz");
-  const fs::path extract_path = tmp_dir_;               // extract directly in ~/.zc/tmp
+  const fs::path extract_path = tmp_dir_;
+  const auto    &version_json = index["packages"][target.name]["versions"][target.version.string()];
   net_.download(archive_url, archive_path);
 
-  // TODO : optimise with get_key()
   if_.info("Verifying archive hash...");
-  verify_archive_hash(
-    archive_path, index["packages"][target.name]["versions"][target.version.string()]["sha256"]
-  );
+  verify_archive_hash(archive_path, version_json.value("sha256", "SKIP"));
 
   if_.info("Extracting archive...");
   fs::create_directories(extract_path);
-  extract(archive_path, extract_path); // throws error if archive cannot be extracted
-
-  if_.info("Installing package...");
+  extract(archive_path, extract_path);
   fs::path project_root;
-  for (const auto &entry : fs::directory_iterator(extract_path)) // get project root
+  for (const auto &entry : fs::directory_iterator(extract_path))
     if (entry.is_directory())
     {
       project_root = entry.path();
@@ -482,7 +507,7 @@ void Registry::verify_archive_hash(const std::filesystem::path &archive, const s
 
 std::string Registry::pkg_url(const Target &target, const nlohmann::json &index)
 {
-  // TODO : optimise with get_key()
+  // TODO: optimise with get_key()
   if (!index.contains("packages"))
     throw ZCException(ZCE_MISSING_PROPERTY, "Index should contain hey 'packages'.");
 

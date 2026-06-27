@@ -23,7 +23,7 @@ public:
   void operator()() override;
 
 private:
-  Registry &rg_ = Registry::get(); // TODO : add const
+  Registry &rg_ = Registry::get();
 
   const std::vector<std::filesystem::path> files_;
   const std::vector<std::string>           args_;

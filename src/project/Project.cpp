@@ -157,14 +157,14 @@ void Project::build(BuildMode current_mode, bool is_install)
     else
     {
       if_.clear_loading_bar();
-      if_.print(line); // TODO : parse to detect if it is an error / warning to change display style
+      if_.print(line); // TODO: parse to detect if it is an error / warning to change display style
     }
   }
 
   if_.clear_loading_bar();
 
   const int result = pclose(pipe);
-  if (WEXITSTATUS(result) == 0) // FIX : find solution for windows
+  if (WEXITSTATUS(result) == 0) // FIX: find solution for windows
     if_.success("Project was successfully built in " + build_dir.string());
   else
     throw ZCException(
@@ -260,7 +260,7 @@ void Project::publish()
       net.post(create_release_url, release_payload.dump(), gc_.token);
       if_.success("Release " + tag + " created successfully!");
     }
-    catch (const ZCException &) // TODO : handle different error types directly in Network.cpp
+    catch (const ZCException &) // TODO: handle different error types directly in Network.cpp
     {
       throw ZCException(
         ZCE_NETWORK_ERROR, "Failed to create release. Ensure the tag exists or you have enough permissions."
@@ -690,6 +690,8 @@ void Project::init_variables(bool release)
     variables_.insert(deps);
   }
 
+  const fs::path cache_dir = zc_root() / ZC_CACHE_DIR;
+
   // Macros
   MakeVariable macros{ "MACROS" };
   macros.add(release ? "-DZC_RELEASE" : "-DZC_DEBUG");
@@ -697,36 +699,58 @@ void Project::init_variables(bool release)
   macros.add("-DZC_MINOR=" + to_string(pconf.version.minor()));
   macros.add("-DZC_PATCH=" + to_string(pconf.version.patch()));
   macros.add("-DZC_VERSION=\"" + pconf.version.string() + "\"");
-  variables_.insert(macros);
 
-  // Include dirs
-  const fs::path cache_dir = zc_root() / ZC_CACHE_DIR;
-  MakeVariable   incdirs{ "INCLUDE_DIRS" };
-  for (const auto &inc : pconf.include_dirs)
-    incdirs.add("-I../" + inc);
-  for (const auto &[dep_name, dep] : pconf.dependencies) // TODO : handle std libraries
-    incdirs.add("-I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string());
-  variables_.insert(incdirs);
-
-  // Libraries
+  // Libraries and include directories
+  MakeVariable incdirs{ "INCLUDE_DIRS" };
   MakeVariable libdirs{ "LIB_DIRS" };
   MakeVariable libs{ "LIBS" };
-  for (const auto &[dep_name, dep] : pconf.dependencies) // TODO : handle std libraries
+  for (const auto &inc : pconf.include_dirs)
+    incdirs.add("-I../" + inc);
+  for (const auto &[dep_name, dep] : pconf.dependencies)
   {
+    bool is_std = dep.origin == "std";
+
+    const fs::path pkg_dir = cache_dir / dep.name / dep.version.string();
+    if (!is_std)
+    {
+      const fs::path inc_dir = pkg_dir / INCLUDE_DIR;
+      incdirs.add("-I" + inc_dir.string());
+    }
+
+    if (is_std)
+    {
+      const auto flags = split(get_pkg_config_flags(dep.name, true), ' ');
+      for (const auto &f : flags)
+      {
+        if (f.starts_with("-I"))
+          incdirs.add(f);
+        elif (f.starts_with("-l"))
+          libs.add(f);
+        elif (f.starts_with("-L"))
+          libdirs.add(f);
+        else
+          macros.add(f);
+      }
+      continue;
+    }
+
     Pkg pkg = reg_.get_pkg(dep.name);
     if (pkg.type == PkgType::HEADER)
       continue;
 
-    const fs::path dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();
+    const fs::path lib_dir = pkg_dir / LIB_DIR;
+    libdirs.add("-L" + lib_dir.string());
 
     if (dep.static_link) // We add the archive directly as a source
-      libs.add((dep_lib_dir / STATIC_LIB_NAME(pkg.target)).string());
+      libs.add((lib_dir / STATIC_LIB_NAME(pkg.target)).string());
     else
+    {
       libs.add("-l" + pkg.target);
-
-    libdirs.add("-L" + dep_lib_dir.string());
-    libdirs.add("-Wl,-rpath," + dep_lib_dir.string());
+      libdirs.add("-Wl,-rpath," + lib_dir.string());
+    }
   }
+  variables_.insert(macros);
+  variables_.insert(incdirs);
   variables_.insert(libdirs);
   variables_.insert(libs);
 }

@@ -157,6 +157,7 @@ ForEachMacros:                                      # Macros to be interpreted a
   - BOOST_FOREACH
 IfMacros:                                           # Macros to be interpreted as if statements instead of function calls
   - KJ_IF_MAYBE
+  - elif
 IncludeBlocks:   Regroup                            # Regroup #include blocks and split following category priority
 IncludeCategories:
   - Regex:    '^<.*>'                               # #include <...>
@@ -275,7 +276,7 @@ SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 # SpaceBeforeEnumUnderlyingTypeColon: true            # Clang-format 23
 SpaceBeforeJsonColon: false
-SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpaceBeforeParens: ControlStatements
 # SpaceBeforeParensOptions:                           # Is ignored since SpaceBeforeParens != Custom
 #   AfterControlStatements: true
 #   AfterForeachMacros: true

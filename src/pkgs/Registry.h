@@ -36,6 +36,8 @@ public:
 
   Version get_latest(const std::string &name);
 
+  void install_std(const std::string &name);
+
   /**
    * Install a package from the server
    * If already installed, throw an error

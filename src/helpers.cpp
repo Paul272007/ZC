@@ -301,4 +301,50 @@ vector<fs::path> str_to_path(const vector<string> &vec)
   return v;
 }
 
+std::vector<std::string> split(const std::string &str, char delimiter)
+{
+  std::vector<std::string> tokens;
+
+  size_t start = 0;
+  size_t end   = str.find(delimiter);
+
+  while (end != std::string::npos)
+  {
+    if (end != start)
+      tokens.push_back(str.substr(start, end - start));
+    start = end + 1;
+    end   = str.find(delimiter, start);
+  }
+
+  if (start < str.length())
+    tokens.push_back(str.substr(start));
+
+  return tokens;
+}
+
+bool has_pkg_config()
+{
+  return system("pkg-config --version " HIDE_OUTPUT) == 0;
+}
+
+std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
+{
+  std::string cmd = "pkg-config --libs " + pkg_name + (cflags ? " --cflags " : "") + " 2>/dev/null";
+  std::string result;
+
+  std::array<char, 128> buffer;
+
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+  if (!pipe)
+    return ""; // Command not found
+
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    result += buffer.data();
+
+  if (!result.empty() && result.back() == '\n')
+    result.pop_back();
+
+  return result;
+}
+
 } // namespace zc

@@ -1,5 +1,8 @@
 #include "Add.h"
 
+#include <string>
+#include <vector>
+
 #include "commands/Command.h"
 #include "helpers.h"
 #include "pkgs/Registry.h"
@@ -14,14 +17,14 @@ Add::Add(
   const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets,
   const bool is_static
 )
-  : Command(force), static_(is_static), p_root_(get_project_root(p_root)), targets_(parse_targets(targets))
+  : Command(force), p_root_(get_project_root(p_root)), targets_(parse_targets(targets)), static_(is_static)
 {
 }
 
 void Add::operator()()
 {
   Project p(p_root_);
-  for (const auto target : targets_)
+  for (CAA target : targets_)
     p.add_dependency(target, static_);
 }
 

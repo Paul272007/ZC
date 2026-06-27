@@ -16,7 +16,7 @@ class Install : public Command
 public:
   Install(
     bool force, const std::filesystem::path &p_root, const std::filesystem::path &path,
-    std::vector<std::string> &targets
+    std::vector<std::string> &targets, bool is_std
   );
 
   void operator()() override;
@@ -28,6 +28,12 @@ private:
   const std::filesystem::path path_;
 
   std::vector<Target> targets_;
+
+  const bool std_;
+
+  void install_from_path();
+  void install_dependencies();
+  void install_targets();
 };
 
 } // namespace zc

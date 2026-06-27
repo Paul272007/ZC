@@ -142,8 +142,7 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
   for (int i = 0; i < bar_width; i++)
     bar += (i < filled) ? "█" : "░";
 
-  cout << "\r" CLEAR_LINE B_GREEN "◇ " << bar << " " B_GREEN << pct_str << "% " RESET << message
-       << flush;
+  cout << "\r" CLEAR_LINE B_GREEN "◇ " << bar << " " B_GREEN << pct_str << "% " RESET << message << flush;
 }
 
 void Interface::clear_loading_bar() const

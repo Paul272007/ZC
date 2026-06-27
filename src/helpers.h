@@ -43,7 +43,8 @@
   #define HIDE_OUTPUT           " &>/dev/null"
 #endif
 
-#define CAA const auto &
+#define CAA  const auto &
+#define elif else if
 #define FORBIDDEN_NAMES                                                                                  \
   { "Makefile", "CMakeLists.txt", "zc.json", "registry.json", "index.json", "build", ".cache", "cache" }
 #define FORBIDDEN_CHARS                                       \
@@ -114,6 +115,9 @@ std::string lower(const std::string &text);
 std::string escape_shell_arg(const std::string &arg);
 std::string exec_command(const std::string &cmd);
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
+bool has_pkg_config();
+std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags);
+std::vector<std::string> split(const std::string &str, char delimiter = ' ');
 
 template<typename EnumType>
 EnumType parse_mode(

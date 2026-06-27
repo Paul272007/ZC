@@ -115,7 +115,7 @@ void Init::operator()()
     else
       pconf.languages.insert_or_assign(l, gc_.languages.at(l));
 
-  // TODO : replace with function to send command as array/vector and escape arguments
+  // TODO: replace with function to send command as array/vector and escape arguments
   if (gc_.open_after_init || edit_)
     system(string(escape_shell_arg(gc_.editor) + " " + escape_shell_arg(p_root_.string())).c_str());
 }

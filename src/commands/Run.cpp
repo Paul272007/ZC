@@ -58,7 +58,7 @@ void Run::operator()()
   if_.debug(build_cmd_);
 #endif
 
-  // TODO : capture build command output for better ui
+  // TODO: capture build command output for better ui
 
   if (system(build_cmd_.c_str()) != 0)
     throw ZCException(ZCE_COMPILATION_ERROR, "Compilation failed");
@@ -153,16 +153,24 @@ std::string Run::get_build_command()
     for (const auto &lib : get_dependencies())
     {
       const string target = rg_.get_pkg(lib.name).target;
-      if (lib.origin != "std")
+      if (lib.origin == "std")
+      {
+        const string flags = get_pkg_config_flags(lib.name, true);
+        if (!flags.empty())
+          cmd << flags << " ";
+        else
+          cmd << "-l" << escape_shell_arg(target) << " ";
+      }
+      else
       {
         fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
         if (fs::exists(lib_dir))
         {
-          cmd << "-L" << lib_dir << " ";
-          cmd << "-Wl,-rpath," << lib_dir << " ";
+          cmd << "-L" << escape_shell_arg(lib_dir.string()) << " ";
+          cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir.string()) << " ";
         }
+        cmd << "-l" << escape_shell_arg(target) << " ";
       }
-      cmd << "-l" << escape_shell_arg(target) << " ";
     }
     break;
   }

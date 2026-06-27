@@ -61,7 +61,7 @@ int main(const int argc, char *argv[])
   bool assemble    = false;
   bool plus        = false;
   bool keep        = false;
-  bool add_std     = false;
+  bool std         = false;
   bool static_link = false;
   bool no_flags    = false;
   // Build
@@ -98,8 +98,8 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands
   // Files
-  const auto run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)"); // TODO : implement
-  // const auto create  = app.add_subcommand("create",  "Create file based on template"²);     // TODO : implement
+  const auto run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)");
+  // const auto create  = app.add_subcommand("create",  "Create file based on template"²);     // TODO: implement
   // Projects
   const auto init      = app.add_subcommand("init",      "Initialize empty project");
   const auto setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
@@ -120,7 +120,7 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands arguments
   // Run
-  // TODO : add --force,-f flag for each command
+  // TODO: add --force,-f flag for each command
 
   run->add_option("files", targets, "Files to compile and run")->required();
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
@@ -132,11 +132,11 @@ int main(const int argc, char *argv[])
   run->add_flag("--assemble,-S", assemble, "Compile, but do not assemble or link");
   run->add_flag("--plus,-p", plus, "Force compilation as C++");
   run->add_flag("--keep,-k", keep, "Do not delete the executable after program ends");
-  run->add_flag("--std", add_std, "Add C/C++ standard from config file");
+  run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_link, "Compile prioritizing the use of static libraries");
   run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
 
-  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, add_std, static_link, no_flags); });
+  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags); });
 
   // Init
 
@@ -238,18 +238,19 @@ int main(const int argc, char *argv[])
   list->callback([&] { command = make_unique<List>(force, show_templates, show_p_templates, show_remote, simple_display); });
 
   // Install
-  // TODO : add --project-path
+  // TODO: add --project-path
 
   install->add_option("--project-path,-P", p_root, "Directory to use as project root");
   install->add_option("--path,-p", path, "Install from local project instead of remote");
   install->add_option("targets", targets, "Targets to install");
 
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  install->add_flag("--std", std, "Add dependency to a standard library instead of ZC library");
 
-  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets); });
+  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, std); });
 
   // Uninstall
-  // TODO : add --project-path to uninstall all project dependencies
+  // TODO: add --project-path to uninstall all project dependencies
 
   uninstall->add_option("targets", targets, "Targets to uninstall");
 
