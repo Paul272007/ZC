@@ -1,11 +1,11 @@
 #include "PConf.h"
 
-#include <algorithm>
 #include <string>
 #include <sys/stat.h>
 
 #include "../helpers.h"
 #include "Conf.h"
+#include "config/Dependency.h"
 #include "config/GConf.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
@@ -24,36 +24,24 @@ PConf::~PConf()
 
 void PConf::add_dependency(const Dependency &d)
 {
-  // Already checked in Project::add_dependency() if pkg is installed
-  if (ranges::find_if(dependencies, [&d](const Dependency &dep) { return d.name == dep.name; }) !=
-      dependencies.end())
+  if (dependencies.contains(d.name))
     throw ZCException(ZCE_ALREADY_INSTALLED, "Dependency " + d.name + " already added");
-
-  dependencies.push_back(d);
+  dependencies.insert_or_assign(d.name, d);
   modified_ = true;
 }
 
-void PConf::change_dependency_version(const std::string &name, const Version &new_version)
+void PConf::change_dependency_version(const std::string &dep_name, const Version &new_version)
 {
-  // Already checked in Project::change_dependency_version() if pkg is installed
-  const auto it = ranges::find_if(dependencies, [&name](const Dependency &d) { return d.name == name; });
-
-  if (it == dependencies.end())
-    throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + name + " was not found.");
-
-  it->version = new_version;
-  modified_   = true;
+  if (!dependencies.contains(dep_name))
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + dep_name + " was not found.");
+  dependencies.at(dep_name).version = new_version;
+  modified_                         = true;
 }
 
 void PConf::remove_dependency(const std::string &dep_name)
 {
-  const auto it =
-    ranges::find_if(dependencies, [&dep_name](const Dependency &d) { return d.name == dep_name; });
-
-  if (it == dependencies.end())
+  if (dependencies.erase(dep_name) == 0) // Returns 0 if not found
     throw ZCException(ZCE_PKG_NOT_FOUND, "Dependency " + dep_name + " was not found.");
-
-  dependencies.erase(it);
   modified_ = true;
 }
 
@@ -97,14 +85,12 @@ void PConf::load()
   // Get dependencies
   if (root.contains("dependencies") && root["dependencies"].is_object())
   {
-    for (const auto &[key, value] : root["dependencies"].items())
+    dependencies.clear();
+    for (CAA[key, value] : root["dependencies"].items())
     {
-      Dependency d;
-      d.name = key;
-      get_key(value, "origin", d.origin, d.origin);
-      get_key(value, "static_link", d.static_link, d.static_link);
-      get_key(value, "version", d.version);
-      dependencies.push_back(d);
+      Dependency d = value.get<Dependency>();
+      d.name       = key;
+      dependencies.insert_or_assign(key, d);
     }
   }
 }
@@ -126,17 +112,13 @@ void PConf::write()
     root["target"] = target;
 
   json lang_json = json::object();
-  for (const auto &l : languages)
-    lang_json[language_to_str(l.first)] = l;
+  for (CAA[lang, conf] : languages)
+    lang_json[language_to_str(lang)] = conf;
   root["languages"] = lang_json;
 
   json deps_json = json::object();
-  for (const auto &dep : dependencies)
-    deps_json[dep.name] = {
-      { "origin", dep.origin },
-      { "static_link", dep.static_link },
-      { "version", dep.version },
-    };
+  for (CAA[name, conf] : dependencies)
+    deps_json[name] = conf;
   root["dependencies"] = deps_json;
 
   write_json(root, file_);

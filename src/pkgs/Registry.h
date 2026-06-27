@@ -5,8 +5,10 @@
 #include <vector>
 
 #include "../config/Conf.h"
+#include "../config/Dependency.h"
 #include "../helpers.h"
 #include "../ui/Table.h"
+#include "../Version.h"
 #include "Network.h"
 #include "Pkg.h"
 
@@ -29,6 +31,10 @@ public:
    * @param name
    */
   Pkg get_pkg(const std::string &name);
+
+  Dependency get_dependency(const Target &target);
+
+  Version get_latest(const std::string &name);
 
   /**
    * Install a package from the server

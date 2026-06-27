@@ -10,6 +10,7 @@
 
 #include "../config/GConf.h"
 #include "../helpers.h"
+#include "config/Dependency.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "Language.h"
@@ -186,7 +187,7 @@ void Project::publish()
 {
   if_.info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
 
-  for (const auto &dep : pconf.dependencies)
+  for (const auto &[dep_name, dep] : pconf.dependencies)
     if (reg_.get_pkg(dep.name).origin == "local")
       throw ZCException(
         ZCE_LOCAL_DEPENDENCY, "Cannot publish package depending on locally installed package: " + dep.name
@@ -341,21 +342,15 @@ void Project::publish()
   }
 }
 
-void Project::add_dependency(const string &name, const bool is_static)
+void Project::add_dependency(const Target &target, const bool is_static)
 {
-  if (pconf.name == name)
+  if (pconf.name == target.name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
 
-  Pkg pkg = reg_.get_pkg(name); // throws an error if package is not found
-  if (pkg.type == PkgType::BIN)
-    throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN as a dependency");
+  Dependency dep  = reg_.get_dependency(target); // throws an error if package is not found
+  dep.static_link = is_static;
 
-  const Dependency d{ .name        = pkg.name,
-                      .origin      = pkg.origin,
-                      .static_link = is_static,
-                      .version     = *ranges::max_element(pkg.versions) };
-
-  pconf.add_dependency(d);
+  pconf.add_dependency(dep);
   fs::create_directories(build_dir);
   generate_compile_commands();
 }
@@ -367,12 +362,15 @@ void Project::remove_dependency(const string &name)
   generate_compile_commands();
 }
 
-void Project::change_dependency_version(const std::string &name, const Version &new_version)
+void Project::change_dependency_version(const std::string &name, Version &new_version)
 {
+  if (new_version.empty())
+    new_version = reg_.get_latest(name);
   if (!reg_.is_installed({ name, new_version }))
-    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
-
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' is not installed");
   pconf.change_dependency_version(name, new_version);
+  fs::create_directories(build_dir);
+  generate_compile_commands();
 }
 
 void Project::install_dependencies() const
@@ -380,7 +378,7 @@ void Project::install_dependencies() const
   if_.info("Installing package dependencies...");
   const auto &net   = Network::get();
   const json  index = net.get_index();
-  for (const auto &dep : pconf.dependencies)
+  for (const auto &[dep_name, dep] : pconf.dependencies)
   {
     if (dep.origin == "local")
     {
@@ -405,7 +403,7 @@ void Project::update_dependencies()
   if_.info("Updating package dependencies...");
   const auto &net   = Network::get();
   const json  index = net.get_index();
-  for (const auto &dep : pconf.dependencies)
+  for (const auto &[dep_name, dep] : pconf.dependencies)
   {
     if (dep.origin == "local" || dep.origin == "std")
       continue;
@@ -706,14 +704,14 @@ void Project::init_variables(bool release)
   MakeVariable   incdirs{ "INCLUDE_DIRS" };
   for (const auto &inc : pconf.include_dirs)
     incdirs.add("-I../" + inc);
-  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
+  for (const auto &[dep_name, dep] : pconf.dependencies) // TODO : handle std libraries
     incdirs.add("-I" + (cache_dir / dep.name / dep.version.string() / INCLUDE_DIR).string());
   variables_.insert(incdirs);
 
   // Libraries
   MakeVariable libdirs{ "LIB_DIRS" };
   MakeVariable libs{ "LIBS" };
-  for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
+  for (const auto &[dep_name, dep] : pconf.dependencies) // TODO : handle std libraries
   {
     Pkg pkg = reg_.get_pkg(dep.name);
     if (pkg.type == PkgType::HEADER)

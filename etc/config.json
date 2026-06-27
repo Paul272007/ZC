@@ -8,10 +8,17 @@
   "username": "",
   "token": "",
   "archive": "ar rcs",
-  "c_compiler": "clang",
-  "cxx_compiler": "clang++",
-  "c_std": "c23",
-  "cxx_std": "c++20",
-  "editor": "vim",
-  "flags": [ "-Wall", "-Wextra" ]
+  "languages": {
+    "C": {
+      "compiler": "clang",
+      "flags": [ "-Wall", "-Wextra" ],
+      "std": "c17"
+    },
+    "CXX": {
+      "compiler": "clang++",
+      "flags": [ "-Wall", "-Wextra" ],
+      "std": "c++20"
+    }
+  },
+  "editor": "vim"
 }

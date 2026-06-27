@@ -25,14 +25,15 @@ struct Pkg
 inline void to_json(nlohmann::json &j, const Pkg &p)
 {
   j = nlohmann::json{
-    { "name", p.name },     { "type", p.type },         { "target", p.target },
-    { "origin", p.origin }, { "versions", p.versions },
+    { "type", p.type },
+    { "target", p.target },
+    { "origin", p.origin },
+    { "versions", p.versions },
   };
 }
 
 inline void from_json(const nlohmann::json &j, Pkg &p)
 {
-  get_key(j, "name", p.name);
   get_key(j, "type", p.type);
   get_key(j, "target", p.target);
   get_key(j, "origin", p.origin);

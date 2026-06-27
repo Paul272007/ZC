@@ -1,4 +1,4 @@
-AccessModifierOffset: -2                # Access modifier ("public:", , "protected:", "private:") are indented twice left
+AccessModifierOffset: -2                # Access modifier ("public:", "protected:", "private:") are indented twice left
 AlignAfterOpenBracket: true             # Align arguments that are on separate lines
 AlignArrayOfStructures: None            # (change to right to) Align struct arguments at the right when initializing a struct array
 AlignConsecutiveAssignments:            # Align consecutive variables assignments (Also aligns enum assignments)
@@ -39,7 +39,7 @@ AlignConsecutiveShortCaseStatements:    # Style of aligning consecutive short ca
   AcrossComments:   false               # Align even with comments in the middle
   AlignCaseArrows:  true                # Align case arrows at the right
   AlignCaseColons:  false               # Do not Align case colons at the right
-AlignConsecutiveTableGenBreakingDAGArgColons: # No idea what this is. Tooks LLVM's configuration.
+AlignConsecutiveTableGenBreakingDAGArgColons: # No idea what this is. Took LLVM's configuration.
   Enabled:         false
   AcrossEmptyLines: false
   AcrossComments:  false
@@ -78,7 +78,7 @@ AllowShortCaseExpressionOnASingleLine: true       # Short case expressions are o
 AllowShortCaseLabelsOnASingleLine: false          # Short case labels are on a single line.                 TODO : is it that bad ?
 AllowShortCompoundRequirementOnASingleLine: true  # Short compound requirements are on a single line.
 AllowShortEnumsOnASingleLine: false               # Short enums are not on a single line.
-AllowShortFunctionsOnASingleLine: Inline          # Rules for short functions (inline and empty functions) (overriden by AllowShortBlocksOnASingleLine)
+AllowShortFunctionsOnASingleLine: Inline          # Rules for short functions (inline and empty functions) (overridden by AllowShortBlocksOnASingleLine)
 AllowShortIfStatementsOnASingleLine: Never        # Ifs are always on min. 2 lines
 AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false               # No loops on a single line
@@ -88,7 +88,7 @@ AlwaysBreakBeforeMultilineStrings: false          # Do not break before multilin
 AttributeMacros:                                  # Strings that should be interpreted as attributes/qualifiers instead of identifiers
   - __capability
 # BinPackArguments: true                            # Deprecated
-BinPackLongBracedList: true                       # More than 20 elts in an initializer list = pack arguments
+BinPackLongBracedList: true                       # More than 20 elements in an initializer list = pack arguments
 BitFieldColonSpacing: Both                        # Spaces before and after colon
 BraceWrapping:
   AfterCaseLabel:  false
@@ -122,7 +122,7 @@ BreakArrays:     false
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Allman                         # Always break before braces        TODO : or Linux/Mozilla ?
 BreakBeforeCloseBracketBracedList: true           # Break before closing bracket
-BreakBeforeCloseBracketFunction: true             # Break before closing parenthese
+BreakBeforeCloseBracketFunction: true             # Break before closing parentheses
 BreakBeforeCloseBracketIf: true
 BreakBeforeCloseBracketLoop: true
 BreakBeforeCloseBracketSwitch: true

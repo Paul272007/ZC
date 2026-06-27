@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../helpers.h"
 #include "Command.h"
 
 namespace zc
@@ -15,8 +16,8 @@ public:
   void operator()() override;
 
 private:
-  const std::vector<std::string> targets_;
-  const std::filesystem::path    p_root_;
+  const std::vector<Target>   targets_;
+  const std::filesystem::path p_root_;
 
   const bool static_;
 };

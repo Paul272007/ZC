@@ -1,13 +1,16 @@
 #include "Registry.h"
 
+#include <algorithm>
 #include <filesystem>
 
 #include "../config/PConf.h"
 #include "../helpers.h"
 #include "../project/Project.h"
 #include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
 #include "Network.h"
 #include "PkgType.h"
+#include "Version.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -26,6 +29,38 @@ Pkg Registry::get_pkg(const std::string &name)
   if (it == pkgs_.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
   return it->second;
+}
+
+Dependency Registry::get_dependency(const Target &target)
+{
+  auto it = pkgs_.find(target.name);
+
+  if (it == pkgs_.end())
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + target.name + "' was not found");
+  if (it->second.type == PkgType::BIN)
+    throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN");
+
+  const std::vector<Version> &versions{ it->second.versions };
+
+  Version version_to_use{ target.version };
+
+  if (!version_to_use.empty()) // if version was precised verify that it exists
+  {
+    auto version_it = std::find(versions.begin(), versions.end(), target.version);
+    if (version_it == versions.end())
+      throw ZCException(
+        ZCE_PKG_NOT_FOUND,
+        "Package '" + target.name + "' at version " + target.version.string() + " was not found"
+      );
+  }
+  else // else find the latest version
+    version_to_use = *ranges::max_element(versions);
+
+  return {
+    .name    = it->second.name,
+    .origin  = it->second.origin,
+    .version = version_to_use,
+  };
 }
 
 void Registry::install_from_server(Target &target, const json &index, const bool force)
@@ -97,7 +132,7 @@ void Registry::update_from_server(Target &target, const nlohmann::json &index, c
   // Check if version is already installed
   target.version =
     target.version.empty() ? index["packages"][target.name]["latest"].get<string>() : target.version;
-  if (force && is_installed(target))
+  if (!force && is_installed(target))
   {
     if_.info("Skipped package " + target.name + ": already up-to-date at v" + target.version.string());
     return;
@@ -160,6 +195,12 @@ void Registry::uninstall(const std::string &pkg)
   // Remove entire directory
   if (const auto pkg_path = cache_dir_ / p.name; fs::exists(pkg_path))
     fs::remove_all(pkg_path);
+}
+
+Version Registry::get_latest(const std::string &name)
+{
+  const Pkg &pkg = get_pkg(pkg.name);
+  return *ranges::max_element(pkg.versions);
 }
 
 bool Registry::is_installed(const Target &target)
@@ -233,12 +274,27 @@ void Registry::load()
 {
   const json root = read_json(file_);
 
-  get_key(root, "packages", pkgs_);
+  if (root.contains("packages") && root["packages"].is_object())
+  {
+    pkgs_.clear();
+    for (CAA[key, value] : root["packages"].items())
+    {
+      Pkg pkg  = value.get<Pkg>();
+      pkg.name = key;
+      pkgs_.insert_or_assign(key, pkg);
+    }
+  }
 }
 
 void Registry::write()
 {
-  const json root{ { "packages", pkgs_ } };
+  json root;
+
+  json pkgs_json = json::object();
+  for (CAA[name, conf] : pkgs_)
+    pkgs_json[name] = conf;
+  root["packages"] = pkgs_json;
+
   write_json(root, file_);
 }
 
@@ -268,7 +324,9 @@ void Registry::index_add_pkg_version(const std::string &name, const Version &ver
 {
   auto pkg = get_pkg_it(name); // throws error if not found
 
-  pkg->second.versions.push_back(version);
+  auto &versions = pkg->second.versions;
+  if (std::find(versions.begin(), versions.end(), version) == versions.end())
+    versions.push_back(version);
   modified_ = true;
 }
 

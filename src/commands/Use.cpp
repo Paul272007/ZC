@@ -17,7 +17,7 @@ Use::Use(bool force, const std::filesystem::path &p_root, std::vector<std::strin
 void Use::operator()()
 {
   Project p(p_root_);
-  for (const auto &target : targets_)
+  for (auto &target : targets_)
     p.change_dependency_version(target.name, target.version);
 }
 

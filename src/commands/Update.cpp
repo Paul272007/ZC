@@ -12,8 +12,7 @@ namespace zc
 {
 
 Update::Update(
-  bool force, const fs::path &p_root, const fs::path &path, std::vector<std::string> &targets,
-  bool sync
+  bool force, const fs::path &p_root, const fs::path &path, std::vector<std::string> &targets, bool sync
 )
   : Command(force),
     p_root_(get_project_root(p_root)),
@@ -50,7 +49,7 @@ void Update::operator()()
     if (sync_)
     {
       Project p(p_root_); // target.version now contains the newly installed version :
-      for (const auto &target : targets_)
+      for (auto &target : targets_)
         p.change_dependency_version(target.name, target.version);
     }
   }
