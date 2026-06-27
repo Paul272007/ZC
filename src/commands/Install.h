@@ -27,7 +27,7 @@ private:
   const std::filesystem::path p_root_;
   const std::filesystem::path path_;
 
-  Targets targets_;
+  std::vector<Target> targets_;
 };
 
 } // namespace zc

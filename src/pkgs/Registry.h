@@ -28,7 +28,7 @@ public:
   /**
    * @param name
    */
-  RegistryPkg get_pkg(const std::string &name);
+  Pkg get_pkg(const std::string &name);
 
   /**
    * Install a package from the server
@@ -73,7 +73,7 @@ public:
 
   [[nodiscard]] bool is_installed(const std::string &name);
 
-  [[nodiscard]] std::vector<RegistryPkg> pkgs() const;
+  [[nodiscard]] std::map<std::string, Pkg> pkgs() const;
 
   [[nodiscard]] Table pkgs_table() const;
 
@@ -96,24 +96,24 @@ private:
   const std::filesystem::path lib_links_dir_;
   const std::filesystem::path bin_links_dir_;
 
-  std::vector<RegistryPkg> pkgs_;
+  std::map<std::string, Pkg> pkgs_; // pkg name -> pkg declaration
 
   explicit Registry(const std::filesystem::path &root = zc_root());
 
   /**
    * @param pkg
    */
-  void index_add_pkg(const RegistryPkg &pkg);
+  void index_add_pkg(const Pkg &pkg);
 
   void index_add_pkg_version(const std::string &name, const Version &version);
 
-  [[nodiscard]] std::vector<RegistryPkg>::iterator get_pkg_it(const std::string &name);
+  [[nodiscard]] std::map<std::string, Pkg>::iterator get_pkg_it(const std::string &name);
 
   /**
    * Remove pkg from index. A package with the same name must be found in the registry index.
    * @param name
    */
-  RegistryPkg unindex_pkg(const std::string &name);
+  Pkg unindex_pkg(const std::string &name);
 
   void finish_install(Project &p, const std::string &origin);
   void finish_update(Project &p);

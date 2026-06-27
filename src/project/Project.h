@@ -17,8 +17,6 @@
 namespace zc
 {
 
-using Sources = std::map<Language, std::vector<std::string>>;
-
 enum class BuildMode
 {
   automatic,
@@ -85,9 +83,8 @@ private:
   const std::filesystem::path cache_dir_;
   const std::filesystem::path makefile_;
 
-  std::set<MakeVariable, MakeVariableCmp> variables_;
-
-  Sources sources_;
+  std::set<MakeVariable, MakeVariableCmp>      variables_; // Each make variable with its name and value
+  std::map<Language, std::vector<std::string>> sources_; // for each language we have a list of source files
 
   void generate_Makefile(bool release = false) const;
 

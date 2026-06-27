@@ -9,31 +9,28 @@
 namespace zc
 {
 
-struct RegistryPkg
+struct Pkg
 {
   std::string name;
   std::string target;
   std::string origin = "main";
 
-  PkgType type = UNDEF;
+  PkgType type = PkgType::UNDEF;
 
   std::vector<Version> versions;
 
-  bool operator==(const RegistryPkg &) const = default;
+  bool operator==(const Pkg &) const = default;
 };
 
-inline void to_json(nlohmann::json &j, const RegistryPkg &p)
+inline void to_json(nlohmann::json &j, const Pkg &p)
 {
   j = nlohmann::json{
-    {     "name",     p.name },
-    {     "type",     p.type },
-    {   "target",   p.target },
-    {   "origin",   p.origin },
-    { "versions", p.versions }
+    { "name", p.name },     { "type", p.type },         { "target", p.target },
+    { "origin", p.origin }, { "versions", p.versions },
   };
 }
 
-inline void from_json(const nlohmann::json &j, RegistryPkg &p)
+inline void from_json(const nlohmann::json &j, Pkg &p)
 {
   get_key(j, "name", p.name);
   get_key(j, "type", p.type);

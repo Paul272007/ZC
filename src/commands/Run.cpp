@@ -38,7 +38,7 @@ Run::Run(
       { CompileMode::compile, compile },
       { CompileMode::assemble, assemble },
     },
-    CompileMode::full
+    CompileMode::full, "Cannot use different compiling modes at the same time"
   );
   output_name_ = get_output_name();
   build_cmd_   = get_build_command();
@@ -113,9 +113,9 @@ std::string Run::get_build_command()
   // Compiler and standard
   LanguageConf lc;
   if (plus_)
-    lc = gc_.get_lang_conf(CXX);
+    lc = gc_.languages.at(CXX); // FIX : throws error if conf for this language doesn't exist
   else
-    lc = gc_.get_lang_conf(C);
+    lc = gc_.languages.at(C);
 
   cmd << escape_shell_arg(lc.compiler) << " ";
   if (gc_.always_add_std || add_std_)

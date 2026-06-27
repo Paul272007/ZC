@@ -1,7 +1,7 @@
 #pragma once
 
+#include <map>
 #include <string>
-#include <vector>
 
 #include "../Language.h"
 #include "Conf.h"
@@ -25,9 +25,9 @@ public:
   std::string editor  = "vim";
   std::string archive = "ar rcs";
 
-  std::vector<LanguageConf> languages = {
-    { C, "c17", "clang", { "-Wall", "-Wextra" } },
-    { CXX, "c++20", "clang++", { "-Wall", "-Wextra" } },
+  std::map<Language, LanguageConf> languages = {
+    { C, { "c17", "clang", { "-Wall", "-Wextra" } } },
+    { CXX, { "c++20", "clang++", { "-Wall", "-Wextra" } } },
   };
 
   static GConf &get();
@@ -39,8 +39,6 @@ public:
   void logout();
 
   ~GConf() override;
-
-  LanguageConf get_lang_conf(Language l) const;
 
 protected:
   void load() override;

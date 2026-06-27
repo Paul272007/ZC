@@ -1,9 +1,11 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include "../helpers.h"
+#include "../Language.h"
 #include "../pkgs/PkgType.h"
 #include "../Version.h"
 #include "Conf.h"
@@ -20,13 +22,13 @@ public:
   std::string author;
   std::string target = name;
 
-  PkgType type = UNDEF;
+  PkgType type = PkgType::UNDEF;
   Version version; // default is 0.0.1
 
-  std::vector<std::string>  src_dirs     = { SRC_DIR };
-  std::vector<std::string>  include_dirs = { SRC_DIR };
-  std::vector<Dependency>   dependencies;
-  std::vector<LanguageConf> languages;
+  std::vector<std::string>         src_dirs     = { SRC_DIR };
+  std::vector<std::string>         include_dirs = { SRC_DIR };
+  std::vector<Dependency>          dependencies;
+  std::map<Language, LanguageConf> languages;
 
   ~PConf() override;
 
@@ -34,11 +36,6 @@ public:
   void remove_dependency(const std::string &dep_name);
   void change_dependency_version(const std::string &name, const Version &new_version);
 
-  LanguageConf get_lang_conf(Language l) const;
-
-  /**
-   * @param file
-   */
   explicit PConf(const std::filesystem::path &file = get_project_root() / ZC_FILE);
 
 protected:

@@ -5,7 +5,6 @@
 
 #include "../CompileMode.h"
 #include "../config/Dependency.h"
-#include "../config/GConf.h"
 #include "../pkgs/Registry.h"
 #include "Command.h"
 
@@ -17,15 +16,14 @@ class Run : public Command
 public:
   Run(
     bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-    bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std,
-    bool static_link, bool no_flags
+    bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std, bool static_link,
+    bool no_flags
   );
 
   void operator()() override;
 
 private:
-  GConf    &gc_ = GConf::get();
-  Registry &rg_ = Registry::get();
+  Registry &rg_ = Registry::get(); // TODO : add const
 
   const std::vector<std::filesystem::path> files_;
   const std::vector<std::string>           args_;

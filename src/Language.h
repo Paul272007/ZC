@@ -8,7 +8,9 @@
 
 // clang-format off
 #define C_EXTENSIONS    {"C"}
+#define H_EXTENSIONS    {"H"}
 #define CXX_EXTENSIONS  {"CPP", "CC", "CXX", "C++"}
+#define HXX_EXTENSIONS  {"HPP", "HH", "HXX", "H++"}
 #define ASM_EXTENSIONS  {"S", "ASM"}
 // clang-format on
 
@@ -19,6 +21,8 @@ enum Language
 {
   C,
   CXX,
+  H,
+  HXX,
   ASM_NASM,
   UNKNOWN_LANGUAGE,
 };
@@ -31,6 +35,10 @@ inline std::vector<std::string> extensions_for_language(const Language l)
     return C_EXTENSIONS;
   case CXX:
     return CXX_EXTENSIONS;
+  case H:
+    return H_EXTENSIONS;
+  case HXX:
+    return HXX_EXTENSIONS;
   case ASM_NASM:
     return ASM_EXTENSIONS;
   default:
@@ -48,6 +56,14 @@ inline Language language_from_str(const std::string &txt)
   for (const auto &ext : CXX_EXTENSIONS)
     if (upper_txt == ext)
       return CXX;
+
+  for (const auto &ext : H_EXTENSIONS)
+    if (upper_txt == ext)
+      return H;
+
+  for (const auto &ext : HXX_EXTENSIONS)
+    if (upper_txt == ext)
+      return HXX;
 
   for (const auto &ext : ASM_EXTENSIONS)
     if (upper_txt == ext)
@@ -93,6 +109,10 @@ inline std::string language_to_str(const Language l)
     return "C";
   case CXX:
     return "CXX";
+  case H:
+    return "H";
+  case HXX:
+    return "HXX";
   case ASM_NASM:
     return "ASM_NASM";
   default:

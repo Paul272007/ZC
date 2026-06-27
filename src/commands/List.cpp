@@ -5,7 +5,6 @@
 
 #include "commands/Command.h"
 #include "helpers.h"
-#include "pkgs/Pkg.h"
 #include "pkgs/Registry.h"
 #include "templates/TemplateEngine.h"
 #include "ui/Table.h"
@@ -19,9 +18,11 @@ List::List(bool force, bool templates, bool p_templates, bool remote, bool simpl
   : Command(force), simple_(simple)
 {
   type_ = parse_mode<ListType>(
-    { { ZC_LIST_SHOW_REMOTE, remote },
+    {
+      { ZC_LIST_SHOW_REMOTE, remote },
       { ZC_LIST_SHOW_TEMPLATES, templates },
-      { ZC_LIST_SHOW_P_TEMPLATES, p_templates } },
+      { ZC_LIST_SHOW_P_TEMPLATES, p_templates },
+    },
     ZC_LIST_SHOW_PKGS, "Cannot show multiple things at the same time"
   );
 }
@@ -39,7 +40,7 @@ void List::operator()()
     {
     case ZC_LIST_SHOW_PKGS:
       for (const auto &p : reg.pkgs())
-        v.emplace_back(p.name);
+        v.emplace_back(p.first);
       break;
 
     case ZC_LIST_SHOW_REMOTE:

@@ -79,8 +79,8 @@ void PConf::load()
   if (version.empty())
     throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
 
-  if (type == UNDEF)
-    throw ZCException(ZCE_CONTENT_ERROR, "Package type cannot be UNDEF");
+  if (type == PkgType::UNDEF)
+    throw ZCException(ZCE_CONTENT_ERROR, "Package type cannot be undefined");
 
   check_name(name);
   if (target != name)
@@ -91,11 +91,7 @@ void PConf::load()
   {
     languages.clear();
     for (const auto &[key, value] : root["languages"].items())
-    {
-      LanguageConf l = value.get<LanguageConf>();
-      l.name         = language_from_str(key);
-      languages.push_back(l);
-    }
+      languages.insert_or_assign(language_from_str(key), value.get<LanguageConf>());
   }
 
   // Get dependencies
@@ -131,27 +127,19 @@ void PConf::write()
 
   json lang_json = json::object();
   for (const auto &l : languages)
-    lang_json[language_to_str(l.name)] = l;
+    lang_json[language_to_str(l.first)] = l;
   root["languages"] = lang_json;
 
   json deps_json = json::object();
   for (const auto &dep : dependencies)
     deps_json[dep.name] = {
-      {      "origin",      dep.origin },
+      { "origin", dep.origin },
       { "static_link", dep.static_link },
-      {     "version",     dep.version }
+      { "version", dep.version },
     };
   root["dependencies"] = deps_json;
 
   write_json(root, file_);
-}
-
-LanguageConf PConf::get_lang_conf(Language l) const
-{
-  const auto it = std::find_if(
-    languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
-  );
-  return *it;
 }
 
 } // namespace zc

@@ -78,9 +78,7 @@ void GConf::login()
       }
       else if (err == "expired_token")
       {
-        throw ZCException(
-          ZCE_AUTHENTICATION_ERROR, "The code has expired. Please run `zc login` again."
-        );
+        throw ZCException(ZCE_AUTHENTICATION_ERROR, "The code has expired. Please run `zc login` again.");
       }
       else
       {
@@ -134,11 +132,7 @@ void GConf::load()
   {
     languages.clear();
     for (const auto &[key, value] : root["languages"].items())
-    {
-      LanguageConf l = value.get<LanguageConf>();
-      l.name         = language_from_str(key);
-      languages.push_back(l);
-    }
+      languages.insert_or_assign(language_from_str(key), value.get<LanguageConf>());
   }
 }
 
@@ -156,7 +150,7 @@ void GConf::write()
 
   json lang_json = json::object();
   for (const auto &l : languages)
-    lang_json[language_to_str(l.name)] = l;
+    lang_json[language_to_str(l.first)] = l.second;
   root["languages"] = lang_json;
 
   if (!token.empty())
@@ -178,16 +172,6 @@ GConf::GConf() : Conf(zc_root() / CONFIG_FILE)
 {
   if (fs::exists(file_))
     GConf::load();
-}
-
-LanguageConf GConf::get_lang_conf(Language l) const
-{
-  const auto it = std::find_if(
-    languages.begin(), languages.end(), [l](const LanguageConf lang) { return l == lang.name; }
-  );
-  if (it == languages.end())
-    throw ZCException(ZCE_NOT_FOUND, "No configuration available for language " + language_to_str(l));
-  return *it;
 }
 
 } // namespace zc

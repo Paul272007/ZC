@@ -35,7 +35,7 @@ Project::Project(const std::filesystem::path &root)
 
 void Project::build(BuildMode current_mode, bool is_install)
 {
-  if (pconf.type == HEADER)
+  if (pconf.type == PkgType::HEADER)
     return;
 
   fs::create_directories(build_dir);
@@ -98,7 +98,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   }
   if_.info(to_string(to_compile) + " file(s) to compile, " + to_string(to_link) + " target(s) to link");
 
-  to_compile += pconf.type == BIN ? 1 : (pconf.type == LIB ? 2 : 0);
+  to_compile += pconf.type == PkgType::BIN ? 1 : (pconf.type == PkgType::LIB ? 2 : 0);
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (!pipe)
@@ -346,8 +346,8 @@ void Project::add_dependency(const string &name, const bool is_static)
   if (pconf.name == name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
 
-  RegistryPkg pkg = reg_.get_pkg(name); // throws an error if package is not found
-  if (pkg.type == BIN)
+  Pkg pkg = reg_.get_pkg(name); // throws an error if package is not found
+  if (pkg.type == PkgType::BIN)
     throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN as a dependency");
 
   const Dependency d{ .name        = pkg.name,
@@ -418,7 +418,7 @@ void Project::update_dependencies()
 
 void Project::generate_build_config()
 {
-  if (pconf.type == HEADER)
+  if (pconf.type == PkgType::HEADER)
     return;
   fs::create_directories(build_dir);
 
@@ -442,13 +442,13 @@ void Project::generate_Makefile(const bool release) const
 
   switch (pconf.type)
   {
-  case BIN:
+  case PkgType::BIN:
     Makefile_bin(mk);
     break;
-  case LIB:
+  case PkgType::LIB:
     Makefile_lib(mk);
     break;
-  case COMPOSE:
+  case PkgType::COMPOSE:
   default:
     Makefile_compose(mk);
     break;
@@ -467,7 +467,7 @@ void Project::Makefile_bin(std::ostringstream &mk) const
 
   mk << "$(TARGET):";
   for (const auto &l : pconf.languages)
-    mk << " $(" << language_to_str(l.name) << "_OBJS)";
+    mk << " $(" << language_to_str(l.first) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_BIN|$@\"\n";
   mk << "\t@" << get_linker() << " -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
@@ -481,14 +481,14 @@ void Project::Makefile_lib(std::ostringstream &mk) const
 
   mk << "$(TARGET_STATIC):";
   for (const auto &l : pconf.languages)
-    mk << " $(" << language_to_str(l.name) << "_OBJS)";
+    mk << " $(" << language_to_str(l.first) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_STATIC|$@\"\n";
   mk << "\t@" << gc_.archive << " $@ $^\n\n";
 
   mk << "$(TARGET_SHARED):";
   for (const auto &l : pconf.languages)
-    mk << " $(" << language_to_str(l.name) << "_OBJS)";
+    mk << " $(" << language_to_str(l.first) << "_OBJS)";
   mk << "\n";
   mk << "\t@echo \"ZC_SHARED|$@\"\n";
   mk << "\t@" << get_linker() << " -shared -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
@@ -514,20 +514,21 @@ void Project::generate_compile_commands() const
 
   for (const auto &l : pconf.languages)
   {
-    if (sources_.find(l.name) == sources_.end())
+    if (!sources_.contains(l.first))
       continue;
 
     string flags;
-    if (auto it = variables_.find(language_to_str(l.name) + "_FLAGS"); it != variables_.end())
+    if (auto it = variables_.find(language_to_str(l.first) + "_FLAGS"); it != variables_.end())
       flags = it->string();
 
-    for (const auto &file : sources_.at(l.name))
+    for (const auto &file : sources_.at(l.first))
     {
       nlohmann::json cmd;
       cmd["directory"] = fs::absolute(build_dir).string();
       cmd["file"]      = "../" + file;
       cmd["output"]    = file + ".o";
-      cmd["command"] = join({ l.compiler, flags, includes, macros, "-c", "../" + file, "-o", file + ".o" });
+      cmd["command"] =
+        join({ l.second.compiler, flags, includes, macros, "-c", "../" + file, "-o", file + ".o" });
       compile_commands.push_back(cmd);
     }
   }
@@ -571,7 +572,7 @@ void Project::Makefile_variables(ostringstream &mk, const bool release) const
   for (const auto &v : variables_)
     mk << v.make_declaration();
   for (const auto &l : pconf.languages)
-    mk << "-include $(" << language_to_str(l.name) << "_DEPS)\n\n";
+    mk << "-include $(" << language_to_str(l.first) << "_DEPS)\n\n";
 }
 
 void Project::Makefile_rules(std::ostringstream &mk) const
@@ -587,8 +588,8 @@ void Project::Makefile_rules(std::ostringstream &mk) const
 
   for (const auto &l : pconf.languages)
   {
-    const string name = language_to_str(l.name);
-    for (const auto &ext : extensions_for_language(l.name))
+    const string name = language_to_str(l.first);
+    for (const auto &ext : extensions_for_language(l.first))
     {
       const string lower_ext = lower(ext);
       mk << "%." << lower_ext << ".o: %." << lower_ext << " ../" << ZC_FILE << "\n";
@@ -653,36 +654,36 @@ void Project::init_variables(bool release)
 {
   for (const auto &l : pconf.languages)
   {
-    if (auto it = sources_.find(l.name); it == sources_.end())
+    if (!sources_.contains(l.first))
       throw ZCException(
         ZCE_NO_SOURCE_FILES,
-        "Language " + language_to_str(l.name) + " is given but no source files of this language were found"
+        "Language " + language_to_str(l.first) + " is given but no source files of this language were found"
       );
 
     // Languages configuration and flags
-    string name = language_to_str(l.name);
+    string name = language_to_str(l.first);
 
     MakeVariable compiler{ name + "_COMPILER" };
-    compiler.add(l.compiler);
+    compiler.add(l.second.compiler);
     variables_.insert(compiler);
 
     MakeVariable flags{ name + "_FLAGS" };
-    flags.add("-std=" + l.std);
+    flags.add("-std=" + l.second.std);
     flags.add("-MMD");
     flags.add("-MP");
     flags.add("-fdiagnostics-color=always");
-    if (pconf.type == LIB)
+    if (pconf.type == PkgType::LIB)
       flags.add("-fPIC");
     if (release)
       flags.add("-O3");
     else
       flags.add("-g");
-    for (const auto &flag : l.flags)
+    for (const auto &flag : l.second.flags)
       flags.add(flag);
     variables_.insert(flags);
 
     MakeVariable objs{ name + "_OBJS" };
-    for (const auto &file : sources_.at(l.name))
+    for (const auto &file : sources_.at(l.first))
       objs.add_no_esc(file + ".o");
     variables_.insert(objs);
 
@@ -714,8 +715,8 @@ void Project::init_variables(bool release)
   MakeVariable libs{ "LIBS" };
   for (const auto &dep : pconf.dependencies) // TODO : handle std libraries
   {
-    RegistryPkg pkg = reg_.get_pkg(dep.name);
-    if (pkg.type == HEADER)
+    Pkg pkg = reg_.get_pkg(dep.name);
+    if (pkg.type == PkgType::HEADER)
       continue;
 
     const fs::path dep_lib_dir = (cache_dir / dep.name / dep.version.string() / LIB_DIR).string();

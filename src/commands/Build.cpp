@@ -5,6 +5,7 @@
 #include "commands/Command.h"
 #include "config/GConf.h"
 #include "helpers.h"
+#include "pkgs/PkgType.h"
 #include "project/Project.h"
 
 ZC_DEV_CONFIG
@@ -36,7 +37,7 @@ void Build::operator()()
 
   p.build(mode_);
 
-  if (p.pconf.type == BIN && gc_.move_bin_to_current_path)
+  if (p.pconf.type == PkgType::BIN && gc_.move_bin_to_current_path)
     if (fs::path binary = p.build_dir / p.pconf.target; fs::exists(binary))
       fs::rename(binary, fs::current_path() / p.pconf.target);
 
@@ -44,8 +45,8 @@ void Build::operator()()
   {
     string exec_cmd = escape_shell_arg(
       fs::absolute(
-        (p.pconf.type == BIN && gc_.move_bin_to_current_path) ? fs::current_path() / p.pconf.target
-                                                              : p.build_dir / p.pconf.target
+        (p.pconf.type == PkgType::BIN && gc_.move_bin_to_current_path) ? fs::current_path() / p.pconf.target
+                                                                       : p.build_dir / p.pconf.target
       )
     );
     for (const auto &arg : run_args_)

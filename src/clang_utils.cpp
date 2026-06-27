@@ -32,7 +32,7 @@ CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXCli
 namespace zc
 {
 
-vector<Dependency> get_file_includes(const fs::path &file, const vector<RegistryPkg> &pkgs)
+vector<Dependency> get_file_includes(const fs::path &file, const map<string, Pkg> &pkgs)
 {
   vector<string>     found_includes;
   vector<Dependency> required_libs;
@@ -42,7 +42,7 @@ vector<Dependency> get_file_includes(const fs::path &file, const vector<Registry
   unsigned options = CXTranslationUnit_DetailedPreprocessingRecord; // To see #includes
 
   const char       *args[] = { "-x", "c++" };                       // Always compile as C++
-  CXTranslationUnit unit = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options);
+  CXTranslationUnit unit   = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options);
 
   if (unit)
   {
@@ -51,16 +51,17 @@ vector<Dependency> get_file_includes(const fs::path &file, const vector<Registry
 
     for (const auto &inc : found_includes) // Compare with libraries map to extract flags
     {
-      for (const auto &pkg : pkgs)
+      for (const auto &pair : pkgs)
       {
-        if (inc.find(pkg.name + "/") == 0 || inc == pkg.name + ".h" || inc == pkg.name + ".hh" ||
-            inc == pkg.name + ".hpp")
+        if (inc.find(pair.first + "/") == 0 || inc == pair.first + ".h" || inc == pair.first + ".hh" ||
+            inc == pair.first + ".hpp")
         {
           required_libs.push_back(
             {
-              .name    = pkg.name,
-              .origin  = pkg.origin,
-              .version = *std::max_element(pkg.versions.begin(), pkg.versions.end()),
+              .name    = pair.first,
+              .origin  = pair.second.origin,
+              .version = *std::max_element(pair.second.versions.begin(), pair.second.versions.end()),
+              // FIX : the used library in the include_links_dir is not always the latest one
             }
           );
         }

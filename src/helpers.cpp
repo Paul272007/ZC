@@ -137,8 +137,7 @@ std::string base64_encode(const std::string &in)
   }
   if (valb > -6)
     out.push_back(
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-        [((val << 8) >> (valb + 8)) & 0x3F]
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]
     );
   while (out.size() % 4)
     out.push_back('=');
@@ -206,9 +205,9 @@ std::string exec_command(const std::string &cmd)
   return result;
 }
 
-Targets parse_targets(const std::vector<std::string> &targets)
+std::vector<Target> parse_targets(const std::vector<std::string> &targets)
 {
-  Targets results;
+  std::vector<Target> results;
   for (const auto &target : targets)
   {
     size_t at_pos = target.find('@');
@@ -216,11 +215,7 @@ Targets parse_targets(const std::vector<std::string> &targets)
     if (at_pos != string::npos)
       results.push_back({ target.substr(0, at_pos), target.substr(at_pos + 1) });
     else
-      results.push_back(
-        {
-          target, { 0, 0, 0 }
-      }
-      ); // 0.0.0 = empty version
+      results.push_back({ target, { 0, 0, 0 } }); // 0.0.0 = empty version
   }
   return results;
 }

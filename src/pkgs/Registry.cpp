@@ -20,13 +20,12 @@ Registry &Registry::get()
   return instance;
 }
 
-RegistryPkg Registry::get_pkg(const std::string &name)
+Pkg Registry::get_pkg(const std::string &name)
 {
-  const auto it = ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; });
+  auto it = pkgs_.find(name);
   if (it == pkgs_.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
-
-  return *it;
+  return it->second;
 }
 
 void Registry::install_from_server(Target &target, const json &index, const bool force)
@@ -37,8 +36,8 @@ void Registry::install_from_server(Target &target, const json &index, const bool
     return;
   }
 
-  target.version = target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>()
-                                          : target.version;
+  target.version =
+    target.version.empty() ? index["packages"][target.name]["latest"].get<string>() : target.version;
 
   Project p(download_and_extract(target, index));
 
@@ -72,17 +71,17 @@ void Registry::finish_install(Project &p, const std::string &origin)
   );
   switch (p.pconf.type)
   {
-  case BIN:
+  case PkgType::BIN:
     copy_bin(p);
     break;
-  case LIB:
+  case PkgType::LIB:
     copy_headers(p);
     copy_libs(p);
     break;
-  case HEADER:
+  case PkgType::HEADER:
     copy_headers(p);
     break;
-  case COMPOSE:
+  case PkgType::COMPOSE:
   default:
     if_.debug("Not implemented yet.");
     break;
@@ -96,8 +95,8 @@ void Registry::update_from_server(Target &target, const nlohmann::json &index, c
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update local package with distant package");
 
   // Check if version is already installed
-  target.version = target.version.empty() ? index["packages"][target.name]["latest"].get<std::string>()
-                                          : target.version;
+  target.version =
+    target.version.empty() ? index["packages"][target.name]["latest"].get<string>() : target.version;
   if (force && is_installed(target))
   {
     if_.info("Skipped package " + target.name + ": already up-to-date at v" + target.version.string());
@@ -133,17 +132,17 @@ void Registry::finish_update(Project &p)
 
   switch (p.pconf.type)
   {
-  case BIN:
+  case PkgType::BIN:
     copy_bin(p);
     break;
-  case LIB:
+  case PkgType::LIB:
     copy_headers(p);
     copy_libs(p);
     break;
-  case HEADER:
+  case PkgType::HEADER:
     copy_headers(p);
     break;
-  case COMPOSE:
+  case PkgType::COMPOSE:
   default:
     if_.debug("Not implemented yet.");
     break;
@@ -152,9 +151,9 @@ void Registry::finish_update(Project &p)
 
 void Registry::uninstall(const std::string &pkg)
 {
-  const RegistryPkg p = unindex_pkg(pkg); // throws error if not found
+  const Pkg p = unindex_pkg(pkg); // throws error if not found
 
-  if (p.type == BIN)
+  if (p.type == PkgType::BIN)
     if (const auto target = bin_links_dir_ / p.target; fs::exists(target))
       fs::remove(target);
 
@@ -165,37 +164,39 @@ void Registry::uninstall(const std::string &pkg)
 
 bool Registry::is_installed(const Target &target)
 {
-  const auto it = ranges::find_if(
-    pkgs_,
-    [&](const RegistryPkg &p)
-    {
-      return p.name == target.name &&
-             ranges::find_if(p.versions, [&](const Version &v) { return v == target.version; }) !=
-               p.versions.end();
-    }
-  );
-  return it != pkgs_.end();
+  auto it = pkgs_.find(target.name);
+  if (it == pkgs_.end())
+    return false;
+
+  const std::vector<Version> &versions = it->second.versions;
+
+  auto version_it = std::find(versions.begin(), versions.end(), target.version);
+  return version_it != versions.end();
 }
 
 bool Registry::is_installed(const string &name)
 {
-  return ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; }) != pkgs_.end();
+  return pkgs_.contains(name);
 }
 
-std::vector<RegistryPkg> Registry::pkgs() const
+std::map<std::string, Pkg> Registry::pkgs() const
 {
   return pkgs_;
 }
 
 Table Registry::pkgs_table() const
 {
-  vector<vector<string>> str_pkgs{
-    { "Package name", "Target", "Origin", "Latest version", "Type" }
-  };
+  vector<vector<string>> str_pkgs{ { "Package name", "Target", "Origin", "Latest version", "Type" } };
 
   for (const auto &p : pkgs_)
     str_pkgs.push_back(
-      { p.name, p.target, p.origin, p.versions.back().string(), pkg_type_to_pretty_str(p.type) }
+      {
+        p.second.name,
+        p.second.target,
+        p.second.origin,
+        p.second.versions.back().string(),
+        pkg_type_to_pretty_str(p.second.type),
+      }
     );
 
   return { false, true, str_pkgs };
@@ -237,9 +238,7 @@ void Registry::load()
 
 void Registry::write()
 {
-  const json root{
-    { "packages", pkgs_ }
-  };
+  const json root{ { "packages", pkgs_ } };
   write_json(root, file_);
 }
 
@@ -256,39 +255,37 @@ Registry::Registry(const std::filesystem::path &root)
   Registry::load();
 }
 
-void Registry::index_add_pkg(const RegistryPkg &pkg)
+void Registry::index_add_pkg(const Pkg &pkg)
 {
   if (is_installed(pkg.name))
     throw ZCException(ZCE_ALREADY_INSTALLED, "Package " + pkg.name + " is already installed.");
 
-  pkgs_.push_back(pkg);
+  pkgs_.insert_or_assign(pkg.name, pkg);
   modified_ = true;
 }
 
 void Registry::index_add_pkg_version(const std::string &name, const Version &version)
 {
-  const auto pkg = get_pkg_it(name); // throws error if not found
+  auto pkg = get_pkg_it(name); // throws error if not found
 
-  pkg->versions.push_back(version);
+  pkg->second.versions.push_back(version);
   modified_ = true;
 }
 
-std::vector<RegistryPkg>::iterator Registry::get_pkg_it(const std::string &name)
+std::map<std::string, Pkg>::iterator Registry::get_pkg_it(const std::string &name)
 {
-  const auto it = ranges::find_if(pkgs_, [&](const RegistryPkg &p) { return p.name == name; });
+  auto it = pkgs_.find(name);
   if (it == pkgs_.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
-
   return it;
 }
 
-RegistryPkg Registry::unindex_pkg(const string &name)
+Pkg Registry::unindex_pkg(const std::string &name)
 {
-  const auto  removed_pkg_it = get_pkg_it(name);
-  RegistryPkg pkg            = *removed_pkg_it;
-  pkgs_.erase(removed_pkg_it);
-  modified_ = true;
-  return pkg;
+  const auto it            = get_pkg_it(name);
+  Pkg        extracted_pkg = std::move(it->second);
+  pkgs_.erase(it);
+  return extracted_pkg;
 }
 
 void Registry::copy_bin(const Project &p) const
@@ -351,9 +348,7 @@ void Registry::copy_libs(const Project &p) const
   const auto dest_dir   = cache_dir_ / p.pconf.name / p.pconf.version.string() / LIB_DIR;
 
   if (!fs::exists(source_dir))
-    throw ZCException(
-      ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string()
-    );
+    throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());
 
   fs::create_directories(dest_dir);
   fs::copy_file(
@@ -421,8 +416,7 @@ void Registry::verify_archive_hash(const std::filesystem::path &archive, const s
   {
     fs::remove(archive);
     throw ZCException(
-      ZCE_HASH_MISMATCH,
-      "SECURITY ALERT: Hash mismatch! Expected: " + expected + ", Received:   " + actual
+      ZCE_HASH_MISMATCH, "SECURITY ALERT: Hash mismatch! Expected: " + expected + ", Received:   " + actual
     );
   }
   if_.success("Hash is correct");

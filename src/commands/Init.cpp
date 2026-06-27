@@ -1,11 +1,9 @@
 #include "commands/Init.h"
 
-#include <algorithm>
 #include <filesystem>
 #include <vector>
 
 #include "commands/Command.h"
-#include "config/LanguageConf.h"
 #include "config/PConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
@@ -33,8 +31,13 @@ Init::Init(
     name_(name)
 {
   type_ = parse_mode<PkgType>(
-    { { BIN, is_bin }, { LIB, is_lib }, { HEADER, is_header }, { COMPOSE, is_compose } }, UNDEF,
-    "Project cannot have multiple types"
+    {
+      { PkgType::BIN, is_bin },
+      { PkgType::LIB, is_lib },
+      { PkgType::HEADER, is_header },
+      { PkgType::COMPOSE, is_compose },
+    },
+    PkgType::UNDEF, "Project cannot have multiple types"
   );
 
   for (const auto &l_str : languages)
@@ -71,7 +74,7 @@ void Init::operator()()
     p_template_ = options.at(if_.radios("Project template to use:", options));
   }
 
-  if (type_ == UNDEF)
+  if (type_ == PkgType::UNDEF)
   {
     vector<string> options = { "binary", "library", "header-only library", "composed package" };
     type_                  = (PkgType)if_.radios("Package type:", options);
@@ -83,7 +86,7 @@ void Init::operator()()
   {
     vector<string> options;
     for (const auto &l : gc_.languages)
-      options.push_back(language_to_str(l.name));
+      options.push_back(language_to_str(l.first));
     vector<string> results = if_.checkboxes("Package language(s):", options);
     for (const auto &result : results)
       languages_.push_back(language_from_str(result));
@@ -105,15 +108,12 @@ void Init::operator()()
 
   pconf.languages.clear();
   for (const auto l : languages_)
-    if (auto it = ranges::find_if(
-          gc_.languages.begin(), gc_.languages.end(), [l](const LanguageConf &lc) { return lc.name == l; }
-        );
-        it == gc_.languages.end())
+    if (!gc_.languages.contains(l))
       throw ZCException(
         ZCE_UNSUPPORTED_LANGUAGE, "No configuration available for language: " + language_to_str(l)
       );
     else
-      pconf.languages.push_back(*it);
+      pconf.languages.insert_or_assign(l, gc_.languages.at(l));
 
   // TODO : replace with function to send command as array/vector and escape arguments
   if (gc_.open_after_init || edit_)

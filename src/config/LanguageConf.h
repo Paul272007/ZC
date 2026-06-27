@@ -5,15 +5,12 @@
 #include <vector>
 
 #include "../helpers.h"
-#include "../Language.h"
 
 namespace zc
 {
 
 struct LanguageConf
 {
-  Language name;
-
   std::string std;
   std::string compiler;
 
