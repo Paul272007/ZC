@@ -708,16 +708,7 @@ void Project::init_variables(bool release)
     incdirs.add("-I../" + inc);
   for (const auto &[dep_name, dep] : pconf.dependencies)
   {
-    bool is_std = dep.origin == "std";
-
-    const fs::path pkg_dir = cache_dir / dep.name / dep.version.string();
-    if (!is_std)
-    {
-      const fs::path inc_dir = pkg_dir / INCLUDE_DIR;
-      incdirs.add("-I" + inc_dir.string());
-    }
-
-    if (is_std)
+    if (dep.origin == "std")
     {
       const auto flags = split(get_pkg_config_flags(dep.name, true), ' ');
       for (const auto &f : flags)
@@ -733,6 +724,9 @@ void Project::init_variables(bool release)
       }
       continue;
     }
+    const fs::path pkg_dir = cache_dir / dep.name / dep.version.string();
+    const fs::path inc_dir = pkg_dir / INCLUDE_DIR;
+    incdirs.add("-I" + inc_dir.string());
 
     Pkg pkg = reg_.get_pkg(dep.name);
     if (pkg.type == PkgType::HEADER)

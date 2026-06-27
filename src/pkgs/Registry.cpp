@@ -122,6 +122,7 @@ void Registry::install_from_path(const std::filesystem::path &path, const bool f
 void Registry::finish_install(Project &p, const std::string &origin)
 {
   if_.info("Building package...");
+  verify_headers_structure(p);
   p.install_dependencies();
   p.build(BuildMode::release, true);
 
@@ -188,6 +189,7 @@ Project Registry::update_from_path(const std::filesystem::path &path, const bool
 void Registry::finish_update(Project &p)
 {
   if_.info("Building package...");
+  verify_headers_structure(p);
   p.install_dependencies();
   p.build(BuildMode::release, true);
 
@@ -372,6 +374,7 @@ Pkg Registry::unindex_pkg(const std::string &name)
   const auto it            = get_pkg_it(name);
   Pkg        extracted_pkg = std::move(it->second);
   pkgs_.erase(it);
+  modified_ = true;
   return extracted_pkg;
 }
 
@@ -403,9 +406,8 @@ void Registry::copy_headers(const Project &p) const
 {
   if_.info("Installing header(s)...");
 
-  const auto source_dir =
-    p.root_dir / INCLUDE_DIR; // FIX : here only headers from project/include/ are moved
-  const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR;
+  const auto source_dir = p.root_dir / INCLUDE_DIR / p.pconf.name;
+  const auto dest_dir   = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR / p.pconf.name;
 
   if (!fs::exists(source_dir))
     throw ZCException(
@@ -518,6 +520,16 @@ std::string Registry::pkg_url(const Target &target, const nlohmann::json &index)
     throw ZCException(ZCE_NOT_FOUND, "Version " + target.version.string() + " does not exist.");
 
   return index["packages"][target.name]["versions"][target.version.string()].value("url", "");
+}
+
+void Registry::verify_headers_structure(const Project &p) const
+{
+  if (p.pconf.type == PkgType::LIB || p.pconf.type == PkgType::HEADER)
+    if (!fs::exists(p.root_dir / INCLUDE_DIR / p.pconf.name))
+      throw ZCException(
+        ZCE_BAD_STRUCTURE,
+        "Public headers must be inside 'include/" + p.pconf.name + "/' to avoid collisions."
+      );
 }
 
 } // namespace zc

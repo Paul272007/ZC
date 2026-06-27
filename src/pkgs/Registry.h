@@ -149,6 +149,8 @@ private:
   void verify_archive_hash(const std::filesystem::path &archive, const std::string &expected) const;
 
   [[nodiscard]] static std::string pkg_url(const Target &target, const nlohmann::json &index);
+
+  void verify_headers_structure(const Project &p) const;
 };
 
 } // namespace zc
