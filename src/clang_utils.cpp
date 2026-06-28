@@ -62,7 +62,7 @@ bool is_inside_typedef(const CXCursor &cursor, const vector<pair<unsigned, unsig
 }
 
 // --- Visitors
-CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXClientData client_data)
+CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor /*parent*/, CXClientData client_data)
 {
   auto *includes_vec = static_cast<vector<string> *>(client_data);
 
@@ -79,12 +79,12 @@ CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXCli
   return CXChildVisit_Continue;
 }
 
-CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXClientData client_data)
+CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor /*parent*/, CXClientData client_data)
 {
-  auto        *ctx  = static_cast<VisitorContext *>(client_data);
+  auto              *ctx  = static_cast<VisitorContext *>(client_data);
   const CXCursorKind kind = clang_getCursorKind(cursor);
 
-  if (const CXSourceLocation loc = clang_getCursorLocation(cursor);!clang_Location_isFromMainFile(loc))
+  if (const CXSourceLocation loc = clang_getCursorLocation(cursor); !clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
 
   if (kind == CXCursor_TypedefDecl)
@@ -93,7 +93,7 @@ CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXCli
   return CXChildVisit_Continue;
 }
 
-CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
+CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor /*parent*/, CXClientData client_data)
 {
   const auto        *ctx  = static_cast<VisitorContext *>(client_data);
   const CXCursorKind kind = clang_getCursorKind(cursor);
@@ -101,7 +101,7 @@ CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientDat
   if (clang_getCursorLinkage(cursor) == CXLinkage_Internal)
     return CXChildVisit_Continue;
 
-  if (const CXSourceLocation loc = clang_getCursorLocation(cursor);!clang_Location_isFromMainFile(loc))
+  if (const CXSourceLocation loc = clang_getCursorLocation(cursor); !clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
 
   if (kind == CXCursor_EnumDecl || kind == CXCursor_StructDecl || kind == CXCursor_UnionDecl)
@@ -117,74 +117,74 @@ CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientDat
 
   switch (kind)
   {
-    case CXCursor_InclusionDirective:
-      ctx->decls->includes.push_back(text + "\n");
-      break;
+  case CXCursor_InclusionDirective:
+    ctx->decls->includes.push_back(text + "\n");
+    break;
 
-    case CXCursor_MacroDefinition:
-      if (!clang_Cursor_isMacroBuiltin(cursor))
-        ctx->decls->macros.push_back(text);
-      break;
+  case CXCursor_MacroDefinition:
+    if (!clang_Cursor_isMacroBuiltin(cursor))
+      ctx->decls->macros.push_back(text);
+    break;
 
-    case CXCursor_TypedefDecl:
+  case CXCursor_TypedefDecl:
+    rtrim(text);
+    if (!text.empty() && text.back() == ';')
+      text.pop_back();
+    ctx->decls->typedefs.push_back(text);
+    break;
+
+  case CXCursor_EnumDecl:
+    if (clang_isCursorDefinition(cursor))
+      ctx->decls->enums.push_back(text);
+    break;
+
+  case CXCursor_StructDecl:
+    if (clang_isCursorDefinition(cursor))
+      ctx->decls->structs.push_back(text);
+    break;
+
+  case CXCursor_UnionDecl:
+    if (clang_isCursorDefinition(cursor))
+      ctx->decls->unions.push_back(text);
+    break;
+
+  case CXCursor_VarDecl:
+  {
+    if (const size_t equal_pos = text.find('='); equal_pos != string::npos)
+      text = text.substr(0, equal_pos);
+
+    rtrim(text);
+    if (!text.empty() && text.back() == ';')
+      text.pop_back();
+
+    if (text.find("extern") == string::npos)
+      text = "extern " + text;
+    ctx->decls->globals.push_back(text);
+    break;
+  }
+
+  case CXCursor_FunctionDecl:
+  {
+    const CXString name_str = clang_getCursorSpelling(cursor);
+    const string   name     = clang_getCString(name_str);
+    clang_disposeString(name_str);
+
+    if (name != "main")
+    {
+      size_t brace_pos = text.find('{');
+      if (brace_pos != string::npos)
+        text = text.substr(0, brace_pos);
+
       rtrim(text);
       if (!text.empty() && text.back() == ';')
         text.pop_back();
-      ctx->decls->typedefs.push_back(text);
-      break;
-
-    case CXCursor_EnumDecl:
-      if (clang_isCursorDefinition(cursor))
-        ctx->decls->enums.push_back(text);
-      break;
-
-    case CXCursor_StructDecl:
-      if (clang_isCursorDefinition(cursor))
-        ctx->decls->structs.push_back(text);
-      break;
-
-    case CXCursor_UnionDecl:
-      if (clang_isCursorDefinition(cursor))
-        ctx->decls->unions.push_back(text);
-      break;
-
-    case CXCursor_VarDecl:
-    {
-      if (const size_t equal_pos = text.find('='); equal_pos != string::npos)
-        text = text.substr(0, equal_pos);
-
-      rtrim(text);
-      if (!text.empty() && text.back() == ';')
-        text.pop_back();
-
-      if (text.find("extern") == string::npos)
-        text = "extern " + text;
-      ctx->decls->globals.push_back(text);
-      break;
+      ctx->decls->functions.push_back(text);
     }
+    break;
+  }
 
-    case CXCursor_FunctionDecl:
-    {
-      const CXString name_str = clang_getCursorSpelling(cursor);
-      const string   name     = clang_getCString(name_str);
-      clang_disposeString(name_str);
-
-      if (name != "main")
-      {
-        size_t brace_pos = text.find('{');
-        if (brace_pos != string::npos)
-          text = text.substr(0, brace_pos);
-
-        rtrim(text);
-        if (!text.empty() && text.back() == ';')
-          text.pop_back();
-        ctx->decls->functions.push_back(text);
-      }
-      break;
-    }
-
-    default:
-      break;
+  default:
+    break;
   }
   return CXChildVisit_Continue;
 }
@@ -203,9 +203,10 @@ vector<Dependency> get_file_includes(const fs::path &file, const map<string, Pkg
 
   constexpr unsigned options = CXTranslationUnit_DetailedPreprocessingRecord; // To see #includes
 
-  const char       *args[] = { "-x", "c++" };                       // Always compile as C++
+  const char *args[] = { "-x", "c++" };                                       // Always compile as C++
 
-  if (const CXTranslationUnit unit   = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options))
+  if (const CXTranslationUnit unit =
+        clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options))
   {
     CXCursor cursor = clang_getTranslationUnitCursor(unit);
     clang_visitChildren(cursor, visitor_find_includes, &found_includes); // Get all included file names
@@ -258,7 +259,7 @@ Declarations parse_declarations(const std::filesystem::path &file)
   }
 
   CXCursor       cursor = clang_getTranslationUnitCursor(unit);
-  VisitorContext ctx    = { &decls, &content };
+  VisitorContext ctx    = { &decls, &content, {} };
   clang_visitChildren(cursor, visitor_find_typedefs, &ctx);
   clang_visitChildren(cursor, visitor_extract, &ctx);
 

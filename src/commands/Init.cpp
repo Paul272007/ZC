@@ -19,8 +19,8 @@ namespace zc
 {
 
 Init::Init(
-  const bool force, const std::filesystem::path &p_root, const bool git, const bool edit, std::string author,
-  std::string target, std::string p_template, std::string name, bool is_bin,
+  const bool force, const std::filesystem::path &p_root, const bool git, const bool edit,
+  std::string author, std::string target, std::string p_template, std::string name, bool is_bin,
   bool is_lib, bool is_header, bool is_compose, const vector<string> &languages
 )
   : Command(force),
@@ -79,7 +79,8 @@ void Init::operator()()
   if (type_ == PkgType::UNDEF)
   {
     const vector<string> options = { "binary", "library", "header-only library", "composed package" };
-    type_                  = static_cast<PkgType>(if_.radios("Package type:", options));
+
+    type_ = static_cast<PkgType>(if_.radios("Package type:", options));
   }
 
   te_.init_with_p_template(p_root_, p_template_, force_);
@@ -89,7 +90,8 @@ void Init::operator()()
     vector<string> options;
     for (const auto &key : gc_.languages | views::keys)
       options.push_back(language_to_str(key));
-    for (const vector<string> results = if_.checkboxes("Package language(s):", options); const auto &result : results)
+    for (const vector<string> results = if_.checkboxes("Package language(s):", options);
+         const auto          &result : results)
       languages_.push_back(language_from_str(result));
   }
 

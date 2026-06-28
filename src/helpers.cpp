@@ -3,6 +3,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <cctype>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <openssl/evp.h>
@@ -155,7 +156,7 @@ std::string pretty_path(const std::filesystem::path &path)
 std::string join(const std::vector<std::string> &v, const std::string &separator)
 {
   stringstream s;
-  for (int i = 0; i < v.size(); i++)
+  for (size_t i = 0; i < v.size(); i++)
   {
     if (i != 0)
       s << separator;
@@ -210,12 +211,10 @@ std::vector<Target> parse_targets(const std::vector<std::string> &targets)
 {
   std::vector<Target> results;
   for (const auto &target : targets)
-  {
-    if (const size_t at_pos = target.find('@');at_pos != string::npos)
+    if (const size_t at_pos = target.find('@'); at_pos != string::npos)
       results.push_back({ target.substr(0, at_pos), target.substr(at_pos + 1) });
     else
       results.push_back({ target, { 0, 0, 0 } }); // 0.0.0 = empty version
-  }
   return results;
 }
 
@@ -231,13 +230,11 @@ void check_name(const std::string &name)
       );
 
   for (const char c : FORBIDDEN_CHARS)
-  {
-    if (const size_t pos = name.find(c);pos != string::npos)
+    if (const size_t pos = name.find(c); pos != string::npos)
       throw ZCException(
         ZCE_CONTENT_ERROR,
         "The name of the package or target contains invalid character: " + std::string(1, c)
       );
-  }
 }
 
 std::string read_file(const std::filesystem::path &file)
@@ -328,7 +325,7 @@ bool has_pkg_config()
 std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
 {
   const std::string cmd = "pkg-config --libs " + pkg_name + (cflags ? " --cflags " : "") + " 2>/dev/null";
-  std::string result;
+  std::string       result;
 
   std::array<char, 128> buffer;
 

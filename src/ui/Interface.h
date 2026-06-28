@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -52,8 +53,8 @@ public:
   std::vector<std::string>
   checkboxes(const std::string &question, const std::vector<std::string> &options) const;
 
-  int radios(
-    const std::string &question, const std::vector<std::string> &options, int default_ans = 0
+  size_t radios(
+    const std::string &question, const std::vector<std::string> &options, size_t default_ans = 0
   ) const;
 
   bool is_quiet() const { return quiet_; }

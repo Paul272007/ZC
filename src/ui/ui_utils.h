@@ -20,7 +20,7 @@ inline void set_raw_mode(const bool enable)
     tcgetattr(STDIN_FILENO, &oldt); // Save the current state of the terminal
     newt = oldt;
     // Deactivate canonic mode (=waiting for <Enter> key) and the echo, deactivate ctrl+c = SIGINT
-    newt.c_lflag &= ~(ICANON | ECHO | ISIG);
+    newt.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO | ISIG);
     tcsetattr(STDIN_FILENO, TCSANOW, &newt); // Apply new parameters
   }
   else
@@ -35,7 +35,7 @@ inline char get_char_raw()
 #if defined(_WIN32) || defined(_WIN64)
   return _getch(); // Read a character without waiting for the <Enter> key on Windows
 #else
-  return getchar();
+  return static_cast<char>(getchar());
 #endif
 }
 

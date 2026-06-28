@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -72,7 +73,7 @@ public:
    * @brief Get the table's size
    * @return The table's size
    */
-  [[nodiscard]] int size() const;
+  [[nodiscard]] size_t size() const;
 
 private:
   /**
@@ -114,7 +115,7 @@ private:
   /**
    * @brief Safely get a cell's content, returning empty string if out of bounds
    */
-  const std::string &get_cell(int r, int c) const;
+  const std::string &get_cell(size_t r, size_t c) const;
 
   /**
    * @brief The current line being displayed
@@ -129,7 +130,7 @@ private:
   /**
    * @brief The longest width for each column
    */
-  std::vector<int> max_widths_;
+  std::vector<size_t> max_widths_;
 
   /**
    * @brief The content of the table

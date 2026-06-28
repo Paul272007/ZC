@@ -20,7 +20,7 @@ void Remove::operator()()
 {
   Project p(p_root_);
 
-  for (const auto target : targets_)
+  for (CAA target : targets_)
     p.remove_dependency(target);
 }
 

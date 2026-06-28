@@ -86,14 +86,14 @@ private:
   std::set<MakeVariable, MakeVariableCmp>      variables_; // Each make variable with its name and value
   std::map<Language, std::vector<std::string>> sources_; // for each language we have a list of source files
 
-  void generate_Makefile(bool release = false) const;
+  void generate_Makefile() const;
 
   void Makefile_bin(std::ostringstream &mk) const;
   void Makefile_lib(std::ostringstream &mk) const;
-  static void Makefile_compose(std::ostringstream &mk) ;
+  static void Makefile_compose(std::ostringstream &mk);
 
-  static void Makefile_comment(std::ostringstream &mk) ;
-  void Makefile_variables(std::ostringstream &mk, bool release) const;
+  static void Makefile_comment(std::ostringstream &mk);
+  void Makefile_variables(std::ostringstream &mk) const;
   void Makefile_rules(std::ostringstream &mk) const;
 
   void generate_compile_commands() const;

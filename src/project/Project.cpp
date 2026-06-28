@@ -71,7 +71,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   else
     init_variables(current_mode == BuildMode::release);
 
-  generate_Makefile(current_mode == BuildMode::release);
+  generate_Makefile();
 
   int          to_compile  = 0;
   int          to_link     = 0;
@@ -105,7 +105,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   if (!pipe)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
-  char      buffer[1024];
+  char buffer[1024];
 
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
   {
@@ -124,7 +124,7 @@ void Project::build(BuildMode current_mode, bool is_install)
       string message;
       string target_name;
 
-      if (string rest = line.substr(3);rest.starts_with("COMPILE|"))
+      if (string rest = line.substr(3); rest.starts_with("COMPILE|"))
       {
         message     = "Compiling object ";
         target_name = rest.substr(8);
@@ -426,16 +426,16 @@ void Project::generate_build_config()
 
   get_sources();
   init_variables(is_release);
-  generate_Makefile(is_release);
+  generate_Makefile();
   generate_compile_commands();
 }
 
-void Project::generate_Makefile(const bool release) const
+void Project::generate_Makefile() const
 {
   std::ostringstream mk;
 
   Makefile_comment(mk);
-  Makefile_variables(mk, release);
+  Makefile_variables(mk);
 
   switch (pconf.type)
   {
@@ -564,7 +564,7 @@ void Project::Makefile_comment(std::ostringstream &mk)
   mk << "all:\n\n"; // Prevent -include from hijacking the default target by explicitly declaring all first
 }
 
-void Project::Makefile_variables(ostringstream &mk, const bool release) const
+void Project::Makefile_variables(ostringstream &mk) const
 {
   for (const auto &v : variables_)
     mk << v.make_declaration();
@@ -621,7 +621,7 @@ int Project::get_sources()
 
     for (const auto &entry : fs::recursive_directory_iterator(full_src_dir))
     {
-      const fs::path& file = entry.path();
+      const fs::path &file = entry.path();
       if (const Language l = language_of(file); l != UNKNOWN_LANGUAGE)
       {
         if (sources_.contains(l))
@@ -708,7 +708,7 @@ void Project::init_variables(bool release)
   {
     if (origin == "std")
     {
-      for (const auto flags = split(get_pkg_config_flags(name, true), ' ');const auto &f : flags)
+      for (const auto flags = split(get_pkg_config_flags(name, true), ' '); const auto &f : flags)
       {
         if (f.starts_with("-I"))
           incdirs.add(f);

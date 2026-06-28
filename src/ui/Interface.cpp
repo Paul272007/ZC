@@ -1,5 +1,6 @@
 #include "Interface.h"
 
+#include <cstddef>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -77,7 +78,7 @@ bool Interface::ask(const std::string &question, const bool default_ans) const
 {
   vector<string> options = { "Yes", "No" };
 
-  int selected = radios(question, options);
+  size_t selected = radios(question, options, default_ans ? 0 : 1);
   return selected == 0;
 }
 
@@ -153,7 +154,7 @@ void Interface::clear_loading_bar() const
 
 vector<string> Interface::checkboxes(const string &question, const vector<string> &options) const
 {
-  int          cursor = 0;
+  size_t       cursor = 0;
   vector<bool> selected(options.size(), false);
   cout << BLUE "? " RESET << question << endl << HIDE_CURSOR;
 
@@ -179,9 +180,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
       throw ZCException(ZCE_ABORTED, "Interrupted");
     }
     if (c == '\n' || c == '\r')
-    {
       break; // exit loop
-    }
     if (c == ' ' || c == 'x')
     {
       selected[cursor] = !selected[cursor]; // toggle option
@@ -198,7 +197,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
 #else
     else if (c == '\033') // Escape sequence
     {
-      if (const char bracket = get_char_raw();bracket == '[')
+      if (const char bracket = get_char_raw(); bracket == '[')
       {
         const char dir = get_char_raw();
         if (dir == 'A')
@@ -226,11 +225,11 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
   return result;
 }
 
-int Interface::radios(
-  const std::string &question, const std::vector<std::string> &options, int default_ans
+size_t Interface::radios(
+  const std::string &question, const std::vector<std::string> &options, size_t default_ans
 ) const
 {
-  int cursor = default_ans;
+  size_t cursor = default_ans;
 
   cout << BLUE << "? " << RESET << question << endl << HIDE_CURSOR;
 
@@ -257,9 +256,7 @@ int Interface::radios(
       throw ZCException(ZCE_ABORTED, "Interrupted");
     }
     if (c == '\n' || c == '\r')
-    {
       break;
-    }
 #if defined(_WIN32) || defined(_WIN64)
     else if (c == -32 || c == 0 || c == 224)
     {
@@ -272,7 +269,7 @@ int Interface::radios(
 #else
     if (c == '\033')
     {
-      if (const char bracket = get_char_raw();bracket == '[')
+      if (const char bracket = get_char_raw(); bracket == '[')
       {
         const char dir = get_char_raw();
         if (dir == 'A' && cursor > 0)

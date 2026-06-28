@@ -32,7 +32,7 @@ Create::Create(
       if_.info("Skipped file " + f);
       continue;
     }
-    if (Language l = language_of(f);files_.contains(l))
+    if (Language l = language_of(f); files_.contains(l))
       files_.at(l).emplace_back(f);
     else
       files_[l] = { f };
@@ -41,7 +41,7 @@ Create::Create(
   {
     if (!fs::exists(f))
       throw ZCException(ZCE_NOT_FOUND, "Input file " + f + " not found.");
-    if (Language l = language_of(f);input_files_.contains(l))
+    if (Language l = language_of(f); input_files_.contains(l))
       input_files_.at(l).emplace_back(f);
     else
       input_files_[l] = { f };
@@ -92,7 +92,7 @@ void Create::operator()()
       break;
     default:
       for (CAA f : files)
-        if (te_.init_with_template(f, lang, force_))
+        if (te_.init_with_template(f, lang))
           files_to_edit_.push_back(f);
       break;
     }

@@ -19,7 +19,31 @@ find_package(nlohmann_json REQUIRED)
 option(ENABLE_DEBUG "Activate debug mode" ON)
 if(ENABLE_DEBUG)
   add_compile_definitions(DEBUG_MODE)
+  add_compile_options(-fsanitize=address,undefined -g -O0)
+  add_link_options(-fsanitize=address,undefined)
 endif()
+
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wpedantic
+
+  -Wshadow
+  -Wformat=2
+  -Wnull-dereference
+  -Wconversion
+  -Wsign-conversion
+  -Wdouble-promotion
+  -Wuninitialized
+  -Wunused-label
+  # C++ only
+  -Wnon-virtual-dtor
+  -Wold-style-cast
+  -Woverloaded-virtual
+
+  # Remove comment warnings
+  -Wno-comment
+)
 
 # Create library
 add_library(zc-core STATIC

@@ -229,7 +229,7 @@ void Registry::uninstall(const std::string &pkg)
 
 Version Registry::get_latest(const std::string &name)
 {
-  const Pkg &pkg = get_pkg(pkg.name);
+  const Pkg &pkg = get_pkg(name);
   return *ranges::max_element(pkg.versions);
 }
 

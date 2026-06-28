@@ -26,7 +26,7 @@ public:
 
   Table p_templates_table() const;
 
-  bool init_with_template(const std::filesystem::path &file, Language l, bool force) const;
+  bool init_with_template(const std::filesystem::path &file, Language l) const;
 
   void
   init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;

@@ -1,5 +1,6 @@
 #include "Table.h"
 
+#include <cstddef>
 #include <iostream>
 #include <string>
 
@@ -13,7 +14,7 @@ using namespace std;
 namespace
 {
 
-void padding(const int length)
+void padding(const size_t length)
 {
   if (length > 0)
     std::cout << std::string(length, ' ');
@@ -23,7 +24,9 @@ void padding(const int length)
 
 Table::Table() {}
 
-Table::Table(const bool has_row_headers, const bool has_col_headers, std::vector<std::vector<std::string>> content)
+Table::Table(
+  const bool has_row_headers, const bool has_col_headers, std::vector<std::vector<std::string>> content
+)
   : content_(std::move(content)), row_headers_(has_row_headers), col_headers_(has_col_headers)
 {
 }
@@ -34,8 +37,8 @@ void Table::set_content(std::vector<std::vector<std::string>> content)
 }
 
 void Table::set_thickness(
-  const bool rowThickness, const bool colThickness, const bool rowSeparatorThickness, const bool colSeparatorThickness,
-  const bool rowBorderThickness, const bool colBorderThickness
+  const bool rowThickness, const bool colThickness, const bool rowSeparatorThickness,
+  const bool colSeparatorThickness, const bool rowBorderThickness, const bool colBorderThickness
 )
 {
   row_thickness_           = rowThickness;
@@ -48,20 +51,18 @@ void Table::set_thickness(
 
 void Table::widths()
 {
-  int n_cols = 0;
+  size_t n_cols = 0;
   for (const auto &row : content_)
     if (row.size() > static_cast<size_t>(n_cols))
       n_cols = row.size();
 
   max_widths_.assign(n_cols, 0);
-  for (int j = 0; j < n_cols; j++)
+  for (size_t j = 0; j < n_cols; j++)
   {
-    int max_col = 0;
-    for (int i = 0; i < static_cast<int>(content_.size()); i++)
-    {
-      if (const int length = get_cell(i, j).size();length > max_col)
+    size_t max_col = 0;
+    for (size_t i = 0; i < content_.size(); i++)
+      if (const size_t length = get_cell(i, j).size(); length > max_col)
         max_col = length;
-    }
     max_widths_[j] = max_col + 2;
   }
 }
@@ -114,8 +115,7 @@ void Table::chars()
     }
     chars_.topT_    = (col_thickness_) ? DOUBLE_DOWN_HORIZONTAL : DOWN_SINGLE_HORIZONTAL_DOUBLE;
     chars_.bottomT_ = (col_thickness_) ? DOUBLE_UP_HORIZONTAL : UP_SINGLE_HORIZONTAL_DOUBLE;
-    chars_.topSepT_ =
-      (col_separator_thickness_) ? DOUBLE_DOWN_HORIZONTAL : DOWN_SINGLE_HORIZONTAL_DOUBLE;
+    chars_.topSepT_ = (col_separator_thickness_) ? DOUBLE_DOWN_HORIZONTAL : DOWN_SINGLE_HORIZONTAL_DOUBLE;
     chars_.bottomSepT_ = (col_separator_thickness_) ? DOUBLE_UP_HORIZONTAL : UP_SINGLE_HORIZONTAL_DOUBLE;
   }
   else // !rowBorderThickness
@@ -135,9 +135,9 @@ void Table::chars()
       chars_.bottomLeftCorner_  = LIGHT_UP_RIGHT;
       chars_.bottomRightCorner_ = LIGHT_UP_LEFT;
     }
-    chars_.topT_    = (col_thickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
-    chars_.bottomT_ = (col_thickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
-    chars_.topSepT_ = (col_separator_thickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
+    chars_.topT_       = (col_thickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
+    chars_.bottomT_    = (col_thickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
+    chars_.topSepT_    = (col_separator_thickness_) ? DOWN_DOUBLE_HORIZONTAL_SINGLE : LIGHT_DOWN_HORIZONTAL;
     chars_.bottomSepT_ = (col_separator_thickness_) ? UP_DOUBLE_HORIZONTAL_SINGLE : LIGHT_UP_HORIZONTAL;
   }
 
@@ -145,8 +145,8 @@ void Table::chars()
   {
     chars_.borderCol_ = DOUBLE_VERTICAL;
     chars_.leftT_     = (row_thickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
-    chars_.leftSepT_ = (row_separator_thickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
-    chars_.rightT_   = (row_thickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
+    chars_.leftSepT_  = (row_separator_thickness_) ? DOUBLE_VERTICAL_RIGHT : VERTICAL_DOUBLE_RIGHT_SINGLE;
+    chars_.rightT_    = (row_thickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
     chars_.rightSepT_ = (row_separator_thickness_) ? DOUBLE_VERTICAL_LEFT : VERTICAL_DOUBLE_LEFT_SINGLE;
   }
   else
@@ -162,17 +162,17 @@ void Table::chars()
 /**
  * @brief For each column, get the size of the widest/longest element
  */
-const string &Table::get_cell(const int r, const int c) const
+const string &Table::get_cell(const size_t r, const size_t c) const
 {
   static const string empty = "";
-  if (r < static_cast<int>(content_.size()) && c < static_cast<int>(content_[r].size()))
+  if (r < content_.size() && c < content_[r].size())
     return content_[r][c];
   return empty;
 }
 
-static void drawLine(const int length, const string &line)
+static void drawLine(const size_t length, const string &line)
 {
-  for (int i = 0; i < length; i++)
+  for (size_t i = 0; i < length; i++)
     cout << line;
 }
 
@@ -270,7 +270,7 @@ void Table::middle_line()
   cout << chars_.borderCol_ << '\n';
 }
 
-int Table::size() const
+size_t Table::size() const
 {
   return content_.size();
 }
@@ -295,7 +295,7 @@ void Table::draw()
   }
 
   // If there are still lines to draw
-  if (const int n_rows = content_.size();current_line_ < n_rows)
+  if (const size_t n_rows = content_.size(); current_line_ < n_rows)
   {
     middle_line();
     while (current_line_ < n_rows)
