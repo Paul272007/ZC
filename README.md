@@ -1,6 +1,6 @@
 # ZC
 
-The package manager for C and C++!
+The package manager and build system for C and C++!
 
 ## Requirements
 
@@ -11,6 +11,7 @@ For the moment ZC is only available for Linux.
 - `clang` or `gcc`
 - `make`
 - `git`
+- `pkg-config`
 
 ## Build dependencies
 
@@ -27,14 +28,12 @@ For the moment ZC is only available for Linux.
 
 `yay -S zc-git` or `paru -S zc-git`
 
-### Quick install for other distributions
+### Quick installation
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh)"
+curl -fsSL https://raw.githubusercontent.com/Paul272007/ZC/refs/heads/stable/bootstrap.sh | bash
 ```
 
 ## Usage
 
-`zc <command>`
-
-Run `zc --help` or `zc <command> --help` for more information
+Run `zc --help` or `zc <subcommand> --help` for more information

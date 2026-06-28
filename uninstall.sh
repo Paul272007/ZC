@@ -1,16 +1,9 @@
 #!/bin/bash
 
-echo "Warning: this will delete all the libraries installed via ZC. Back up important data before proceeding."
+echo "Warning: this will remove all the packages installed via ZC. Back up important data before proceeding."
 
-if [ ! -f "build/install_manifest.txt" ]; then
-  echo "Error: install_manifest.txt not found. Please run the install script first."
-  exit 1
-fi
-
-echo "Deleting installed files..."
-xargs sudo rm -f <build/install_manifest.txt
-
-ZC_DIR="$HOME/.zc"
-rm -rf "$ZC_DIR"
+sudo rm -rf "$HOME/.zc"
+sudo rm -f /usr/bin/zc
+sudo rm -f /usr/share/zsh/site-functions/_zc
 
 echo "Uninstallation complete."
