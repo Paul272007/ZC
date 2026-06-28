@@ -3,44 +3,42 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "helpers.h"
-
-// clang-format off
-#define C_EXTENSIONS    {"C"}
-#define H_EXTENSIONS    {"H"}
-#define CXX_EXTENSIONS  {"CPP", "CC", "CXX", "C++"}
-#define HXX_EXTENSIONS  {"HPP", "HH", "HXX", "H++"}
-#define ASM_EXTENSIONS  {"S", "ASM"}
-// clang-format on
 
 namespace zc
 {
 
+// clang-format off
+#define ZC_SUPPORTED_LANGUAGES(X)                      \
+  X(C,        "C",        "C")                         \
+  X(CXX,      "CXX",      "CPP", "CC", "CXX", "C++")   \
+  X(H,        "H",        "H")                         \
+  X(HXX,      "HXX",      "HPP", "HH", "HXX", "H++")   \
+  X(ASM_NASM, "ASM_NASM", "S", "ASM")                  \
+  X(SH,       "SH",       "SH")
+
 enum Language
 {
-  C,
-  CXX,
-  H,
-  HXX,
-  ASM_NASM,
+#define GENERATE_ENUM(lang, name, ...) lang,
+  ZC_SUPPORTED_LANGUAGES(GENERATE_ENUM)
+#undef GENERATE_ENUM
   UNKNOWN_LANGUAGE,
 };
+
+// clang-format on
 
 inline std::vector<std::string> extensions_for_language(const Language l)
 {
   switch (l)
   {
-  case C:
-    return C_EXTENSIONS;
-  case CXX:
-    return CXX_EXTENSIONS;
-  case H:
-    return H_EXTENSIONS;
-  case HXX:
-    return HXX_EXTENSIONS;
-  case ASM_NASM:
-    return ASM_EXTENSIONS;
+#define RETURN_EXTS(lang, name, ...) \
+  case lang:                         \
+    return { __VA_ARGS__ };
+    ZC_SUPPORTED_LANGUAGES(RETURN_EXTS)
+#undef RETURN_EXTS
   default:
     return {};
   }
@@ -49,25 +47,14 @@ inline std::vector<std::string> extensions_for_language(const Language l)
 inline Language language_from_str(const std::string &txt)
 {
   const auto upper_txt = upper(txt);
-  for (const auto &ext : C_EXTENSIONS)
-    if (upper_txt == ext)
-      return C;
 
-  for (const auto &ext : CXX_EXTENSIONS)
-    if (upper_txt == ext)
-      return CXX;
+#define CHECK_EXTS(lang, name, ...)                  \
+  for (const std::string_view ext : { __VA_ARGS__ }) \
+    if (upper_txt == ext)                            \
+      return lang;
 
-  for (const auto &ext : H_EXTENSIONS)
-    if (upper_txt == ext)
-      return H;
-
-  for (const auto &ext : HXX_EXTENSIONS)
-    if (upper_txt == ext)
-      return HXX;
-
-  for (const auto &ext : ASM_EXTENSIONS)
-    if (upper_txt == ext)
-      return ASM_NASM;
+  ZC_SUPPORTED_LANGUAGES(CHECK_EXTS)
+#undef CHECK_EXTS
 
   return UNKNOWN_LANGUAGE;
 }
@@ -98,16 +85,11 @@ inline std::string language_to_str(const Language l)
 {
   switch (l)
   {
-  case C:
-    return "C";
-  case CXX:
-    return "CXX";
-  case H:
-    return "H";
-  case HXX:
-    return "HXX";
-  case ASM_NASM:
-    return "ASM_NASM";
+#define RETURN_NAME(lang, name, ...) \
+  case lang:                         \
+    return name;
+    ZC_SUPPORTED_LANGUAGES(RETURN_NAME)
+#undef RETURN_NAME
   default:
     return "UNKNOWN_LANGUAGE";
   }

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "../config/Conf.h"
@@ -83,7 +84,7 @@ public:
 
   [[nodiscard]] Table pkgs_table() const;
 
-  [[nodiscard]] std::vector<std::string> remote_pkgs() const;
+  [[nodiscard]] std::vector<std::pair<std::string, std::string>> remote_pkgs() const;
 
   [[nodiscard]] Table remote_pkgs_table() const;
 

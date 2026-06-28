@@ -75,7 +75,7 @@ const nlohmann::json &Network::get_index() const
 {
   static const json json_index = [&]
   {
-    Interface::get().info("Fetching registry index...");
+    Interface::get().debug("Fetching registry index...");
     const fs::path tmp_dir = zc_root() / TMP_DIR;
     const fs::path index   = tmp_dir / INDEX_FILE;
     fs::create_directories(tmp_dir);
@@ -146,9 +146,7 @@ string Network::request(
       );
 
     if (http_code >= 400)
-      throw ZCException(
-        ZCE_NETWORK_ERROR, "API Error (" + std::to_string(http_code) + "): " + readBuffer
-      );
+      throw ZCException(ZCE_NETWORK_ERROR, "API Error (" + std::to_string(http_code) + "): " + readBuffer);
 
     return readBuffer;
   }

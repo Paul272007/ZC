@@ -41,7 +41,8 @@ void List::operator()()
       break;
 
     case ZC_LIST_SHOW_REMOTE:
-      v = reg_.remote_pkgs();
+      for (const auto &[name, _] : reg_.remote_pkgs())
+        v.emplace_back(name);
       break;
 
     case ZC_LIST_SHOW_TEMPLATES:

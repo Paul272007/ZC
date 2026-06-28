@@ -271,23 +271,23 @@ Table Registry::pkgs_table() const
   return { false, true, str_pkgs };
 }
 
-std::vector<std::string> Registry::remote_pkgs() const
+std::vector<std::pair<std::string, std::string>> Registry::remote_pkgs() const
 {
   json index = net_.get_index();
 
-  vector<std::string> v;
+  vector<pair<string, string>> v;
   if (index.contains("packages") && index["packages"].is_object())
     for (auto it = index["packages"].begin(); it != index["packages"].end(); ++it)
-      v.push_back(it.key());
+      v.emplace_back(it.key(), it.value().contains("latest") ? it.value()["latest"] : "");
   clean();
   return v;
 }
 
 Table Registry::remote_pkgs_table() const
 {
-  vector<vector<string>> str_pkgs{ { "Package name" } };
-  for (const auto &p : remote_pkgs())
-    str_pkgs.push_back({ p });
+  vector<vector<string>> str_pkgs{ { "Package name", "Latest version" } };
+  for (const auto &[fst, snd] : remote_pkgs())
+    str_pkgs.push_back({ fst, snd });
   return { false, true, str_pkgs };
 }
 
