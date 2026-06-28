@@ -39,42 +39,12 @@ void Project::build(BuildMode current_mode, bool is_install)
   if (pconf.type == PkgType::HEADER)
     return;
 
-  fs::create_directories(build_dir);
-  const string make_cmd = "make --no-print-directory -C " + build_dir.string() + " all";
-  int          compiled = 0;
-  get_sources();
+  generate_build_config(current_mode, is_install);
 
-  if (!is_install)
-  {
-    const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
-    if (fs::exists(build_mode_file))
-    {
-      const BuildMode previous_mode = build_mode_from_str(read_file(build_mode_file));
+  int to_compile = 0;
+  int to_link    = 0;
 
-      if (current_mode == BuildMode::automatic)
-        current_mode = previous_mode;
-      else if (current_mode != previous_mode)
-      {
-        if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
-        clean();
-        fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
-      }
-    }
-    else // if build mode file doesn't exist and mode is set to automatic, default is debug
-    {
-      current_mode = BuildMode::debug;
-    }
-    write_file(build_mode_file, build_mode_to_str(current_mode));
-    init_variables(current_mode == BuildMode::release);
-    generate_compile_commands();
-  }
-  else
-    init_variables(current_mode == BuildMode::release);
-
-  generate_Makefile();
-
-  int          to_compile  = 0;
-  int          to_link     = 0;
+  const string make_cmd    = "make --no-print-directory -C " + build_dir.string() + " all";
   const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
   FILE        *dry_pipe    = popen(dry_run_cmd.c_str(), "r");
   if (!dry_pipe)
@@ -84,10 +54,9 @@ void Project::build(BuildMode current_mode, bool is_install)
   while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
   {
     string line(buffer_dry);
-    if (line.find("ZC_COMPILE|") != string::npos)
+    if (line.contains("ZC_COMPILE|"))
       to_compile++;
-    else if (line.find("ZC_BIN|") != string::npos || line.find("ZC_STATIC|") != string::npos ||
-             line.find("ZC_SHARED|") != string::npos)
+    elif (line.contains("ZC_BIN|") || line.contains("ZC_STATIC|") || line.contains("ZC_SHARED|"))
       to_link++;
   }
   pclose(dry_pipe);
@@ -99,7 +68,8 @@ void Project::build(BuildMode current_mode, bool is_install)
   }
   if_.info(to_string(to_compile) + " file(s) to compile, " + to_string(to_link) + " target(s) to link");
 
-  to_compile += pconf.type == PkgType::BIN ? 1 : (pconf.type == PkgType::LIB ? 2 : 0);
+  const int todo = to_compile + to_link;
+  int       done = 0;
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (!pipe)
@@ -116,8 +86,8 @@ void Project::build(BuildMode current_mode, bool is_install)
     if (line.starts_with("ZC_"))
     {
       constexpr int bar_width = 20;
-      compiled++;
-      int percent = (compiled * 100) / to_compile;
+      done++;
+      int percent = (done * 100) / todo;
       if (percent > 100)
         percent = 100;
 
@@ -129,28 +99,27 @@ void Project::build(BuildMode current_mode, bool is_install)
         message     = "Compiling object ";
         target_name = rest.substr(8);
       }
-      else if (rest.starts_with("STATIC|"))
+      elif (rest.starts_with("STATIC|"))
       {
         message     = "Linking static library ";
         target_name = rest.substr(7);
       }
-      else if (rest.starts_with("SHARED|"))
+      elif (rest.starts_with("SHARED|"))
       {
         message     = "Linking shared library ";
         target_name = rest.substr(7);
       }
-      else if (rest.starts_with("BIN|"))
+      elif (rest.starts_with("BIN|"))
       {
         message     = "Linking executable ";
         target_name = rest.substr(4);
       }
-
       if_.loading_bar(bar_width, percent, message + target_name);
     }
 #ifndef DEBUG_MODE
     else if (line.starts_with("make"))
     {
-      continue; // do not display make messages
+      continue; // do not display make messages in release mode for cleaner ui
     }
 #endif
     else
@@ -159,7 +128,6 @@ void Project::build(BuildMode current_mode, bool is_install)
       if_.print(line); // TODO: parse to detect if it is an error / warning to change display style
     }
   }
-
   if_.clear_loading_bar();
 
   const int result = pclose(pipe);
@@ -413,21 +381,18 @@ void Project::update_dependencies()
   }
 }
 
-void Project::generate_build_config()
+void Project::generate_build_config(BuildMode current_mode, bool is_install)
 {
   if (pconf.type == PkgType::HEADER)
     return;
-  fs::create_directories(build_dir);
 
-  bool is_release = false;
-  if (const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
-      fs::exists(build_mode_file) && read_file(build_mode_file) == "release")
-    is_release = true;
+  sources_     = get_sources();
+  current_mode = get_mode(current_mode);
 
-  get_sources();
-  init_variables(is_release);
+  init_variables(current_mode == BuildMode::release);
+  if (!is_install)
+    generate_compile_commands();
   generate_Makefile();
-  generate_compile_commands();
 }
 
 void Project::generate_Makefile() const
@@ -604,15 +569,16 @@ void Project::Makefile_rules(std::ostringstream &mk) const
   }
 }
 
-int Project::get_sources()
+std::map<Language, std::vector<std::string>> Project::get_sources() const
 {
-  // Check if include directories exist
+  std::map<Language, std::vector<std::string>> sources;
+
+  // First check if include directories exist
   for (const auto &inc : pconf.include_dirs)
     if (const fs::path full_inc_dir = root_dir / inc; !fs::exists(full_inc_dir))
       throw ZCException(ZCE_NOT_FOUND, "Include dir does not exist: " + full_inc_dir.string());
 
-  sources_.clear(); // security
-  int total_files_to_compile = 0;
+  bool found_any = false;
   for (const auto &src_dir : pconf.src_dirs)
   {
     const fs::path full_src_dir = root_dir / src_dir;
@@ -624,19 +590,19 @@ int Project::get_sources()
       const fs::path &file = entry.path();
       if (const Language l = language_of(file); l != UNKNOWN_LANGUAGE)
       {
-        if (sources_.contains(l))
-          sources_[l].push_back(fs::relative(file, root_dir).string());
+        if (sources.contains(l))
+          sources[l].push_back(fs::relative(file, root_dir).string());
         else
-          sources_[l] = { fs::relative(file, root_dir).string() };
-        total_files_to_compile++;
+          sources[l] = { fs::relative(file, root_dir).string() };
+        found_any = true;
       }
     }
   }
 
-  if (total_files_to_compile == 0)
+  if (!found_any)
     throw ZCException(ZCE_NO_SOURCE_FILES, "No source files were found.");
 
-  return total_files_to_compile;
+  return sources;
 }
 
 std::string Project::get_linker() const
@@ -744,6 +710,29 @@ void Project::init_variables(bool release)
   variables_.insert(incdirs);
   variables_.insert(libdirs);
   variables_.insert(libs);
+}
+
+BuildMode Project::get_mode(BuildMode current_mode) const
+{
+  const fs::path build_mode_file = build_dir / BUILD_MODE_FILE;
+
+  if (current_mode == BuildMode::automatic)
+  {
+    if (fs::exists(build_mode_file))
+      current_mode = build_mode_from_str(read_file(build_mode_file));
+    else
+      current_mode = BuildMode::debug; // default mode
+  }
+  else if (fs::exists(build_mode_file) && current_mode != build_mode_from_str(read_file(build_mode_file)))
+  {
+    if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
+    clean();
+  }
+  // If current is the same as the previous mode do nothing
+
+  fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
+  write_file(build_mode_file, build_mode_to_str(current_mode)); // save current mode
+  return current_mode;
 }
 
 } // namespace zc

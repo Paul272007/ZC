@@ -6,7 +6,7 @@ BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 RESET='\033[0m'
 
-echo -e "${GREEN}========== >>> ZC Installation <<< ==========${RESET}\n"
+echo -e "${GREEN}========== >>> ZC Installation <<< ==========${RESET}"
 echo -e "${BLUE}[1/4] Installing dependencies...${RESET}"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -51,7 +51,6 @@ if [ -d "build" ]; then
 fi
 mkdir build/
 cd build/
-echo "Configuration..."
 cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_DEBUG=OFF ..
 
 echo -e "${BLUE}[3/4] Installing ZC...${RESET}"
@@ -81,7 +80,7 @@ else
   cp -r ../etc/completions/* /usr/share/zsh/site-functions/
 fi
 
-echo -e "${GREEN}========== >>> ZC installed successfully! <<< ==========${RESET}\n"
+echo -e "${GREEN}========== >>> ZC installed successfully! <<< ==========${RESET}"
 echo -e "You can also configure:"
 echo -e "  - clangd by appending -I\$HOME/.zc/include to ~/.config/clangd/config.yaml"
 echo -e "  - your shell by appending \$HOME/.zc/bin to your \$PATH"

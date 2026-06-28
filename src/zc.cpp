@@ -178,8 +178,10 @@ int main(const int argc, char *argv[])
   setup->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
   setup->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  setup->add_flag("--release,-r", release, "Create config for release mode");
+  setup->add_flag("--debug,-d", debug, "Create config for debug mode");
 
-  setup->callback([&] { command = make_unique<Setup>(force, p_root); });
+  setup->callback([&] { command = make_unique<Setup>(force, p_root, release, debug); });
 
   // Build
   // TODO: add --force,-f flag

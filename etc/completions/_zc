@@ -16,12 +16,14 @@ _zc() {
                 run)       _zc_run       ;;
                 create)    _zc_create    ;;
                 init)      _zc_init      ;;
-                list)      _zc_list      ;;
+                setup)     _zc_setup     ;;
                 build)     _zc_build     ;;
                 add)       _zc_add       ;;
                 remove)    _zc_remove    ;;
+                use)       _zc_use       ;;
                 publish)   _zc_publish   ;;
                 clean)     _zc_clean     ;;
+                list)      _zc_list      ;;
                 install)   _zc_install   ;;
                 uninstall) _zc_uninstall ;;
                 update)    _zc_update    ;;
@@ -51,9 +53,11 @@ _zc_subcommands() {
         'run:Compile and execute C/C++ file(s)'
         'create:Create file based on template'
         'init:Initialize empty project'
+        'setup:(Re)generate build configuration'
         'build:Build project'
         'add:Add dependencies to project'
         'remove:Remove dependencies from project'
+        'use:Choose version of dependency to use'
         'publish:Publish package to server'
         'clean:Clean all temporary files and directories'
         'list:List installed libraries'
@@ -78,6 +82,7 @@ _zc_run() {
         '(-E --preprocess)'{-E,--preprocess}'[Preprocess only]' \
         '(-S --assemble)'{-S,--assemble}'[Compile but do not assemble or link]' \
         '(-c --compile)'{-c,--compile}'[Compile and assemble but do not link]' \
+        '(-n --no-flags)'{-n,--no-flags}'[Do not add flags from configuration file]' \
         '--std[Add C/C++ standard from config file]'
 }
 
@@ -97,30 +102,51 @@ _zc_init() {
         '(-t --target)'{-t,--target}'[Package target]:target' \
         '(-p --project-template)'{-p,--project-template}'[Project template to use]:template:_zc_get_templates -p' \
         '(-n --name)'{-n,--name}'[Name of the package]:name' \
+        '(-l --languages)'{-l,--languages}'[Languages of the project]:languages' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force initialization even if a project already exists]' \
         '(-g --git)'{-g,--git}'[Initialize empty git repository at project root]' \
         '(-e --edit)'{-e,--edit}'[Open project in editor once initialized]' \
         '(-B --bin)'{-B,--bin}'[Make package of type BIN]' \
         '(-L --lib)'{-L,--lib}'[Make package of type LIB]' \
         '(-H --header)'{-H,--header}'[Make package of type HEADER]' \
-        '(-C --is_compose)'{-C,--is_compose}'[Make package of type COMPOSE]'
+        '(-C --compose)'{-C,--compose}'[Make package of type COMPOSE]'
+}
+
+_zc_setup() {
+    _arguments \
+        '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-r --release)'{-r,--release}'[Create config for release mode]' \
+        '(-d --debug)'{-d,--debug}'[Create config for debug mode]'
 }
 
 _zc_build() {
     _arguments \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
+        '(-R --run)'{-R,--run}'[Run binary after compiling and optionally add parameters]:args' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-c --clean)'{-c,--clean}'[Clean before building]' \
-        '(-r --release)'{-r,--release}'[Build in release mode instead of debug mode]'
+        '(-r --release)'{-r,--release}'[Build in release mode instead of debug mode]' \
+        '(-d --debug)'{-d,--debug}'[Build in debug mode]'
 }
 
 _zc_add() {
     _arguments \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-s --static)'{-s,--static}'[Add dependency as static library instead of shared library]' \
         '*:package:{_zc_get_packages -r}'
 }
 
 _zc_remove() {
+    _arguments \
+        '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '*:package:{_zc_get_packages}'
+}
+
+_zc_use() {
     _arguments \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
@@ -141,6 +167,7 @@ _zc_clean() {
 
 _zc_list() {
     _arguments \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-t --templates)'{-t,--templates}'[Show available templates instead of packages]' \
         '(-p --project-templates)'{-p,--project-templates}'[Show available project templates instead of packages]' \
         '(-r --remote)'{-r,--remote}'[Show remote packages instead of local ones]' \
@@ -149,27 +176,37 @@ _zc_list() {
 
 _zc_install() {
     _arguments \
+        '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-p --path)'{-p,--path}'[Install from local project instead of remote]:path:_directories' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '--std[Add dependency to a standard library instead of ZC library]' \
         '*:package:{_zc_get_packages -r}'
 }
 
 _zc_uninstall() {
     _arguments \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '*:package:{_zc_get_packages}'
 }
 
 _zc_update() {
     _arguments \
+        '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-p --path)'{-p,--path}'[Update local package from its root path]:path:_directories' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-s --sync)'{-s,--sync}'[Sync project dependencies after updating packages]' \
         '*:package:{_zc_get_packages}'
 }
 
 _zc_login() {
-    # No arguments
+    _arguments \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force login even if an account is already logged in]'
 }
 
 _zc_logout() {
-    # No arguments
+    _arguments \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc "$@"

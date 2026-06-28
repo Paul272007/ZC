@@ -30,7 +30,7 @@ inline void from_json(const nlohmann::json &j, Dependency &d)
 {
   // Name is handled elsewhere
   get_key(j, "origin", d.origin);
-  get_key(j, "static", d.static_link);
+  get_key(j, "static", d.static_link, d.static_link);
   get_key(j, "version", d.version);
 }
 

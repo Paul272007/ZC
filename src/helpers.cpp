@@ -109,8 +109,8 @@ std::string sha256(const std::filesystem::path &path)
 
   char buffer[4096];
   while (file.read(buffer, sizeof(buffer)))
-    EVP_DigestUpdate(mdctx, buffer, file.gcount());
-  EVP_DigestUpdate(mdctx, buffer, file.gcount()); // Dernier bloc
+    EVP_DigestUpdate(mdctx, buffer, static_cast<size_t>(file.gcount()));
+  EVP_DigestUpdate(mdctx, buffer, static_cast<size_t>(file.gcount()));
 
   EVP_DigestFinal_ex(mdctx, hash, &hash_len);
   EVP_MD_CTX_free(mdctx);
@@ -125,8 +125,10 @@ std::string base64_encode(const std::string &in)
 {
   string out;
   int    val = 0, valb = -6;
-  for (const unsigned char c : in)
+  for (const char signed_c : in)
   {
+    const auto c = static_cast<unsigned char>(signed_c);
+
     val   = (val << 8) + c;
     valb += 8;
     while (valb >= 0)
@@ -329,7 +331,7 @@ std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
 
   std::array<char, 128> buffer;
 
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+  std::unique_ptr<FILE, int (*)(FILE *)> pipe(popen(cmd.c_str(), "r"), pclose);
   if (!pipe)
     return ""; // Command not found
 

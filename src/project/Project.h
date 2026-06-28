@@ -61,9 +61,7 @@ public:
   ~Project() = default;
 
   void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
-
   void clean(bool cache = false) const;
-
   void publish();
 
   void add_dependency(const Target &target, bool is_static = false);
@@ -73,7 +71,7 @@ public:
   void install_dependencies() const;
   void update_dependencies();
 
-  void generate_build_config();
+  void generate_build_config(BuildMode current_mode = BuildMode::debug, bool is_install = false);
 
 private:
   GConf     &gc_  = GConf::get();
@@ -86,20 +84,20 @@ private:
   std::set<MakeVariable, MakeVariableCmp>      variables_; // Each make variable with its name and value
   std::map<Language, std::vector<std::string>> sources_; // for each language we have a list of source files
 
+  void generate_compile_commands() const;
   void generate_Makefile() const;
 
   void Makefile_bin(std::ostringstream &mk) const;
   void Makefile_lib(std::ostringstream &mk) const;
-  static void Makefile_compose(std::ostringstream &mk);
-
-  static void Makefile_comment(std::ostringstream &mk);
   void Makefile_variables(std::ostringstream &mk) const;
   void Makefile_rules(std::ostringstream &mk) const;
+  static void Makefile_compose(std::ostringstream &mk);
+  static void Makefile_comment(std::ostringstream &mk);
 
-  void generate_compile_commands() const;
-
-  int get_sources();
+  [[nodiscard]] BuildMode get_mode(BuildMode current_mode) const;
   [[nodiscard]] std::string get_linker() const;
+  [[nodiscard]] std::map<Language, std::vector<std::string>> get_sources() const;
+
   void init_variables(bool release);
 };
 
