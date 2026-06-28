@@ -14,7 +14,7 @@ namespace zc
 class Uninstall : public Command
 {
 public:
-  Uninstall(bool force, std::vector<std::string> &targets);
+  Uninstall(bool force, const std::vector<std::string> &targets);
 
   void operator()() override;
 

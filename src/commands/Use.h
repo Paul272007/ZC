@@ -14,7 +14,7 @@ namespace zc
 class Use : public Command
 {
 public:
-  Use(bool force, const std::filesystem::path &p_root, std::vector<std::string> &targets);
+  Use(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
 
   void operator()() override;
 

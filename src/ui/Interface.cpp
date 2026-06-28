@@ -137,8 +137,8 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
   while (pct_str.length() < 3)
     pct_str = " " + pct_str; // Percentage always takes 3 characters
 
-  int    filled = (percent_filled * bar_width) / 100;
-  string bar    = "";
+  const int filled = (percent_filled * bar_width) / 100;
+  string    bar    = "";
   for (int i = 0; i < bar_width; i++)
     bar += (i < filled) ? "█" : "░";
 
@@ -171,18 +171,18 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
       cout << (selected[i] ? "◉ " : "◯ ") << options[i] << RESET << endl;
     }
 
-    char c = get_char_raw();
+    const char c = get_char_raw();
     if (c == 3)
     {
       set_raw_mode(false);
       std::cout << SHOW_CURSOR;
       throw ZCException(ZCE_ABORTED, "Interrupted");
     }
-    else if (c == '\n' || c == '\r')
+    if (c == '\n' || c == '\r')
     {
       break; // exit loop
     }
-    else if (c == ' ' || c == 'x')
+    if (c == ' ' || c == 'x')
     {
       selected[cursor] = !selected[cursor]; // toggle option
     }
@@ -198,10 +198,9 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
 #else
     else if (c == '\033') // Escape sequence
     {
-      char bracket = get_char_raw();
-      if (bracket == '[')
+      if (const char bracket = get_char_raw();bracket == '[')
       {
-        char dir = get_char_raw();
+        const char dir = get_char_raw();
         if (dir == 'A')
           cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
         if (dir == 'B' && cursor < options.size() - 1)
@@ -249,7 +248,7 @@ int Interface::radios(
       cout << options[i] << RESET << endl;
     }
 
-    char c = get_char_raw();
+    const char c = get_char_raw();
 
     if (c == 3)
     {
@@ -257,7 +256,7 @@ int Interface::radios(
       std::cout << SHOW_CURSOR;
       throw ZCException(ZCE_ABORTED, "Interrupted");
     }
-    else if (c == '\n' || c == '\r')
+    if (c == '\n' || c == '\r')
     {
       break;
     }
@@ -271,12 +270,11 @@ int Interface::radios(
         cursor = (cursor == options.size() - 1) ? 0 : cursor + 1;
     }
 #else
-    else if (c == '\033')
+    if (c == '\033')
     {
-      char bracket = get_char_raw();
-      if (bracket == '[')
+      if (const char bracket = get_char_raw();bracket == '[')
       {
-        char dir = get_char_raw();
+        const char dir = get_char_raw();
         if (dir == 'A' && cursor > 0)
           cursor = (cursor == 0) ? options.size() - 1 : cursor - 1;
         if (dir == 'B' && cursor < options.size() - 1)

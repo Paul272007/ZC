@@ -17,7 +17,7 @@ Build::Build(
   const bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run,
   const std::vector<std::string> &run_args
 )
-  : Command(force), clean_(clean), p_root_(get_project_root(p_root)), run_(run), run_args_(run_args)
+  : Command(force), p_root_(get_project_root(p_root)), run_args_(run_args), run_(run), clean_(clean)
 {
   mode_ = parse_mode<BuildMode>(
     {

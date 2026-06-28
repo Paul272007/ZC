@@ -49,12 +49,12 @@ void GConf::login(bool force)
 
   int interval = json_resp["interval"];
 
-  if_.info("");
+  if_.new_line();
   if_.info("===============================================================");
   if_.info("1. Open your browser and go to: " U_BLUE + verification_uri + RESET);
   if_.info("2. Enter the following code:    " B_WHITE + user_code + RESET);
   if_.info("===============================================================");
-  if_.info("");
+  if_.new_line();
 
   if_.info("Waiting for authorization (press Ctrl+C to abort)...");
   if_.flush_screen();

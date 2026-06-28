@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -45,8 +44,8 @@ public:
 
   /**
    * @brief Create a Table instance
-   * @param hasRowHeaders Whether the table has row headers
-   * @param hasColHeaders Whether the table has column headers
+   * @param has_row_headers
+   * @param has_col_headers
    * @param content The content of the table
    */
   Table(bool has_row_headers, bool has_col_headers, std::vector<std::vector<std::string>> content);

@@ -28,7 +28,7 @@ Version::Version(const std::string &text)
       if (!segment.empty())
         parts.push_back(std::stoi(segment));
   }
-  catch (const std::exception &e)
+  catch (const std::exception &)
   {
     throw ZCException(ZCE_CONTENT_ERROR, "Invalid version format: " + text);
   }

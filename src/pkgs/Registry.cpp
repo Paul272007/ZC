@@ -47,8 +47,7 @@ Dependency Registry::get_dependency(const Target &target)
 
   if (!version_to_use.empty()) // if version was precised verify that it exists
   {
-    auto version_it = std::find(versions.begin(), versions.end(), target.version);
-    if (version_it == versions.end())
+    if (const auto version_it = ranges::find(versions, target.version); version_it == versions.end())
       throw ZCException(
         ZCE_PKG_NOT_FOUND,
         "Package '" + target.name + "' at version " + target.version.string() + " was not found"
@@ -236,17 +235,15 @@ Version Registry::get_latest(const std::string &name)
 
 bool Registry::is_installed(const Target &target)
 {
-  auto it = pkgs_.find(target.name);
+  const auto it = pkgs_.find(target.name);
   if (it == pkgs_.end())
     return false;
 
   const std::vector<Version> &versions = it->second.versions;
-
-  auto version_it = std::find(versions.begin(), versions.end(), target.version);
-  return version_it != versions.end();
+  return ranges::find(versions, target.version) != versions.end();
 }
 
-bool Registry::is_installed(const string &name)
+bool Registry::is_installed(const string &name) const
 {
   return pkgs_.contains(name);
 }
@@ -260,14 +257,14 @@ Table Registry::pkgs_table() const
 {
   vector<vector<string>> str_pkgs{ { "Package name", "Target", "Origin", "Latest version", "Type" } };
 
-  for (const auto &p : pkgs_)
+  for (const auto &[name, target, origin, type, versions] : pkgs_ | views::values)
     str_pkgs.push_back(
       {
-        p.second.name,
-        p.second.target,
-        p.second.origin,
-        p.second.versions.back().string(),
-        pkg_type_to_pretty_str(p.second.type),
+        name,
+        target,
+        origin,
+        versions.back().string(),
+        pkg_type_to_pretty_str(type),
       }
     );
 
@@ -303,14 +300,12 @@ Registry::~Registry()
 
 void Registry::load()
 {
-  const json root = read_json(file_);
-
-  if (root.contains("packages") && root["packages"].is_object())
+  if (const json root = read_json(file_); root.contains("packages") && root["packages"].is_object())
   {
     pkgs_.clear();
     for (CAA[key, value] : root["packages"].items())
     {
-      Pkg pkg  = value.get<Pkg>();
+      auto pkg = value.get<Pkg>();
       pkg.name = key;
       pkgs_.insert_or_assign(key, pkg);
     }
@@ -353,10 +348,9 @@ void Registry::index_add_pkg(const Pkg &pkg)
 
 void Registry::index_add_pkg_version(const std::string &name, const Version &version)
 {
-  auto pkg = get_pkg_it(name); // throws error if not found
+  const auto pkg = get_pkg_it(name); // throws error if not found
 
-  auto &versions = pkg->second.versions;
-  if (std::find(versions.begin(), versions.end(), version) == versions.end())
+  if (auto &versions = pkg->second.versions; ranges::find(versions, version) == versions.end())
     versions.push_back(version);
   modified_ = true;
 }
@@ -522,7 +516,7 @@ std::string Registry::pkg_url(const Target &target, const nlohmann::json &index)
   return index["packages"][target.name]["versions"][target.version.string()].value("url", "");
 }
 
-void Registry::verify_headers_structure(const Project &p) const
+void Registry::verify_headers_structure(const Project &p)
 {
   if (p.pconf.type == PkgType::LIB || p.pconf.type == PkgType::HEADER)
     if (!fs::exists(p.root_dir / INCLUDE_DIR / p.pconf.name))

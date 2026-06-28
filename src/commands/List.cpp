@@ -14,7 +14,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-List::List(bool force, bool templates, bool p_templates, bool remote, bool simple)
+List::List(const bool force, bool templates, bool p_templates, bool remote, const bool simple)
   : Command(force), simple_(simple)
 {
   type_ = parse_mode<ListType>(
@@ -29,9 +29,6 @@ List::List(bool force, bool templates, bool p_templates, bool remote, bool simpl
 
 void List::operator()()
 {
-  Registry       &reg(Registry::get());
-  TemplateEngine &te(TemplateEngine::get());
-
   if (simple_)
   {
     vector<string> v;
@@ -39,21 +36,21 @@ void List::operator()()
     switch (type_)
     {
     case ZC_LIST_SHOW_PKGS:
-      for (const auto &p : reg.pkgs())
-        v.emplace_back(p.first);
+      for (const auto &[name, _] : reg_.pkgs())
+        v.emplace_back(name);
       break;
 
     case ZC_LIST_SHOW_REMOTE:
-      v = reg.remote_pkgs();
+      v = reg_.remote_pkgs();
       break;
 
     case ZC_LIST_SHOW_TEMPLATES:
-      v = te.templates();
+      v = te_.templates();
       break;
 
     case ZC_LIST_SHOW_P_TEMPLATES:
     default:
-      v = te.p_templates();
+      v = te_.p_templates();
       break;
     }
     for (const auto &elt : v)
@@ -66,17 +63,17 @@ void List::operator()()
     switch (type_)
     {
     case ZC_LIST_SHOW_PKGS:
-      t = reg.pkgs_table();
+      t = reg_.pkgs_table();
       break;
     case ZC_LIST_SHOW_REMOTE:
-      t = reg.remote_pkgs_table();
+      t = reg_.remote_pkgs_table();
       break;
     case ZC_LIST_SHOW_TEMPLATES:
-      t = te.templates_table();
+      t = te_.templates_table();
       break;
     case ZC_LIST_SHOW_P_TEMPLATES:
     default:
-      t = te.p_templates_table();
+      t = te_.p_templates_table();
       break;
     }
     t.draw();

@@ -8,7 +8,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Uninstall::Uninstall(bool force, std::vector<std::string> &targets)
+Uninstall::Uninstall(const bool force, const std::vector<std::string> &targets)
   : Command(force), targets_(targets)
 {
 }

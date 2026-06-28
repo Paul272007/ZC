@@ -185,7 +185,7 @@ int main(const int argc, char *argv[])
   // TODO: add --force,-f flag
 
   build->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  auto opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionnally add parameters")->expected(0, -1);
+  auto opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_before, "Clean before building");

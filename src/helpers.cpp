@@ -185,7 +185,7 @@ std::string lower(const std::string &text)
 std::string escape_shell_arg(const std::string &arg)
 {
   std::string escaped;
-  for (char c : arg)
+  for (const char c : arg)
     if (c == '\'')
       escaped += "'\\''";
     else
@@ -211,9 +211,7 @@ std::vector<Target> parse_targets(const std::vector<std::string> &targets)
   std::vector<Target> results;
   for (const auto &target : targets)
   {
-    size_t at_pos = target.find('@');
-
-    if (at_pos != string::npos)
+    if (const size_t at_pos = target.find('@');at_pos != string::npos)
       results.push_back({ target.substr(0, at_pos), target.substr(at_pos + 1) });
     else
       results.push_back({ target, { 0, 0, 0 } }); // 0.0.0 = empty version
@@ -232,10 +230,9 @@ void check_name(const std::string &name)
         ZCE_CONTENT_ERROR, "The name of the package or target is forbidden: " + string(str)
       );
 
-  for (char c : FORBIDDEN_CHARS)
+  for (const char c : FORBIDDEN_CHARS)
   {
-    size_t pos = name.find(c);
-    if (pos != string::npos)
+    if (const size_t pos = name.find(c);pos != string::npos)
       throw ZCException(
         ZCE_CONTENT_ERROR,
         "The name of the package or target contains invalid character: " + std::string(1, c)
@@ -330,7 +327,7 @@ bool has_pkg_config()
 
 std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
 {
-  std::string cmd = "pkg-config --libs " + pkg_name + (cflags ? " --cflags " : "") + " 2>/dev/null";
+  const std::string cmd = "pkg-config --libs " + pkg_name + (cflags ? " --cflags " : "") + " 2>/dev/null";
   std::string result;
 
   std::array<char, 128> buffer;

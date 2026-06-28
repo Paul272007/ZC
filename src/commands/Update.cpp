@@ -12,7 +12,7 @@ namespace zc
 {
 
 Update::Update(
-  bool force, const fs::path &p_root, const fs::path &path, std::vector<std::string> &targets, bool sync
+  const bool force, const fs::path &p_root, const fs::path &path, const std::vector<std::string> &targets, const bool sync
 )
   : Command(force),
     p_root_(get_project_root(p_root)),
@@ -42,15 +42,15 @@ void Update::operator()()
   }
   else
   {
-    json index = Network::get().get_index();
+    const json index = Network::get().get_index();
     for (auto &target : targets_)
       reg_.update_from_server(target, index, force_);
 
     if (sync_)
     {
       Project p(p_root_); // target.version now contains the newly installed version :
-      for (auto &target : targets_)
-        p.change_dependency_version(target.name, target.version);
+      for (auto &[name, new_version] : targets_)
+        p.change_dependency_version(name, new_version);
     }
   }
 }

@@ -1,6 +1,7 @@
 #include "commands/Init.h"
 
 #include <filesystem>
+#include <utility>
 #include <vector>
 
 #include "commands/Command.h"
@@ -18,17 +19,18 @@ namespace zc
 {
 
 Init::Init(
-  const bool force, const std::filesystem::path &p_root, bool git, bool edit, const std::string &author,
-  const std::string &target, const std::string &p_template, const std::string &name, bool is_bin,
+  const bool force, const std::filesystem::path &p_root, const bool git, const bool edit, std::string author,
+  std::string target, std::string p_template, std::string name, bool is_bin,
   bool is_lib, bool is_header, bool is_compose, const vector<string> &languages
 )
   : Command(force),
     p_root_(p_root.empty() ? fs::current_path() : p_root),
     git_(git),
     edit_(edit),
-    author_(author),
-    p_template_(p_template),
-    name_(name)
+    name_(std::move(name)),
+    target_(std::move(target)),
+    author_(std::move(author)),
+    p_template_(std::move(p_template))
 {
   type_ = parse_mode<PkgType>(
     {
@@ -76,8 +78,8 @@ void Init::operator()()
 
   if (type_ == PkgType::UNDEF)
   {
-    vector<string> options = { "binary", "library", "header-only library", "composed package" };
-    type_                  = (PkgType)if_.radios("Package type:", options);
+    const vector<string> options = { "binary", "library", "header-only library", "composed package" };
+    type_                  = static_cast<PkgType>(if_.radios("Package type:", options));
   }
 
   te_.init_with_p_template(p_root_, p_template_, force_);
@@ -85,10 +87,9 @@ void Init::operator()()
   if (languages_.empty())
   {
     vector<string> options;
-    for (const auto &l : gc_.languages)
-      options.push_back(language_to_str(l.first));
-    vector<string> results = if_.checkboxes("Package language(s):", options);
-    for (const auto &result : results)
+    for (const auto &key : gc_.languages | views::keys)
+      options.push_back(language_to_str(key));
+    for (const vector<string> results = if_.checkboxes("Package language(s):", options); const auto &result : results)
       languages_.push_back(language_from_str(result));
   }
 

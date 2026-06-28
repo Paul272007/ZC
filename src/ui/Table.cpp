@@ -13,7 +13,7 @@ using namespace std;
 namespace
 {
 
-void padding(int length)
+void padding(const int length)
 {
   if (length > 0)
     std::cout << std::string(length, ' ');
@@ -23,14 +23,19 @@ void padding(int length)
 
 Table::Table() {}
 
-Table::Table(bool has_row_headers, bool has_col_headers, std::vector<std::vector<std::string>> content)
+Table::Table(const bool has_row_headers, const bool has_col_headers, std::vector<std::vector<std::string>> content)
   : content_(std::move(content)), row_headers_(has_row_headers), col_headers_(has_col_headers)
 {
 }
 
+void Table::set_content(std::vector<std::vector<std::string>> content)
+{
+  content_ = std::move(content);
+}
+
 void Table::set_thickness(
-  bool rowThickness, bool colThickness, bool rowSeparatorThickness, bool colSeparatorThickness,
-  bool rowBorderThickness, bool colBorderThickness
+  const bool rowThickness, const bool colThickness, const bool rowSeparatorThickness, const bool colSeparatorThickness,
+  const bool rowBorderThickness, const bool colBorderThickness
 )
 {
   row_thickness_           = rowThickness;
@@ -39,22 +44,6 @@ void Table::set_thickness(
   col_separator_thickness_ = colSeparatorThickness;
   row_border_thickness_    = rowBorderThickness;
   col_border_thickness_    = colBorderThickness;
-}
-
-void Table::set_content(std::vector<std::vector<std::string>> content)
-{
-  content_ = std::move(content);
-}
-
-/**
- * @brief For each column, get the size of the widest/longest element
- */
-const string &Table::get_cell(int r, int c) const
-{
-  static const string empty = "";
-  if (r < static_cast<int>(content_.size()) && c < static_cast<int>(content_[r].size()))
-    return content_[r][c];
-  return empty;
 }
 
 void Table::widths()
@@ -70,8 +59,7 @@ void Table::widths()
     int max_col = 0;
     for (int i = 0; i < static_cast<int>(content_.size()); i++)
     {
-      const int length = get_cell(i, j).size();
-      if (length > max_col)
+      if (const int length = get_cell(i, j).size();length > max_col)
         max_col = length;
     }
     max_widths_[j] = max_col + 2;
@@ -84,8 +72,8 @@ void Table::chars()
   chars_.row_ = (row_thickness_) ? DOUBLE_HORIZONTAL : LIGHT_HORIZONTAL;
   chars_.col_ = (col_thickness_) ? DOUBLE_VERTICAL : LIGHT_VERTICAL;
   // Handle crosses
-  int isSepRowDouble = (col_headers_ && row_separator_thickness_);
-  int isSepColDouble = (row_headers_ && col_separator_thickness_);
+  const int isSepRowDouble = (col_headers_ && row_separator_thickness_);
+  const int isSepColDouble = (row_headers_ && col_separator_thickness_);
   chars_.sepCross_ = (isSepColDouble)
                      ? (isSepRowDouble ? DOUBLE_VERTICAL_HORIZONTAL : VERTICAL_DOUBLE_HORIZONTAL_SINGLE)
                      : (isSepRowDouble ? VERTICAL_SINGLE_HORIZONTAL_DOUBLE : LIGHT_VERTICAL_HORIZONTAL);
@@ -169,6 +157,17 @@ void Table::chars()
     chars_.rightT_    = (row_thickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE : LIGHT_VERTICAL_LEFT;
     chars_.rightSepT_ = (row_separator_thickness_) ? VERTICAL_SINGLE_LEFT_DOUBLE : LIGHT_VERTICAL_LEFT;
   }
+}
+
+/**
+ * @brief For each column, get the size of the widest/longest element
+ */
+const string &Table::get_cell(const int r, const int c) const
+{
+  static const string empty = "";
+  if (r < static_cast<int>(content_.size()) && c < static_cast<int>(content_[r].size()))
+    return content_[r][c];
+  return empty;
 }
 
 static void drawLine(const int length, const string &line)
@@ -296,8 +295,7 @@ void Table::draw()
   }
 
   // If there are still lines to draw
-  int n_rows = content_.size();
-  if (current_line_ < n_rows)
+  if (const int n_rows = content_.size();current_line_ < n_rows)
   {
     middle_line();
     while (current_line_ < n_rows)

@@ -15,7 +15,7 @@ class Create : public Command
 {
 public:
   Create(
-    bool force, bool edit, std::vector<std::string> &files, const std::vector<std::string> &input_files
+    bool force, bool edit, const std::vector<std::string> &files, const std::vector<std::string> &input_files
   );
 
   void operator()() override;

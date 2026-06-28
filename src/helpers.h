@@ -137,10 +137,8 @@ EnumType parse_mode(
       result = pair.first;
     }
   }
-
   if (count > 1)
     throw ZCException(ZCE_INCOMPATIBLE_FLAGS, error_msg);
-
   return result;
 }
 
@@ -154,7 +152,7 @@ void get_key(const nlohmann::json &json_conf, const std::string &key, T &variabl
   {
     json_conf.at(key).get_to(variable);
   }
-  catch ([[maybe_unused]] const nlohmann::json::type_error &_)
+  catch (const nlohmann::json::type_error &)
   {
     throw ZCException(ZCE_TYPE_ERROR, "Configuration error: key '" + key + "' has the wrong type");
   }
@@ -168,12 +166,11 @@ void get_key(const nlohmann::json &json_conf, const std::string &key, T &variabl
     variable = default_value;
     return;
   }
-
   try
   {
     json_conf.at(key).get_to(variable);
   }
-  catch ([[maybe_unused]] const nlohmann::json::type_error &_)
+  catch (const nlohmann::json::type_error &)
   {
     throw ZCException(ZCE_TYPE_ERROR, "Configuration error: key '" + key + "' has the wrong type");
   }

@@ -1,7 +1,6 @@
 #include "PConf.h"
 
 #include <string>
-#include <sys/stat.h>
 
 #include "../helpers.h"
 #include "Conf.h"
@@ -88,7 +87,7 @@ void PConf::load()
     dependencies.clear();
     for (CAA[key, value] : root["dependencies"].items())
     {
-      Dependency d = value.get<Dependency>();
+      auto  d = value.get<Dependency>();
       d.name       = key;
       dependencies.insert_or_assign(key, d);
     }
@@ -117,8 +116,8 @@ void PConf::write()
   root["languages"] = lang_json;
 
   json deps_json = json::object();
-  for (CAA[name, conf] : dependencies)
-    deps_json[name] = conf;
+  for (CAA[dep_name, conf] : dependencies)
+    deps_json[dep_name] = conf;
   root["dependencies"] = deps_json;
 
   write_json(root, file_);

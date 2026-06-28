@@ -11,10 +11,10 @@
 namespace zc
 {
 
-inline void set_raw_mode(bool enable)
+inline void set_raw_mode(const bool enable)
 {
 #if !defined(_WIN32) && !defined(_WIN64)
-  static struct termios oldt, newt;
+  static termios oldt, newt;
   if (enable)
   {
     tcgetattr(STDIN_FILENO, &oldt); // Save the current state of the terminal

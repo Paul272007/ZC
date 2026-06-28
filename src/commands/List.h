@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Command.h"
+#include "../pkgs/Registry.h"
+#include "../templates/TemplateEngine.h"
 
 namespace zc
 {
@@ -21,6 +23,9 @@ public:
   void operator()() override;
 
 private:
+  Registry &reg_ = Registry::get();
+  TemplateEngine &te_ = TemplateEngine::get();
+
   ListType   type_;
   const bool simple_;
 };

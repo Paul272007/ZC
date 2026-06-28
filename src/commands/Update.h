@@ -16,7 +16,7 @@ class Update : public Command
 public:
   Update(
     bool force, const std::filesystem::path &p_root, const std::filesystem::path &path,
-    std::vector<std::string> &targets, bool sync
+    const std::vector<std::string> &targets, bool sync
   );
 
   void operator()() override;

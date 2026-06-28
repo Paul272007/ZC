@@ -16,8 +16,8 @@ public:
   void operator()() override;
 
 private:
-  const std::vector<Target>   targets_;
   const std::filesystem::path p_root_;
+  const std::vector<Target>   targets_;
 
   const bool static_;
 };

@@ -8,7 +8,7 @@ namespace zc
 class Login : public Command
 {
 public:
-  Login(bool force);
+  explicit Login(bool force);
   void operator()() override;
 };
 

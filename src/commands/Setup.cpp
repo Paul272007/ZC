@@ -9,7 +9,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Setup::Setup(bool force, const std::filesystem::path &p_root)
+Setup::Setup(const bool force, const std::filesystem::path &p_root)
   : Command(force), p_root_(get_project_root(p_root))
 {
 }

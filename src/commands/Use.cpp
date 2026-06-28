@@ -9,7 +9,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Use::Use(bool force, const std::filesystem::path &p_root, std::vector<std::string> &targets)
+Use::Use(const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets)
   : Command(force), p_root_(get_project_root(p_root)), targets_(parse_targets(targets))
 {
 }
@@ -17,8 +17,8 @@ Use::Use(bool force, const std::filesystem::path &p_root, std::vector<std::strin
 void Use::operator()()
 {
   Project p(p_root_);
-  for (auto &target : targets_)
-    p.change_dependency_version(target.name, target.version);
+  for (auto &[name, new_version] : targets_)
+    p.change_dependency_version(name, new_version);
 }
 
 } // namespace zc

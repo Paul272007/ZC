@@ -25,11 +25,11 @@ void rtrim(string &s)
     s.pop_back();
 }
 
-pair<unsigned, unsigned> get_cursor_offsets(CXCursor cursor)
+pair<unsigned, unsigned> get_cursor_offsets(const CXCursor &cursor)
 {
-  CXSourceRange    range = clang_getCursorExtent(cursor);
-  CXSourceLocation start = clang_getRangeStart(range);
-  CXSourceLocation end   = clang_getRangeEnd(range);
+  const CXSourceRange    range = clang_getCursorExtent(cursor);
+  const CXSourceLocation start = clang_getRangeStart(range);
+  const CXSourceLocation end   = clang_getRangeEnd(range);
 
   unsigned start_offset, end_offset;
   clang_getInstantiationLocation(start, nullptr, nullptr, nullptr, &start_offset);
@@ -38,7 +38,7 @@ pair<unsigned, unsigned> get_cursor_offsets(CXCursor cursor)
   return { start_offset, end_offset };
 }
 
-string get_cursor_text(CXCursor cursor, const string &content)
+string get_cursor_text(const CXCursor &cursor, const string &content)
 {
   auto [start, end] = get_cursor_offsets(cursor);
   if (end <= start || end > content.length())
@@ -46,14 +46,14 @@ string get_cursor_text(CXCursor cursor, const string &content)
   return content.substr(start, end - start);
 }
 
-bool is_inside_typedef(CXCursor cursor, const vector<pair<unsigned, unsigned>> &ranges)
+bool is_inside_typedef(const CXCursor &cursor, const vector<pair<unsigned, unsigned>> &ranges)
 {
   auto [start, end] = get_cursor_offsets(cursor);
-  for (const auto &range : ranges)
+  for (const auto &[fst, snd] : ranges)
   {
-    if (start >= range.first && end <= range.second)
+    if (start >= fst && end <= snd)
     {
-      if (start == range.first && end == range.second)
+      if (start == fst && end == snd)
         continue;
       return true;
     }
@@ -82,10 +82,9 @@ CXChildVisitResult visitor_find_includes(CXCursor cursor, CXCursor parent, CXCli
 CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
   auto        *ctx  = static_cast<VisitorContext *>(client_data);
-  CXCursorKind kind = clang_getCursorKind(cursor);
+  const CXCursorKind kind = clang_getCursorKind(cursor);
 
-  CXSourceLocation loc = clang_getCursorLocation(cursor);
-  if (!clang_Location_isFromMainFile(loc))
+  if (const CXSourceLocation loc = clang_getCursorLocation(cursor);!clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
 
   if (kind == CXCursor_TypedefDecl)
@@ -96,14 +95,13 @@ CXChildVisitResult visitor_find_typedefs(CXCursor cursor, CXCursor parent, CXCli
 
 CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
-  auto        *ctx  = static_cast<VisitorContext *>(client_data);
-  CXCursorKind kind = clang_getCursorKind(cursor);
+  const auto        *ctx  = static_cast<VisitorContext *>(client_data);
+  const CXCursorKind kind = clang_getCursorKind(cursor);
 
   if (clang_getCursorLinkage(cursor) == CXLinkage_Internal)
     return CXChildVisit_Continue;
 
-  CXSourceLocation loc = clang_getCursorLocation(cursor);
-  if (!clang_Location_isFromMainFile(loc))
+  if (const CXSourceLocation loc = clang_getCursorLocation(cursor);!clang_Location_isFromMainFile(loc))
     return CXChildVisit_Continue;
 
   if (kind == CXCursor_EnumDecl || kind == CXCursor_StructDecl || kind == CXCursor_UnionDecl)
@@ -117,70 +115,77 @@ CXChildVisitResult visitor_extract(CXCursor cursor, CXCursor parent, CXClientDat
   if (text.empty())
     return CXChildVisit_Continue;
 
-  if (kind == CXCursor_InclusionDirective)
+  switch (kind)
   {
-    (*ctx->decls).includes.push_back(text + "\n");
-  }
-  else if (kind == CXCursor_MacroDefinition)
-  {
-    if (!clang_Cursor_isMacroBuiltin(cursor))
-      (*ctx->decls).macros.push_back(text);
-  }
-  else if (kind == CXCursor_TypedefDecl)
-  {
-    rtrim(text);
-    if (!text.empty() && text.back() == ';')
-      text.pop_back();
-    (*ctx->decls).typedefs.push_back(text);
-  }
-  else if (kind == CXCursor_EnumDecl)
-  {
-    if (clang_isCursorDefinition(cursor))
-      (*ctx->decls).enums.push_back(text);
-  }
-  else if (kind == CXCursor_StructDecl)
-  {
-    if (clang_isCursorDefinition(cursor))
-      (*ctx->decls).structs.push_back(text);
-  }
-  else if (kind == CXCursor_UnionDecl)
-  {
-    if (clang_isCursorDefinition(cursor))
-      (*ctx->decls).unions.push_back(text);
-  }
-  else if (kind == CXCursor_VarDecl)
-  {
-    size_t equal_pos = text.find('=');
-    if (equal_pos != string::npos)
-      text = text.substr(0, equal_pos);
+    case CXCursor_InclusionDirective:
+      ctx->decls->includes.push_back(text + "\n");
+      break;
 
-    rtrim(text);
-    if (!text.empty() && text.back() == ';')
-      text.pop_back();
+    case CXCursor_MacroDefinition:
+      if (!clang_Cursor_isMacroBuiltin(cursor))
+        ctx->decls->macros.push_back(text);
+      break;
 
-    if (text.find("extern") == string::npos)
-      text = "extern " + text;
-    (*ctx->decls).globals.push_back(text);
-  }
-  else if (kind == CXCursor_FunctionDecl)
-  {
-    CXString name_str = clang_getCursorSpelling(cursor);
-    string   name     = clang_getCString(name_str);
-    clang_disposeString(name_str);
+    case CXCursor_TypedefDecl:
+      rtrim(text);
+      if (!text.empty() && text.back() == ';')
+        text.pop_back();
+      ctx->decls->typedefs.push_back(text);
+      break;
 
-    if (name != "main")
+    case CXCursor_EnumDecl:
+      if (clang_isCursorDefinition(cursor))
+        ctx->decls->enums.push_back(text);
+      break;
+
+    case CXCursor_StructDecl:
+      if (clang_isCursorDefinition(cursor))
+        ctx->decls->structs.push_back(text);
+      break;
+
+    case CXCursor_UnionDecl:
+      if (clang_isCursorDefinition(cursor))
+        ctx->decls->unions.push_back(text);
+      break;
+
+    case CXCursor_VarDecl:
     {
-      size_t brace_pos = text.find('{');
-      if (brace_pos != string::npos)
-        text = text.substr(0, brace_pos);
+      if (const size_t equal_pos = text.find('='); equal_pos != string::npos)
+        text = text.substr(0, equal_pos);
 
       rtrim(text);
       if (!text.empty() && text.back() == ';')
         text.pop_back();
-      (*ctx->decls).functions.push_back(text);
-    }
-  }
 
+      if (text.find("extern") == string::npos)
+        text = "extern " + text;
+      ctx->decls->globals.push_back(text);
+      break;
+    }
+
+    case CXCursor_FunctionDecl:
+    {
+      const CXString name_str = clang_getCursorSpelling(cursor);
+      const string   name     = clang_getCString(name_str);
+      clang_disposeString(name_str);
+
+      if (name != "main")
+      {
+        size_t brace_pos = text.find('{');
+        if (brace_pos != string::npos)
+          text = text.substr(0, brace_pos);
+
+        rtrim(text);
+        if (!text.empty() && text.back() == ';')
+          text.pop_back();
+        ctx->decls->functions.push_back(text);
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
   return CXChildVisit_Continue;
 }
 
@@ -194,14 +199,13 @@ vector<Dependency> get_file_includes(const fs::path &file, const map<string, Pkg
   vector<string>     found_includes;
   vector<Dependency> required_libs;
 
-  CXIndex index = clang_createIndex(0, 0);
+  const CXIndex index = clang_createIndex(0, 0);
 
-  unsigned options = CXTranslationUnit_DetailedPreprocessingRecord; // To see #includes
+  constexpr unsigned options = CXTranslationUnit_DetailedPreprocessingRecord; // To see #includes
 
   const char       *args[] = { "-x", "c++" };                       // Always compile as C++
-  CXTranslationUnit unit   = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options);
 
-  if (unit)
+  if (const CXTranslationUnit unit   = clang_parseTranslationUnit(index, file.c_str(), args, 2, nullptr, 0, options))
   {
     CXCursor cursor = clang_getTranslationUnitCursor(unit);
     clang_visitChildren(cursor, visitor_find_includes, &found_includes); // Get all included file names
@@ -217,8 +221,8 @@ vector<Dependency> get_file_includes(const fs::path &file, const map<string, Pkg
             {
               .name    = pair.first,
               .origin  = pair.second.origin,
-              .version = *std::max_element(pair.second.versions.begin(), pair.second.versions.end()),
-              // FIX : the used library in the include_links_dir is not always the latest one
+              .version = *ranges::max_element(pair.second.versions),
+              // FIX: the used library in the include_links_dir is not always the latest one
             }
           );
         }

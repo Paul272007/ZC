@@ -24,7 +24,7 @@ private:
 
 struct MakeVariableCmp
 {
-  using is_transparent = void; // activate heterogen search
+  using is_transparent = void; // activate heterogeneous search
 
   bool operator()(const MakeVariable &a, const MakeVariable &b) const { return a.name_ < b.name_; }
 

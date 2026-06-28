@@ -98,7 +98,7 @@ void Run::operator()()
     throw ZCException(ZCE_RUNTIME_ERROR, "Program exited with code " + to_string(run_res));
 }
 
-bool Run::has_cpp()
+bool Run::has_cpp() const
 {
   for (const auto &f : files_)
     if (is_of_language(CXX, f))
@@ -106,7 +106,7 @@ bool Run::has_cpp()
   return false;
 }
 
-std::string Run::get_build_command()
+std::string Run::get_build_command() const
 {
   stringstream cmd;
 
@@ -186,7 +186,7 @@ std::string Run::get_build_command()
   return cmd.str();
 }
 
-string Run::get_output_name()
+string Run::get_output_name() const
 {
   fs::path out = files_[0];
   switch (mode_)
@@ -203,7 +203,7 @@ string Run::get_output_name()
   }
 }
 
-vector<Dependency> Run::get_dependencies()
+vector<Dependency> Run::get_dependencies() const
 {
   vector<Dependency> libs_to_link;
 
@@ -212,7 +212,7 @@ vector<Dependency> Run::get_dependencies()
     for (const auto &include : get_file_includes(f, rg_.pkgs()))
     {
       const bool already_present =
-        std::any_of(libs_to_link.begin(), libs_to_link.end(), [&](const auto &p) { return p == include; });
+        ranges::any_of(libs_to_link, [&](const auto &p) { return p == include; });
 
       if (!already_present)
         libs_to_link.push_back(include);

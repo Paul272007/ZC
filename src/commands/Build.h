@@ -20,8 +20,8 @@ public:
   void operator()() override;
 
 private:
-  const std::vector<std::string> run_args_;
   const std::filesystem::path    p_root_;
+  const std::vector<std::string> run_args_;
 
   const bool run_;
   const bool clean_;

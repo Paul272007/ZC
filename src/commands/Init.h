@@ -13,8 +13,8 @@ class Init : public Command
 {
 public:
   Init(
-    bool force, const std::filesystem::path &p_root, bool git, bool edit, const std::string &author,
-    const std::string &target, const std::string &p_template, const std::string &name, bool is_bin,
+    bool force, const std::filesystem::path &p_root, bool git, bool edit, std::string author,
+    std::string target, std::string p_template, std::string name, bool is_bin,
     bool is_lib, bool is_header, bool is_compose, const std::vector<std::string> &languages
   );
 

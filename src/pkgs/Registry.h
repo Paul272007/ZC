@@ -41,8 +41,7 @@ public:
   /**
    * Install a package from the server
    * If already installed, throw an error
-   * @param name
-   * @param version
+   * @param target
    * @param index
    * @param force
    */
@@ -73,13 +72,12 @@ public:
   void uninstall(const std::string &pkg);
 
   /**
-   * Check if pkg is installed
-   * @param name
-   * @param version
+   * Check if target is installed
+   * @param target
    */
   [[nodiscard]] bool is_installed(const Target &target);
 
-  [[nodiscard]] bool is_installed(const std::string &name);
+  [[nodiscard]] bool is_installed(const std::string &name) const;
 
   [[nodiscard]] std::map<std::string, Pkg> pkgs() const;
 
@@ -150,7 +148,7 @@ private:
 
   [[nodiscard]] static std::string pkg_url(const Target &target, const nlohmann::json &index);
 
-  void verify_headers_structure(const Project &p) const;
+  static void verify_headers_structure(const Project &p);
 };
 
 } // namespace zc

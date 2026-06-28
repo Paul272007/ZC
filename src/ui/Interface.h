@@ -1,6 +1,5 @@
 #pragma once
 
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 
@@ -59,7 +58,7 @@ public:
 
   bool is_quiet() const { return quiet_; }
 
-  void set_quiet(bool quiet) { quiet_ = quiet; }
+  void set_quiet(const bool quiet) { quiet_ = quiet; }
 
 private:
   bool quiet_ = false;

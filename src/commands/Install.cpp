@@ -1,6 +1,7 @@
 #include "Install.h"
 
 #include <filesystem>
+#include <utility>
 
 #include "commands/Command.h"
 #include "excepts/ExitCode.h"
@@ -15,12 +16,12 @@ namespace zc
 {
 
 Install::Install(
-  bool force, const std::filesystem::path &p_root, const filesystem::path &path,
-  std::vector<std::string> &targets, const bool is_std
+  const bool force, const std::filesystem::path &p_root, filesystem::path path,
+  const std::vector<std::string> &targets, const bool is_std
 )
   : Command(force),
     p_root_(get_project_root(p_root)),
-    path_(path),
+    path_(std::move(path)),
     targets_(parse_targets(targets)),
     std_(is_std)
 {
@@ -36,7 +37,7 @@ void Install::operator()()
     install_targets();
 }
 
-void Install::install_from_path()
+void Install::install_from_path() const
 {
   if (!targets_.empty())
     throw ZCException(
@@ -46,7 +47,7 @@ void Install::install_from_path()
   reg_.install_from_path(path_, force_);
 }
 
-void Install::install_dependencies()
+void Install::install_dependencies() const
 {
   Project(p_root_).install_dependencies();
 }
@@ -57,12 +58,12 @@ void Install::install_targets()
   {
     if (!has_pkg_config())
       throw ZCException(ZCE_NOT_FOUND, "Command 'pkg-config' is required to install standard packages");
-    for (CAA target : targets_)
-      reg_.install_std(target.name);
+    for (CAA [name, _] : targets_)
+      reg_.install_std(name);
   }
   else
   {
-    json index = Network::get().get_index();
+    const json index = Network::get().get_index();
     for (auto &target : targets_)
       reg_.install_from_server(target, index, force_);
   }
