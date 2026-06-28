@@ -23,7 +23,7 @@ std::string MakeVariable::make_declaration() const
 
 void MakeVariable::add(const std::string &value)
 {
-  elts_.push_back(escape_shell_arg(value));
+  elts_.push_back(esc(value));
 }
 
 void MakeVariable::add_no_esc(const std::string &value)

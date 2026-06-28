@@ -58,8 +58,10 @@ void Interface::print(const std::string &message) const
 
 void Interface::debug(const std::string &message) const
 {
+#ifdef DEBUG_MODE
   if (!quiet_)
     cout << CYAN "⚙ " RESET << message << endl;
+#endif
 }
 
 void Interface::warning(const std::string &message) const

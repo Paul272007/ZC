@@ -139,8 +139,9 @@ int main(const int argc, char *argv[])
   run->add_flag("--std", std, "Add C/C++ standard from config file");
   run->add_flag("--static,-s", static_link, "Compile prioritizing the use of static libraries");
   run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
+  run->add_flag("--release,-r", release, "Compile in release mode");
 
-  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags); });
+  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags, release); });
 
   // Create
 

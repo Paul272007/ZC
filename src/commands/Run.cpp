@@ -21,27 +21,28 @@ namespace zc
 Run::Run(
   const bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
   const bool preprocess, const bool compile, const bool assemble, const bool plus, const bool keep,
-  const bool add_std, const bool static_link, const bool no_flags
+  const bool add_std, const bool static_link, const bool no_flags, const bool release
 )
   : Command(force),
     files_(str_to_path(files)),
     args_(args),
     add_flags_(!no_flags),
-    plus_(plus || has_cpp()),
     add_std_(add_std),
+    plus_(plus || has_cpp()),
     keep_(keep),
-    static_(static_link)
+    static_(static_link),
+    release_(release),
+    mode_(
+      parse_mode<CompileMode>(
+        { { CompileMode::preprocess, preprocess },
+          { CompileMode::compile, compile },
+          { CompileMode::assemble, assemble } },
+        CompileMode::full, "Cannot use different compiling modes at the same time"
+      )
+    ),
+    output_name_(get_output_name()),
+    build_cmd_(get_build_command())
 {
-  mode_ = parse_mode<CompileMode>(
-    {
-      { CompileMode::preprocess, preprocess },
-      { CompileMode::compile, compile },
-      { CompileMode::assemble, assemble },
-    },
-    CompileMode::full, "Cannot use different compiling modes at the same time"
-  );
-  output_name_ = get_output_name();
-  build_cmd_   = get_build_command();
 }
 
 void Run::operator()()
@@ -54,9 +55,7 @@ void Run::operator()()
     if (!if_.ask("The file '" + output_name_ + "' already exists. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Compilation aborted.");
 
-#ifdef DEBUG_MODE
   if_.debug(build_cmd_);
-#endif
 
   // TODO: capture build command output for better ui
 
@@ -75,23 +74,19 @@ void Run::operator()()
     if_.clear();
 
   if_.info("Executing program...");
-  string exec_cmd = escape_shell_arg(fs::absolute(output_name_).string());
+  string exec_cmd = esc(fs::absolute(output_name_).string());
 
-#ifdef DEBUG_MODE
   if_.debug(exec_cmd);
-#endif
 
   for (const auto &arg : args_)
-    exec_cmd += " " + escape_shell_arg(arg);
+    exec_cmd += " " + esc(arg);
 
   const int run_res = system(exec_cmd.c_str());
 
   if (!gc_.always_keep && !keep_ && fs::exists(output_name_))
   {
     fs::remove(output_name_);
-#ifdef DEBUG_MODE
     if_.debug("Temporary file removed: " + output_name_);
-#endif
   }
 
   if (run_res != 0)
@@ -117,21 +112,26 @@ std::string Run::get_build_command() const
   else
     lc = gc_.languages.at(C);
 
-  cmd << escape_shell_arg(lc.compiler) << " ";
+  cmd << esc(lc.compiler) << " ";
   if (gc_.always_add_std || add_std_)
-    cmd << "'-std=" << lc.std << "' ";
+    cmd << esc("-std=" + lc.std) << " ";
 
   // User flags
   if (add_flags_)
     for (const auto &flag : lc.flags)
-      cmd << escape_shell_arg(flag) << " ";
+      cmd << esc(flag) << " ";
+
+  if (release_)
+    cmd << "-O3 ";
+  else
+    cmd << "-g ";
 
   // Source files
   for (const auto &file : files_)
-    cmd << escape_shell_arg(file.string()) << " ";
+    cmd << esc(file.string()) << " ";
 
   // Output
-  cmd << "-o " << escape_shell_arg(output_name_) << " ";
+  cmd << "-o " << esc(output_name_) << " ";
 
   // Include directories
   cmd << "-I" << zc_root() / INCLUDE_DIR << " ";
@@ -159,17 +159,17 @@ std::string Run::get_build_command() const
         if (!flags.empty())
           cmd << flags << " ";
         else
-          cmd << "-l" << escape_shell_arg(target) << " ";
+          cmd << "-l" << esc(target) << " ";
       }
       else
       {
         fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
         if (fs::exists(lib_dir))
         {
-          cmd << "-L" << escape_shell_arg(lib_dir.string()) << " ";
-          cmd << "-Wl,-rpath," << escape_shell_arg(lib_dir.string()) << " ";
+          cmd << "-L" << esc(lib_dir.string()) << " ";
+          cmd << "-Wl,-rpath," << esc(lib_dir.string()) << " ";
         }
-        cmd << "-l" << escape_shell_arg(target) << " ";
+        cmd << "-l" << esc(target) << " ";
       }
     }
     break;

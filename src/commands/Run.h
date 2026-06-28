@@ -17,7 +17,7 @@ public:
   Run(
     bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
     bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std, bool static_link,
-    bool no_flags
+    bool no_flags, bool release
   );
 
   void operator()() override;
@@ -28,14 +28,16 @@ private:
   const std::vector<std::filesystem::path> files_;
   const std::vector<std::string>           args_;
 
-  CompileMode mode_;
-  const bool  add_flags_ = true;
-  const bool  plus_      = false;
-  const bool  add_std_   = false;
-  const bool  keep_      = false;
-  const bool  static_    = false;
-  std::string output_name_;
-  std::string build_cmd_;
+  const bool add_flags_;
+  const bool add_std_;
+  const bool plus_;
+  const bool keep_;
+  const bool static_;
+  const bool release_;
+
+  const CompileMode mode_;
+  const std::string output_name_;
+  const std::string build_cmd_;
 
   bool has_cpp() const;
   std::string get_build_command() const;

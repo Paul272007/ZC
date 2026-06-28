@@ -103,7 +103,7 @@ void Create::operator()()
     stringstream cmd;
     cmd << gc_.editor;
     for (const auto &f : files_to_edit_)
-      cmd << " " << escape_shell_arg(f);
+      cmd << " " << esc(f);
     if (system(cmd.str().c_str()) != 0)
       throw ZCException(ZCE_INTERNAL_ERROR, "Could not open file(s) in editor");
   }

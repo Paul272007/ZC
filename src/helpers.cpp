@@ -185,7 +185,7 @@ std::string lower(const std::string &text)
   return output;
 }
 
-std::string escape_shell_arg(const std::string &arg)
+std::string esc(const std::string &arg)
 {
   std::string escaped;
   for (const char c : arg)

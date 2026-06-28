@@ -43,14 +43,14 @@ void Build::operator()()
 
   if (run_)
   {
-    string exec_cmd = escape_shell_arg(
+    string exec_cmd = esc(
       fs::absolute(
         (p.pconf.type == PkgType::BIN && gc_.move_bin_to_current_path) ? fs::current_path() / p.pconf.target
                                                                        : p.build_dir / p.pconf.target
       )
     );
     for (const auto &arg : run_args_)
-      exec_cmd += " " + escape_shell_arg(arg);
+      exec_cmd += " " + esc(arg);
     const int run_res = system(exec_cmd.c_str());
     if (run_res != 0)
       throw ZCException(ZCE_RUNTIME_ERROR, "Program exited with code " + to_string(run_res));

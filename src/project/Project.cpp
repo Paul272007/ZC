@@ -210,7 +210,7 @@ void Project::publish()
   {
     if_.warning("Release " + tag + " not found. Attempting to create it...");
 
-    if (!if_.ask("Do you want to create the tag " + tag + "?"))
+    if (!if_.ask("Do you want to create the tag " + tag + " ?"))
       return;
 
     nlohmann::json release_payload;

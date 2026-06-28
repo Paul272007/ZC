@@ -112,7 +112,7 @@ std::string pretty_path(const std::filesystem::path &path);
 std::string join(const std::vector<std::string> &v, const std::string &separator = " ");
 std::string upper(const std::string &text);
 std::string lower(const std::string &text);
-std::string escape_shell_arg(const std::string &arg);
+std::string esc(const std::string &arg);
 std::string exec_command(const std::string &cmd);
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
 bool has_pkg_config();

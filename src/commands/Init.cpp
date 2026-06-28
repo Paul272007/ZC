@@ -120,7 +120,8 @@ void Init::operator()()
 
   // TODO: replace with function to send command as array/vector and escape arguments
   if (gc_.open_after_init || edit_)
-    system(string(escape_shell_arg(gc_.editor) + " " + escape_shell_arg(p_root_.string())).c_str());
+    if (system(string(esc(gc_.editor) + " " + esc(p_root_.string())).c_str()) != 0)
+      throw ZCException(ZCE_INTERNAL_ERROR, "An error occurred while opening project in editor");
 }
 
 } // namespace zc
