@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <openssl/evp.h>
+#include <unordered_set>
 #include <vector>
 
 #include "excepts/ExitCode.h"
@@ -244,12 +245,12 @@ void check_name(const std::string &name)
 
 std::string read_file(const std::filesystem::path &file)
 {
-  string   content;
-  ifstream input(file);
+  std::ifstream input(file);
   if (!input.is_open())
     throw ZCException(ZCE_READING_ERROR, "The file couldn't be read: " + file.string());
-  input >> content;
-  return content;
+  std::stringstream buffer;
+  buffer << input.rdbuf();
+  return buffer.str();
 }
 
 void write_file(const std::filesystem::path &file, const std::string &content)
@@ -345,6 +346,20 @@ std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
     result.pop_back();
 
   return result;
+}
+
+void merge(const std::vector<std::string> &src, std::vector<std::string> &dest)
+{
+  unordered_set existing(dest.begin(), dest.end());
+
+  for (const auto &item : src)
+  {
+    if (!existing.contains(item))
+    {
+      dest.push_back(item);
+      existing.insert(item);
+    }
+  }
 }
 
 } // namespace zc

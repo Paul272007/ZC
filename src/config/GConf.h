@@ -34,7 +34,7 @@ public:
   GConf(const GConf &)          = delete;
   void operator=(const GConf &) = delete;
 
-  void login();
+  void login(bool force = false);
 
   void logout();
 

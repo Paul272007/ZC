@@ -25,8 +25,12 @@ GConf &GConf::get()
   return instance;
 }
 
-void GConf::login()
+void GConf::login(bool force)
 {
+  if (!force && !token.empty() &&
+      !if_.ask("An account is already logged in. Do you want to change the account ?"))
+    throw ZCException(ZCE_ABORTED, "Interrupted");
+
   Network &net = Network::get();
 
   auto json_resp =

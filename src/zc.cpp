@@ -12,11 +12,15 @@
 // Copyright (c) 2026 Paul Maillard. All Rights Reserved.
 // clang-format on
 
+#include <memory>
+#include <vector>
+
 #include "CLI11.h"
 #include "commands/Add.h"
 #include "commands/Build.h"
 #include "commands/Clean.h"
 #include "commands/Command.h"
+#include "commands/Create.h"
 #include "commands/Init.h"
 #include "commands/Install.h"
 #include "commands/List.h"
@@ -92,6 +96,7 @@ int main(const int argc, char *argv[])
 
   vector<string> run_args;
   vector<string> targets;
+  vector<string> input_files;
   vector<string> languages;
 
   // clang-format off
@@ -99,7 +104,7 @@ int main(const int argc, char *argv[])
   // --- Subcommands
   // Files
   const auto run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)");
-  // const auto create  = app.add_subcommand("create",  "Create file based on template"²);     // TODO: implement
+  const auto create    = app.add_subcommand("create",    "Create file based on template");
   // Projects
   const auto init      = app.add_subcommand("init",      "Initialize empty project");
   const auto setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
@@ -120,7 +125,6 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands arguments
   // Run
-  // TODO: add --force,-f flag for each command
 
   run->add_option("files", targets, "Files to compile and run")->required();
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
@@ -137,6 +141,16 @@ int main(const int argc, char *argv[])
   run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
 
   run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags); });
+
+  // Create
+
+  create->add_option("files", targets, "Files to create")->required();
+  create->add_option("--input,-i", input_files, "Files to use as input for the new files");
+
+  create->add_flag("--force,-f", force, "Force creating file even if it already exists");
+  create->add_flag("--edit,-e", edit, "Open files in editor once created");
+
+  create->callback([&] {command = make_unique<Create>(force, edit, targets, input_files);});
 
   // Init
 
@@ -159,6 +173,7 @@ int main(const int argc, char *argv[])
   init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, languages); });
 
   // Setup
+  // TODO: add --force,-f flag
 
   setup->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
@@ -167,6 +182,7 @@ int main(const int argc, char *argv[])
   setup->callback([&] { command = make_unique<Setup>(force, p_root); });
 
   // Build
+  // TODO: add --force,-f flag
 
   build->add_option("--project-path,-P", p_root, "Directory to use as project root");
   auto opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionnally add parameters")->expected(0, -1);
@@ -184,6 +200,7 @@ int main(const int argc, char *argv[])
   });
 
   // Add
+  // TODO: add --force,-f flag
 
   add->add_option("--project-path,-P", p_root, "Directory to use as project root");
   add->add_option("targets", targets, "The dependencies to be added")->required();
@@ -194,6 +211,7 @@ int main(const int argc, char *argv[])
   add->callback([&] { command = make_unique<Add>(force, p_root, targets, static_link); });
 
   // Remove
+  // TODO: add --force,-f flag
 
   remove->add_option("--project-path,-P", p_root, "Directory to use as project root");
   remove->add_option("targets", targets, "The dependencies to be removed")->required();
@@ -203,6 +221,7 @@ int main(const int argc, char *argv[])
   remove->callback([&] { command = make_unique<Remove>(force, p_root, targets); });
 
   // Use
+  // TODO: add --force,-f flag
 
   use->add_option("--project-path,-P", p_root, "Directory to use as project root");
   use->add_option("targets", targets, "The dependencies and their version to use")->required();
@@ -212,6 +231,7 @@ int main(const int argc, char *argv[])
   use->callback([&] { command = make_unique<Use>(force, p_root, targets); });
 
   // Publish
+  // TODO: add --force,-f flag
 
   publish->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
@@ -220,6 +240,7 @@ int main(const int argc, char *argv[])
   publish->callback([&] { command = make_unique<Publish>(force, p_root); });
 
   // Clean
+  // TODO: add --force,-f flag
 
   clean->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
@@ -228,6 +249,7 @@ int main(const int argc, char *argv[])
   clean->callback([&] { command = make_unique<Clean>(force, p_root); });
 
   // List
+  // TODO: add --force,-f flag
 
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
   list->add_flag("--templates,-t", show_templates, "Show available templates instead of packages");
@@ -238,7 +260,7 @@ int main(const int argc, char *argv[])
   list->callback([&] { command = make_unique<List>(force, show_templates, show_p_templates, show_remote, simple_display); });
 
   // Install
-  // TODO: add --project-path
+  // TODO: add --force,-f flag
 
   install->add_option("--project-path,-P", p_root, "Directory to use as project root");
   install->add_option("--path,-p", path, "Install from local project instead of remote");
@@ -251,6 +273,7 @@ int main(const int argc, char *argv[])
 
   // Uninstall
   // TODO: add --project-path to uninstall all project dependencies
+  // TODO: add --force,-f flag
 
   uninstall->add_option("targets", targets, "Targets to uninstall");
 
@@ -259,6 +282,7 @@ int main(const int argc, char *argv[])
   uninstall->callback([&] { command = make_unique<Uninstall>(force, targets); });
 
   // Update
+  // TODO: add --force,-f flag
 
   update->add_option("--project-path,-P", p_root, "Directory to use as project root");
   update->add_option("--path,-p", path, "Update local package from its root path");
@@ -272,10 +296,12 @@ int main(const int argc, char *argv[])
   // Login
 
   login->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  login->add_flag("--force,-f", force, "Force login even if an account is already logged in");
 
   login->callback([&] { command = make_unique<Login>(force); });
 
   // Logout
+  // TODO: add --force,-f flag
 
   logout->add_flag("--quiet,-q", quiet, "Do not show any messages");
 

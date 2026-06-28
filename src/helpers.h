@@ -118,6 +118,7 @@ std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &v
 bool has_pkg_config();
 std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags);
 std::vector<std::string> split(const std::string &str, char delimiter = ' ');
+void merge(const std::vector<std::string> &src, std::vector<std::string> &dest);
 
 template<typename EnumType>
 EnumType parse_mode(

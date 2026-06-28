@@ -74,11 +74,7 @@ inline Language language_from_str(const std::string &txt)
 
 inline bool is_of_language(Language l, const std::filesystem::path &file)
 {
-  // We suppose the file exists
-  if (!std::filesystem::is_regular_file(file))
-    return false;
-
-  std::string ext = file.extension();
+  std::string ext = file.extension().string();
 
   if (ext.empty())
     return false;
@@ -89,10 +85,7 @@ inline bool is_of_language(Language l, const std::filesystem::path &file)
 
 inline Language language_of(const std::filesystem::path &file)
 {
-  if (!std::filesystem::is_regular_file(file))
-    return UNKNOWN_LANGUAGE;
-
-  std::string ext = file.extension();
+  std::string ext = file.extension().string();
 
   if (ext.empty())
     return UNKNOWN_LANGUAGE;

@@ -1,8 +1,12 @@
 #include "TemplateEngine.h"
 
+#include <filesystem>
+#include <string>
+
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "../ui/Interface.h"
+#include "Language.h"
 
 ZC_DEV_CONFIG
 
@@ -15,28 +19,53 @@ TemplateEngine &TemplateEngine::get()
   return instance;
 }
 
-std::vector<std::filesystem::path> TemplateEngine::templates() const
+const std::vector<std::string> &TemplateEngine::templates() const
 {
-  std::vector<fs::path> file_list;
-  try
+  static vector<string> list = [&]
   {
-    if (fs::exists(templates_dir_) && fs::is_directory(templates_dir_))
-      for (const auto &entry : fs::directory_iterator(templates_dir_))
-        if (entry.is_regular_file())
-          file_list.emplace_back(entry.path());
-  }
-  catch (const fs::filesystem_error &e)
+    vector<string> templates_list;
+    try
+    {
+      if (fs::exists(templates_dir_) && fs::is_directory(templates_dir_))
+        for (const auto &entry : fs::directory_iterator(templates_dir_))
+          if (entry.is_regular_file())
+            templates_list.emplace_back(entry.path().filename());
+    }
+    catch (const fs::filesystem_error &e)
+    {
+      throw ZCException(ZCE_INTERNAL_ERROR, e.what());
+    }
+    return templates_list;
+  }();
+  return list;
+}
+
+const std::vector<std::string> &TemplateEngine::p_templates() const
+{
+  static vector<string> list = [&]
   {
-    throw ZCException(ZCE_INTERNAL_ERROR, e.what());
-  }
-  return file_list;
+    vector<string> templates_list;
+    try
+    {
+      if (fs::exists(p_templates_dir_) && fs::is_directory(p_templates_dir_))
+        for (const auto &entry : fs::directory_iterator(p_templates_dir_))
+          if (entry.is_directory())
+            templates_list.emplace_back(entry.path().filename());
+    }
+    catch (const fs::filesystem_error &e)
+    {
+      throw ZCException(ZCE_INTERNAL_ERROR, e.what());
+    }
+    return templates_list;
+  }();
+  return list;
 }
 
 Table TemplateEngine::templates_table() const
 {
   vector<vector<string>> str_t = { { "Template" } };
   for (const auto &t_path : templates())
-    str_t.push_back({ t_path.filename().string() });
+    str_t.push_back({ t_path });
 
   return { false, true, str_t };
 }
@@ -50,21 +79,30 @@ Table TemplateEngine::p_templates_table() const
   return { false, true, str_t };
 }
 
-std::vector<std::string> TemplateEngine::p_templates() const
+bool TemplateEngine::init_with_template(const std::filesystem::path &file, Language l, bool force) const
 {
-  std::vector<std::string> templates_list;
-  try
+  const vector<string> &ts = templates();
+  vector<string>        found_templates_for_language;
+
+  string template_to_use;
+
+  for (CAA t : ts)
+    if (is_of_language(l, templates_dir_ / t))
+      found_templates_for_language.push_back(t);
+
+  if (found_templates_for_language.empty())
   {
-    if (fs::exists(p_templates_dir_) && fs::is_directory(p_templates_dir_))
-      for (const auto &entry : fs::directory_iterator(p_templates_dir_))
-        if (entry.is_directory())
-          templates_list.push_back(entry.path().filename());
+    if_.error("Skipped file " + file.string() + ": no template available");
+    return false;
   }
-  catch (const fs::filesystem_error &e)
-  {
-    throw ZCException(ZCE_INTERNAL_ERROR, e.what());
-  }
-  return templates_list;
+  elif (found_templates_for_language.size() > 1)
+    template_to_use = found_templates_for_language[if_.radios(
+      "Which template do you want to use for file " + file.string(), found_templates_for_language
+    )];
+  else
+    template_to_use = found_templates_for_language.at(0);
+
+  return fs::copy_file(templates_dir_ / template_to_use, file, fs::copy_options::overwrite_existing);
 }
 
 void TemplateEngine::init_with_p_template(

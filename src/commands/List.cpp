@@ -48,8 +48,7 @@ void List::operator()()
       break;
 
     case ZC_LIST_SHOW_TEMPLATES:
-      for (const auto &t : te.templates())
-        v.emplace_back(t.filename());
+      v = te.templates();
       break;
 
     case ZC_LIST_SHOW_P_TEMPLATES:
