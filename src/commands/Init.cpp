@@ -56,8 +56,7 @@ void Init::operator()()
     if (!force_ &&
         !if_.ask("A ZC project seems to already exist in this directory. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Project creation aborted.");
-    else
-      fs::remove(p_root_ / ZC_FILE);
+    fs::remove(p_root_ / ZC_FILE);
   }
 
   if (name_.empty())

@@ -1,5 +1,6 @@
 #include "Run.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -19,9 +20,9 @@ namespace zc
 {
 
 Run::Run(
-  const bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-  const bool preprocess, const bool compile, const bool assemble, const bool plus, const bool keep,
-  const bool add_std, const bool static_link, const bool no_flags, const bool release
+  const bool force, const vector<string> &files, const vector<string> &args, const bool preprocess,
+  const bool compile, const bool assemble, const bool plus, const bool keep, const bool add_std,
+  const bool static_link, const bool no_flags, const bool release
 )
   : Command(force),
     files_(str_to_path(files)),
@@ -90,15 +91,12 @@ void Run::operator()()
   }
 
   if (run_res != 0)
-    throw ZCException(ZCE_RUNTIME_ERROR, "Program exited with code " + to_string(run_res));
+    throw ZCException(ZCE_RUNTIME_ERROR, "Program ended with exit code " + to_string(run_res));
 }
 
 bool Run::has_cpp() const
 {
-  for (const auto &f : files_)
-    if (is_of_language(CXX, f))
-      return true;
-  return false;
+  return ranges::any_of(files_, [&](const auto &f) { return is_of_language(CXX, f); });
 }
 
 std::string Run::get_build_command() const

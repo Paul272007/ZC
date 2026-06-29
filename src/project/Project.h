@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -17,7 +18,7 @@
 namespace zc
 {
 
-enum class BuildMode
+enum class BuildMode : std::uint8_t
 {
   automatic,
   release,
@@ -57,9 +58,13 @@ public:
   PConf pconf;
 
   explicit Project(const std::filesystem::path &root = get_project_root());
+  Project(const Project &)            = delete;
+  Project(Project &&)                 = default;
+  Project &operator=(const Project &) = delete;
+  Project &operator=(Project &&)      = delete;
+  ~Project()                          = default;
 
-  ~Project() = default;
-
+  void generate_build_config(BuildMode current_mode = BuildMode::debug, bool is_install = false);
   void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
   void clean(bool cache = false) const;
   void publish();
@@ -70,8 +75,6 @@ public:
 
   void install_dependencies() const;
   void update_dependencies();
-
-  void generate_build_config(BuildMode current_mode = BuildMode::debug, bool is_install = false);
 
 private:
   GConf     &gc_  = GConf::get();

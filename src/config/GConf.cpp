@@ -7,7 +7,7 @@
 
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
-#include "../pkgs/Network.cpp"
+#include "../pkgs/Network.h"
 #include "../ui/ui_utils.h"
 #include "Conf.h"
 #include "config/LanguageConf.h"

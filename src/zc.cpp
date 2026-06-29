@@ -103,25 +103,25 @@ int main(const int argc, char *argv[])
 
   // --- Subcommands
   // Files
-  const auto run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)");
-  const auto create    = app.add_subcommand("create",    "Create file based on template");
+  auto *const run       = app.add_subcommand("run",       "Compile and execute C/C++ file(s)");
+  auto *const create    = app.add_subcommand("create",    "Create file based on template");
   // Projects
-  const auto init      = app.add_subcommand("init",      "Initialize empty project");
-  const auto setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
-  const auto build     = app.add_subcommand("build",     "Build project");
-  const auto add       = app.add_subcommand("add",       "Add dependencies to project");
-  const auto remove    = app.add_subcommand("remove",    "Remove dependencies from project");
-  const auto use       = app.add_subcommand("use",       "Choose version of dependency to use");
-  const auto publish   = app.add_subcommand("publish",   "Publish package to server");
-  const auto clean     = app.add_subcommand("clean",     "Clean all temporary files and directories");
+  auto *const init      = app.add_subcommand("init",      "Initialize empty project");
+  auto *const setup     = app.add_subcommand("setup",     "(Re)generate build configuration");
+  auto *const build     = app.add_subcommand("build",     "Build project");
+  auto *const add       = app.add_subcommand("add",       "Add dependencies to project");
+  auto *const remove    = app.add_subcommand("remove",    "Remove dependencies from project");
+  auto *const use       = app.add_subcommand("use",       "Choose version of dependency to use");
+  auto *const publish   = app.add_subcommand("publish",   "Publish package to server");
+  auto *const clean     = app.add_subcommand("clean",     "Clean all temporary files and directories");
   // Packages
-  const auto list      = app.add_subcommand("list",      "List installed libraries");
-  const auto install   = app.add_subcommand("install",   "Install packages");
-  const auto uninstall = app.add_subcommand("uninstall", "Uninstall packages");
-  const auto update    = app.add_subcommand("update",    "Update packages");
+  auto *const list      = app.add_subcommand("list",      "List installed libraries");
+  auto *const install   = app.add_subcommand("install",   "Install packages");
+  auto *const uninstall = app.add_subcommand("uninstall", "Uninstall packages");
+  auto *const update    = app.add_subcommand("update",    "Update packages");
   // Configuration
-  const auto login     = app.add_subcommand("login",     "Log into an account");
-  const auto logout    = app.add_subcommand("logout",    "Log out");
+  auto *const login     = app.add_subcommand("login",     "Log into an account");
+  auto *const logout    = app.add_subcommand("logout",    "Log out");
 
   // --- Subcommands arguments
   // Run
@@ -188,7 +188,7 @@ int main(const int argc, char *argv[])
   // TODO: add --force,-f flag
 
   build->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  auto opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
+  auto *opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_before, "Clean before building");
@@ -326,12 +326,12 @@ int main(const int argc, char *argv[])
   }
   catch (const ZCException &e)
   {
-    cerr << e << endl;
+    cerr << e << '\n';
     return e.code();
   }
   catch (const exception &e)
   {
-    cerr << RED << "Unexpected error: " << RESET << e.what() << endl;
+    cerr << RED << "Unexpected error: " << RESET << e.what() << '\n';
     return 255;
   }
 }

@@ -1,5 +1,6 @@
 #include "Table.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -21,8 +22,6 @@ void padding(const size_t length)
 }
 
 } // namespace
-
-Table::Table() {}
 
 Table::Table(
   const bool has_row_headers, const bool has_col_headers, std::vector<std::vector<std::string>> content
@@ -53,16 +52,14 @@ void Table::widths()
 {
   size_t n_cols = 0;
   for (const auto &row : content_)
-    if (row.size() > static_cast<size_t>(n_cols))
-      n_cols = row.size();
+    n_cols = std::max(row.size(), n_cols);
 
   max_widths_.assign(n_cols, 0);
   for (size_t j = 0; j < n_cols; j++)
   {
     size_t max_col = 0;
     for (size_t i = 0; i < content_.size(); i++)
-      if (const size_t length = get_cell(i, j).size(); length > max_col)
-        max_col = length;
+      max_col = std::max(get_cell(i, j).size(), max_col);
     max_widths_[j] = max_col + 2;
   }
 }
@@ -164,7 +161,7 @@ void Table::chars()
  */
 const string &Table::get_cell(const size_t r, const size_t c) const
 {
-  static const string empty = "";
+  static const string empty;
   if (r < content_.size() && c < content_[r].size())
     return content_[r][c];
   return empty;

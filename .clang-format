@@ -216,7 +216,7 @@ NumericLiteralCase:
   ExponentLetter:  Lower
   HexDigit:        Upper
   Prefix:          Lower
-  Suffix:          Lower
+  Suffix:          Upper
 ObjCBinPackProtocolList: Auto
 ObjCBlockIndentWidth: 2
 ObjCBreakBeforeNestedBlockParam: false

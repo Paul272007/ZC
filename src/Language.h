@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -20,7 +21,7 @@ namespace zc
   X(ASM_NASM, "ASM_NASM", "S", "ASM")                  \
   X(SH,       "SH",       "SH")
 
-enum Language
+enum Language : std::uint8_t
 {
 #define GENERATE_ENUM(lang, name, ...) lang,
   ZC_SUPPORTED_LANGUAGES(GENERATE_ENUM)

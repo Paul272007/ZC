@@ -22,12 +22,12 @@ void Network::download(const std::string &url, const std::filesystem::path &dest
 {
   CURL *curl = curl_easy_init();
 
-  if (!curl)
+  if (curl == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to initialize CURL");
 
   FILE *fp = fopen(dest.string().c_str(), "wb");
 
-  if (!fp)
+  if (fp == nullptr)
   {
     curl_easy_cleanup(curl);
     throw ZCException(ZCE_WRITING_ERROR, "Failed to open file for writing: " + dest.string());
@@ -36,10 +36,10 @@ void Network::download(const std::string &url, const std::filesystem::path &dest
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1l);
-  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1l);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1l);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
 
   const CURLcode res = curl_easy_perform(curl);
 
@@ -102,7 +102,7 @@ string Network::request(
 {
   {
     CURL *curl = curl_easy_init();
-    if (!curl)
+    if (curl == nullptr)
       throw ZCException(ZCE_INTERNAL_ERROR, "Failed to initialize CURL");
 
     std::string readBuffer;

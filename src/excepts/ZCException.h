@@ -16,19 +16,16 @@ public:
    * @param code
    * @param message
    */
-  explicit ZCException(
-    ExitCode code = ZCE_SUCCESS, const std::string &message = "Feature not implemented"
-  );
+  explicit ZCException(ExitCode code = ZCE_SUCCESS, std::string message = "Feature not implemented");
 
-  const char *what() const noexcept override;
-
-  int code() const;
+  [[nodiscard]] int code() const;
+  [[nodiscard]] const char *what() const noexcept override;
 
   friend std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception);
 
 private:
-  const std::string message_;
   const ExitCode    code_;
+  const std::string message_;
 };
 
 } // namespace zc

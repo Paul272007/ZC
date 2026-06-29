@@ -15,7 +15,7 @@ class Update : public Command
 {
 public:
   Update(
-    bool force, const std::filesystem::path &p_root, const std::filesystem::path &path,
+    bool force, const std::filesystem::path &p_root, std::filesystem::path path,
     const std::vector<std::string> &targets, bool sync
   );
 

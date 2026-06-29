@@ -26,13 +26,15 @@ public:
   std::string archive = "ar rcs";
 
   std::map<Language, LanguageConf> languages = {
-    { C, { "c17", "clang", { "-Wall", "-Wextra" } } },
-    { CXX, { "c++20", "clang++", { "-Wall", "-Wextra" } } },
+    { C, { .std = "c17", .compiler = "clang", .flags = { "-Wall", "-Wextra" } } },
+    { CXX, { .std = "c++20", .compiler = "clang++", .flags = { "-Wall", "-Wextra" } } },
   };
 
-  static GConf &get();
-  GConf(const GConf &)          = delete;
-  void operator=(const GConf &) = delete;
+  [[nodiscard]] static GConf &get();
+  GConf(GConf &&)                 = delete;
+  GConf &operator=(GConf &&)      = delete;
+  GConf(const GConf &)            = delete;
+  GConf &operator=(const GConf &) = delete;
 
   void login(bool force = false);
 

@@ -15,18 +15,19 @@ class TemplateEngine
 {
 public:
   static TemplateEngine &get();
-  TemplateEngine(const TemplateEngine &) = delete;
-  void operator=(const TemplateEngine &) = delete;
+  TemplateEngine(TemplateEngine &&)                 = delete;
+  TemplateEngine &operator=(TemplateEngine &&)      = delete;
+  TemplateEngine(const TemplateEngine &)            = delete;
+  TemplateEngine &operator=(const TemplateEngine &) = delete;
+  ~TemplateEngine()                                 = default;
 
-  const std::vector<std::string> &templates() const;
+  [[nodiscard]] const std::vector<std::string> &templates() const;
+  [[nodiscard]] const std::vector<std::string> &p_templates() const;
 
-  const std::vector<std::string> &p_templates() const;
+  [[nodiscard]] Table templates_table() const;
+  [[nodiscard]] Table p_templates_table() const;
 
-  Table templates_table() const;
-
-  Table p_templates_table() const;
-
-  bool init_with_template(const std::filesystem::path &file, Language l) const;
+  [[nodiscard]] bool init_with_template(const std::filesystem::path &file, Language l) const;
 
   void
   init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;

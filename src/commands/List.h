@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Command.h"
 #include "../pkgs/Registry.h"
 #include "../templates/TemplateEngine.h"
+#include "Command.h"
 
 namespace zc
 {
 
-enum ListType
+enum class ListType : uint8_t
 {
   ZC_LIST_SHOW_PKGS,
   ZC_LIST_SHOW_REMOTE,
@@ -23,8 +23,8 @@ public:
   void operator()() override;
 
 private:
-  Registry &reg_ = Registry::get();
-  TemplateEngine &te_ = TemplateEngine::get();
+  Registry       &reg_ = Registry::get();
+  TemplateEngine &te_  = TemplateEngine::get();
 
   ListType   type_;
   const bool simple_;

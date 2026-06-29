@@ -25,8 +25,10 @@ public:
    * Get the user registry, which index is stored in ~/.zc/registry.json
    */
   [[nodiscard]] static Registry &get();
-  Registry(const Registry &)       = delete;
-  void operator=(const Registry &) = delete;
+  Registry(Registry &&)                 = delete;
+  Registry &operator=(Registry &&)      = delete;
+  Registry(const Registry &)            = delete;
+  Registry &operator=(const Registry &) = delete;
 
   /**
    * @param name
@@ -139,7 +141,8 @@ private:
   /**
    * Download archive, verify its hash, extract it and return the root of the project
    */
-  std::filesystem::path download_and_extract(const Target &target, const nlohmann::json &index) const;
+  [[nodiscard]] std::filesystem::path
+  download_and_extract(const Target &target, const nlohmann::json &index) const;
 
   /**
    * @param archive

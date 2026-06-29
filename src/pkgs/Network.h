@@ -11,8 +11,10 @@ class Network
 {
 public:
   [[nodiscard]] static Network &get();
-  Network(const Network &)        = delete;
-  void operator=(const Network &) = delete;
+  Network(Network &&)                 = delete;
+  Network &operator=(Network &&)      = delete;
+  Network(const Network &)            = delete;
+  Network &operator=(const Network &) = delete;
 
   void download(const std::string &url, const std::filesystem::path &dest) const;
 

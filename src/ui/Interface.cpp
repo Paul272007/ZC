@@ -35,45 +35,45 @@ void Interface::flush_screen() const
 void Interface::new_line() const
 {
   if (!quiet_)
-    cout << endl;
+    cout << '\n';
 }
 
 void Interface::success(const std::string &message) const
 {
   if (!quiet_)
-    cout << GREEN "✔ " RESET << message << endl;
+    cout << GREEN "✔ " RESET << message << '\n';
 }
 
 void Interface::info(const std::string &message) const
 {
   if (!quiet_)
-    cout << BLUE "➜ " RESET << message << endl;
+    cout << BLUE "➜ " RESET << message << '\n';
 }
 
 void Interface::print(const std::string &message) const
 {
   if (!quiet_)
-    cout << message << endl;
+    cout << message << '\n';
 }
 
 void Interface::debug(const std::string &message) const
 {
 #ifdef DEBUG_MODE
   if (!quiet_)
-    cout << CYAN "⚙ " RESET << message << endl;
+    cout << CYAN "⚙ " RESET << message << '\n';
 #endif
 }
 
 void Interface::warning(const std::string &message) const
 {
   if (!quiet_)
-    cout << YELLOW "! " RESET << message << endl;
+    cout << YELLOW "! " RESET << message << '\n';
 }
 
 void Interface::error(const std::string &message) const
 {
   if (!quiet_)
-    cerr << RED "✗ " RESET << message << endl;
+    cerr << RED "✗ " RESET << message << '\n';
 }
 
 bool Interface::ask(const std::string &question, const bool default_ans) const
@@ -102,7 +102,7 @@ string Interface::input(const string &question) const
   if (line.empty())
   {
     cout << CURSOR_UP(1) << "\r" CLEAR_LINE;
-    cout << BLUE "? " RESET << question << ": " << BLUE "none" RESET << endl;
+    cout << BLUE "? " RESET << question << ": " << BLUE "none" RESET << '\n';
   }
   return line;
 }
@@ -125,7 +125,7 @@ string Interface::input(const string &question, const string &default_ans) const
   {
     cout << CURSOR_UP(1) << "\r" CLEAR_LINE;
     cout << BLUE "? " RESET << question << " (" << default_ans << "): " << BLUE << default_ans << RESET
-         << endl;
+         << '\n';
     return default_ans;
   }
   return line;
@@ -141,7 +141,7 @@ void Interface::loading_bar(int bar_width, int percent_filled, const std::string
     pct_str = " " + pct_str; // Percentage always takes 3 characters
 
   const int filled = (percent_filled * bar_width) / 100;
-  string    bar    = "";
+  string    bar;
   for (int i = 0; i < bar_width; i++)
     bar += (i < filled) ? "█" : "░";
 
@@ -158,7 +158,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
 {
   size_t       cursor = 0;
   vector<bool> selected(options.size(), false);
-  cout << BLUE "? " RESET << question << endl << HIDE_CURSOR;
+  cout << BLUE "? " RESET << question << '\n' << HIDE_CURSOR;
 
   set_raw_mode(true);
 
@@ -171,7 +171,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
       else
         cout << WHITE "  ";
 
-      cout << (selected[i] ? "◉ " : "◯ ") << options[i] << RESET << endl;
+      cout << (selected[i] ? "◉ " : "◯ ") << options[i] << RESET << '\n';
     }
 
     const char c = get_char_raw();
@@ -222,7 +222,7 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
     if (selected[i])
       result.push_back(options[i]);
 
-  cout << BLUE << "? " << RESET << question << " " BLUE << join(result, ", ") << RESET << endl;
+  cout << BLUE << "? " << RESET << question << " " BLUE << join(result, ", ") << RESET << '\n';
 
   return result;
 }
@@ -233,7 +233,7 @@ size_t Interface::radios(
 {
   size_t cursor = default_ans;
 
-  cout << BLUE << "? " << RESET << question << endl << HIDE_CURSOR;
+  cout << BLUE << "? " << RESET << question << '\n' << HIDE_CURSOR;
 
   set_raw_mode(true);
 
@@ -246,7 +246,7 @@ size_t Interface::radios(
       else
         cout << WHITE "  ";
 
-      cout << options[i] << RESET << endl;
+      cout << options[i] << RESET << '\n';
     }
 
     const char c = get_char_raw();
@@ -289,7 +289,7 @@ size_t Interface::radios(
 
   cout << CURSOR_UP(options.size() + 1);
   cout << CLEAR_UNDER_CURSOR;
-  cout << BLUE << "? " << RESET << question << " " BLUE << options[cursor] << RESET << endl;
+  cout << BLUE << "? " << RESET << question << " " BLUE << options[cursor] << RESET << '\n';
 
   return cursor;
 }

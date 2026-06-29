@@ -9,9 +9,9 @@ namespace zc
 class MakeVariable
 {
 public:
-  MakeVariable(const std::string &name);
+  MakeVariable(std::string name);
   [[nodiscard]] std::string string() const;
-  std::string make_declaration() const;
+  [[nodiscard]] std::string make_declaration() const;
   void add(const std::string &value);
   void add_no_esc(const std::string &value);
   void add_make_var(const std::string &key);

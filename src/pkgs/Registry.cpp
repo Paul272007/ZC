@@ -176,7 +176,7 @@ Project Registry::update_from_path(const std::filesystem::path &path, const bool
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update distant package with local package");
 
-  if (!force && is_installed({ p.pconf.name, p.pconf.version }))
+  if (!force && is_installed({ .name = p.pconf.name, .version = p.pconf.version }))
   {
     if_.info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return p;

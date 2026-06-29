@@ -39,10 +39,10 @@ private:
   const std::string output_name_;
   const std::string build_cmd_;
 
-  bool has_cpp() const;
-  std::string get_build_command() const;
-  std::string get_output_name() const;
-  std::vector<Dependency> get_dependencies() const;
+  [[nodiscard]] bool has_cpp() const;
+  [[nodiscard]] std::string get_build_command() const;
+  [[nodiscard]] std::string get_output_name() const;
+  [[nodiscard]] std::vector<Dependency> get_dependencies() const;
 };
 
 } // namespace zc

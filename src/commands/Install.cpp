@@ -16,11 +16,10 @@ namespace zc
 {
 
 Install::Install(
-  const bool force, const std::filesystem::path &p_root, filesystem::path path,
-  const std::vector<std::string> &targets, const bool is_std
+  const bool force, const fs::path &p_root, fs::path path, const vector<string> &targets, const bool is_std
 )
   : Command(force),
-    p_root_(get_project_root(p_root)),
+    p_root_(targets.empty() && path.empty() ? get_project_root(p_root) : fs::current_path()),
     path_(std::move(path)),
     targets_(parse_targets(targets)),
     std_(is_std)
@@ -58,7 +57,7 @@ void Install::install_targets()
   {
     if (!has_pkg_config())
       throw ZCException(ZCE_NOT_FOUND, "Command 'pkg-config' is required to install standard packages");
-    for (CAA [name, _] : targets_)
+    for (CAA[name, _] : targets_)
       reg_.install_std(name);
   }
   else

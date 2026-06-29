@@ -200,7 +200,7 @@ std::string exec_command(const std::string &cmd)
 {
   std::string result;
   FILE       *pipe = popen(cmd.c_str(), "r");
-  if (!pipe)
+  if (pipe == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "popen() failed for command: " + cmd);
   char buffer[128];
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
@@ -214,9 +214,9 @@ std::vector<Target> parse_targets(const std::vector<std::string> &targets)
   std::vector<Target> results;
   for (const auto &target : targets)
     if (const size_t at_pos = target.find('@'); at_pos != string::npos)
-      results.push_back({ target.substr(0, at_pos), target.substr(at_pos + 1) });
+      results.push_back({ .name = target.substr(0, at_pos), .version = target.substr(at_pos + 1) });
     else
-      results.push_back({ target, { 0, 0, 0 } }); // 0.0.0 = empty version
+      results.push_back({ .name = target, .version = { 0, 0, 0 } }); // 0.0.0 = empty version
   return results;
 }
 

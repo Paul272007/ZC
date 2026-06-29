@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -8,7 +9,7 @@
 namespace zc
 {
 
-enum class PkgType
+enum class PkgType : std::uint8_t
 {
   BIN,
   LIB,

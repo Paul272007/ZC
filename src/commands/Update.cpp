@@ -12,11 +12,12 @@ namespace zc
 {
 
 Update::Update(
-  const bool force, const fs::path &p_root, const fs::path &path, const std::vector<std::string> &targets, const bool sync
+  const bool force, const fs::path &p_root, fs::path path, const std::vector<std::string> &targets,
+  const bool sync
 )
   : Command(force),
     p_root_(get_project_root(p_root)),
-    path_(path),
+    path_(std::move(path)),
     targets_(parse_targets(targets)),
     sync_(sync)
 {

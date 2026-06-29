@@ -14,7 +14,8 @@ namespace zc
 inline void set_raw_mode(const bool enable)
 {
 #if !defined(_WIN32) && !defined(_WIN64)
-  static termios oldt, newt;
+  static termios oldt;
+  static termios newt;
   if (enable)
   {
     tcgetattr(STDIN_FILENO, &oldt); // Save the current state of the terminal

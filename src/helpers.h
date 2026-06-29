@@ -116,7 +116,7 @@ std::string esc(const std::string &arg);
 std::string exec_command(const std::string &cmd);
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
 bool has_pkg_config();
-std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags);
+std::string get_pkg_config_flags(const std::string &pkg_name, bool cflags);
 std::vector<std::string> split(const std::string &str, char delimiter = ' ');
 void merge(const std::vector<std::string> &src, std::vector<std::string> &dest);
 

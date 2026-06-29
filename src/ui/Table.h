@@ -41,7 +41,7 @@ class Table
 public:
   using Chars = struct TableChars;
 
-  Table();
+  Table() = default;
 
   /**
    * @brief Create a Table instance
@@ -115,7 +115,7 @@ private:
   /**
    * @brief Safely get a cell's content, returning empty string if out of bounds
    */
-  const std::string &get_cell(size_t r, size_t c) const;
+  [[nodiscard]] const std::string &get_cell(size_t r, size_t c) const;
 
   /**
    * @brief The current line being displayed

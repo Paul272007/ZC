@@ -8,8 +8,8 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-ZCException::ZCException(const ExitCode code, const std::string &message)
-  : message_(message), code_(code)
+ZCException::ZCException(const ExitCode code, std::string message)
+  : code_(code), message_(std::move(message))
 {
 }
 

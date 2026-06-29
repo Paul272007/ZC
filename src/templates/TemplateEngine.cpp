@@ -95,10 +95,10 @@ bool TemplateEngine::init_with_template(const std::filesystem::path &file, Langu
     if_.error("Skipped file " + file.string() + ": no template available");
     return false;
   }
-  elif (found_templates_for_language.size() > 1)
-    template_to_use = found_templates_for_language[static_cast<size_t>(if_.radios(
+  if (found_templates_for_language.size() > 1)
+    template_to_use = found_templates_for_language[if_.radios(
       "Which template do you want to use for file " + file.string(), found_templates_for_language
-    ))];
+    )];
   else
     template_to_use = found_templates_for_language.at(0);
 

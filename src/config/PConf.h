@@ -30,13 +30,17 @@ public:
   std::map<std::string, Dependency> dependencies;
   std::map<Language, LanguageConf>  languages;
 
-  ~PConf() override;
-
   void add_dependency(const Dependency &d);
   void remove_dependency(const std::string &dep_name);
   void change_dependency_version(const std::string &dep_name, const Version &new_version);
 
+  ~PConf() override;
   explicit PConf(const std::filesystem::path &file = get_project_root() / ZC_FILE);
+
+  PConf(const PConf &)            = delete;
+  PConf(PConf &&)                 = default;
+  PConf &operator=(const PConf &) = delete;
+  PConf &operator=(PConf &&)      = delete;
 
 protected:
   void load() override;

@@ -11,7 +11,11 @@ namespace zc
 class Conf
 {
 public:
-  virtual ~Conf() = default;
+  Conf(const Conf &)            = delete;
+  Conf(Conf &&)                 = default;
+  Conf &operator=(const Conf &) = delete;
+  Conf &operator=(Conf &&)      = delete;
+  virtual ~Conf()               = default;
 
 protected:
   const Interface &if_ = Interface::get();

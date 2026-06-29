@@ -9,7 +9,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-MakeVariable::MakeVariable(const std::string &name) : name_(name) {}
+MakeVariable::MakeVariable(std::string name) : name_(std::move(name)) {}
 
 std::string MakeVariable::string() const
 {

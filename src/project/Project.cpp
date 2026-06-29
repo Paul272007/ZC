@@ -1,5 +1,6 @@
 #include "Project.h"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <format>
@@ -47,7 +48,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   const string make_cmd    = "make --no-print-directory -C " + build_dir.string() + " all";
   const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
   FILE        *dry_pipe    = popen(dry_run_cmd.c_str(), "r");
-  if (!dry_pipe)
+  if (dry_pipe == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
   char buffer_dry[512];
@@ -72,7 +73,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   int       done = 0;
 
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
-  if (!pipe)
+  if (pipe == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
 
   char buffer[1024];
@@ -87,9 +88,7 @@ void Project::build(BuildMode current_mode, bool is_install)
     {
       constexpr int bar_width = 20;
       done++;
-      int percent = (done * 100) / todo;
-      if (percent > 100)
-        percent = 100;
+      int percent = std::min((done * 100) / todo, 100);
 
       string message;
       string target_name;
@@ -289,7 +288,7 @@ void Project::publish()
     catch (const ZCException &e)
     {
       // 404 is fine, it means it's a new package
-      if (string(e.what()).find("404") == string::npos)
+      if (!string(e.what()).contains("404"))
         throw;
     }
 
@@ -299,7 +298,7 @@ void Project::publish()
   }
   catch (const ZCException &e)
   {
-    if (string(e.what()).find("422") != string::npos)
+    if (string(e.what()).contains("422"))
     {
       throw ZCException(
         ZCE_VERSION_ALREADY_EXISTS, "Version " + pconf.version.string() + " already exists in the registry."
@@ -333,7 +332,7 @@ void Project::change_dependency_version(const std::string &name, Version &new_ve
 {
   if (new_version.empty())
     new_version = reg_.get_latest(name);
-  if (!reg_.is_installed({ name, new_version }))
+  if (!reg_.is_installed({ .name = name, .version = new_version }))
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' is not installed");
   pconf.change_dependency_version(name, new_version);
   fs::create_directories(build_dir);
