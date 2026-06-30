@@ -10,14 +10,11 @@ class Version
 {
 public:
   Version(const std::string &text);
-
-  Version(int major = 0, int minor = 0, int patch = 1); // Default : first non-empty version
-
-  static Version latest() { return { 0, 0, 0 }; }
-
-  [[nodiscard]] std::string string() const;
+  Version(int major = 0, int minor = 0, int patch = 0);
 
   [[nodiscard]] auto operator<=>(const Version &) const = default;
+
+  [[nodiscard]] std::string string() const;
 
   [[nodiscard]] bool empty() const;
 
@@ -28,7 +25,7 @@ public:
   [[nodiscard]] int patch() const { return patch_; }
 
 private:
-  int major_ = 0; // Initialize at 0 => if string is empty, so is the version
+  int major_ = 0;
   int minor_ = 0;
   int patch_ = 0;
 };

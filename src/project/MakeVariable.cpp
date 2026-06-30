@@ -26,6 +26,14 @@ void MakeVariable::add(const std::string &value)
   elts_.push_back(esc(value));
 }
 
+void MakeVariable::add_macro(const std::string &key, const std::string &value)
+{
+  if (value.empty())
+    add("-D" + key);
+  else
+    add("-D" + key + "=" + value);
+}
+
 void MakeVariable::add_no_esc(const std::string &value)
 {
   elts_.push_back(value);

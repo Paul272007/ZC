@@ -209,17 +209,6 @@ std::string exec_command(const std::string &cmd)
   return result;
 }
 
-std::vector<Target> parse_targets(const std::vector<std::string> &targets)
-{
-  std::vector<Target> results;
-  for (const auto &target : targets)
-    if (const size_t at_pos = target.find('@'); at_pos != string::npos)
-      results.push_back({ .name = target.substr(0, at_pos), .version = target.substr(at_pos + 1) });
-    else
-      results.push_back({ .name = target, .version = { 0, 0, 0 } }); // 0.0.0 = empty version
-  return results;
-}
-
 void check_name(const std::string &name)
 {
   if (name.at(0) == '-')
@@ -293,6 +282,7 @@ void write_json(const nlohmann::json &json, const std::filesystem::path &file_pa
 vector<fs::path> str_to_path(const vector<string> &vec)
 {
   vector<fs::path> v;
+  v.reserve(vec.size());
   for (const auto &f : vec)
     v.emplace_back(f);
   return v;

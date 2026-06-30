@@ -8,6 +8,7 @@
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "../pkgs/Network.h"
+#include "../ui/Interface.h"
 #include "../ui/ui_utils.h"
 #include "Conf.h"
 #include "config/LanguageConf.h"
@@ -28,7 +29,7 @@ GConf &GConf::get()
 void GConf::login(bool force)
 {
   if (!force && !token.empty() &&
-      !if_.ask("An account is already logged in. Do you want to change the account ?"))
+      !ui().ask("An account is already logged in. Do you want to change the account ?"))
     throw ZCException(ZCE_ABORTED, "Interrupted");
 
   Network &net = Network::get();
@@ -49,15 +50,15 @@ void GConf::login(bool force)
 
   int interval = json_resp["interval"];
 
-  if_.new_line();
-  if_.info("===============================================================");
-  if_.info("1. Open your browser and go to: " U_BLUE + verification_uri + RESET);
-  if_.info("2. Enter the following code:    " B_WHITE + user_code + RESET);
-  if_.info("===============================================================");
-  if_.new_line();
+  ui().new_line();
+  ui().info("===============================================================");
+  ui().info("1. Open your browser and go to: " U_BLUE + verification_uri + RESET);
+  ui().info("2. Enter the following code:    " B_WHITE + user_code + RESET);
+  ui().info("===============================================================");
+  ui().new_line();
 
-  if_.info("Waiting for authorization (press Ctrl+C to abort)...");
-  if_.flush_screen();
+  ui().info("Waiting for authorization (press Ctrl+C to abort)...");
+  ui().flush_screen();
 
   const std::string token_payload = "client_id=" CLIENT_ID "&device_code=" + device_code +
                                     "&grant_type=urn:ietf:params:oauth:grant-type:device_code";
@@ -73,32 +74,24 @@ void GConf::login(bool force)
       std::string err = poll_json["error"];
 
       if (err == "authorization_pending")
-      {
-        if_.flush_screen();
-      }
+        ui().flush_screen();
       else if (err == "slow_down")
-      {
         interval += 5;
-      }
       else if (err == "expired_token")
-      {
         throw ZCException(ZCE_AUTHENTICATION_ERROR, "The code has expired. Please run `zc login` again.");
-      }
       else
-      {
         throw ZCException(
           ZCE_NETWORK_ERROR, "Authorization failed: " + poll_json["error_description"].get<string>()
         );
-      }
     }
     else if (poll_json.contains("access_token"))
     {
-      if_.new_line();
+      ui().new_line();
       token     = poll_json["access_token"];
       modified_ = true;
 
-      if_.success("Successfully authenticated with GitHub!");
-      if_.success("Your credentials have been securely saved to " + file_.string());
+      ui().success("Successfully authenticated with GitHub!");
+      ui().success("Your credentials have been securely saved to " + file_.string());
       break;
     }
   }
@@ -108,13 +101,13 @@ void GConf::logout()
 {
   if (token.empty())
   {
-    if_.info("Already logged out.");
+    ui().info("Already logged out.");
   }
   else
   {
     token     = "";
     modified_ = true;
-    if_.success("Successfully logged out.");
+    ui().success("Successfully logged out.");
   }
 }
 

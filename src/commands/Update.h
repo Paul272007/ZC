@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "../helpers.h"
 #include "../pkgs/Registry.h"
 #include "Command.h"
 
@@ -27,8 +26,8 @@ private:
   const std::filesystem::path p_root_;
   const std::filesystem::path path_;
 
-  std::vector<Target> targets_;
-  const bool          sync_;
+  std::vector<RemoteTarget> targets_;
+  const bool                sync_;
 };
 
 } // namespace zc

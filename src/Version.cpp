@@ -14,7 +14,7 @@ Version::Version(const std::string &text)
 {
   if (text == "latest")
   {
-    (*this) = latest();
+    (*this) = { 0, 0, 0 };
     return;
   }
 

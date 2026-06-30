@@ -21,14 +21,15 @@ public:
   std::string author;
   std::string target = name;
 
-  PkgType type = PkgType::UNDEF;
-  Version version; // default is 0.0.1
+  PkgType type    = PkgType::UNDEF;
+  Version version = { 0, 0, 1 };
 
   std::vector<std::string> src_dirs     = { SRC_DIR };
   std::vector<std::string> include_dirs = { SRC_DIR };
 
-  std::map<std::string, Dependency> dependencies;
-  std::map<Language, LanguageConf>  languages;
+  std::map<std::string, std::string> macros;
+  std::map<std::string, Dependency>  dependencies;
+  std::map<Language, LanguageConf>   languages;
 
   void add_dependency(const Dependency &d);
   void remove_dependency(const std::string &dep_name);
@@ -44,7 +45,6 @@ public:
 
 protected:
   void load() override;
-
   void write() override;
 };
 

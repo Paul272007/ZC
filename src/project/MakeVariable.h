@@ -13,6 +13,7 @@ public:
   [[nodiscard]] std::string string() const;
   [[nodiscard]] std::string make_declaration() const;
   void add(const std::string &value);
+  void add_macro(const std::string &key, const std::string &value = "");
   void add_no_esc(const std::string &value);
   void add_make_var(const std::string &key);
   friend struct MakeVariableCmp;

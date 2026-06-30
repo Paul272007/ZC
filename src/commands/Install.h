@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "../helpers.h"
 #include "../pkgs/Registry.h"
+#include "../pkgs/RemoteTarget.h"
 #include "Command.h"
 
 namespace zc
@@ -27,7 +27,7 @@ private:
   const std::filesystem::path p_root_;
   const std::filesystem::path path_;
 
-  std::vector<Target> targets_;
+  std::vector<RemoteTarget> targets_;
 
   const bool std_;
 

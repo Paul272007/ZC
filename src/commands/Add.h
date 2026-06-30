@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../helpers.h"
+#include "../pkgs/LocalTarget.h"
 #include "Command.h"
 
 namespace zc
@@ -16,8 +16,8 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path p_root_;
-  const std::vector<Target>   targets_;
+  const std::filesystem::path    p_root_;
+  const std::vector<LocalTarget> targets_;
 
   const bool static_;
 };

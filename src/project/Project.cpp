@@ -15,9 +15,11 @@
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "Language.h"
+#include "pkgs/LocalTarget.h"
 #include "pkgs/Network.h"
 #include "pkgs/PkgType.h"
 #include "pkgs/Registry.h"
+#include "pkgs/RemoteTarget.h"
 #include "project/MakeVariable.h"
 #include "Version.h"
 
@@ -308,7 +310,7 @@ void Project::publish()
   }
 }
 
-void Project::add_dependency(const Target &target, const bool is_static)
+void Project::add_dependency(const LocalTarget &target, const bool is_static)
 {
   if (pconf.name == target.name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
@@ -328,11 +330,9 @@ void Project::remove_dependency(const string &name)
   generate_compile_commands();
 }
 
-void Project::change_dependency_version(const std::string &name, Version &new_version)
+void Project::change_dependency_version(const std::string &name, const Version &new_version)
 {
-  if (new_version.empty())
-    new_version = reg_.get_latest(name);
-  if (!reg_.is_installed({ .name = name, .version = new_version }))
+  if (!reg_.is_installed(name, new_version))
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' is not installed");
   pconf.change_dependency_version(name, new_version);
   fs::create_directories(build_dir);
@@ -342,8 +342,7 @@ void Project::change_dependency_version(const std::string &name, Version &new_ve
 void Project::install_dependencies() const
 {
   if_.info("Installing package dependencies...");
-  const auto &net   = Network::get();
-  const json  index = net.get_index();
+  vector<pair<string, Version>> to_install;
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "local")
@@ -358,25 +357,27 @@ void Project::install_dependencies() const
       );
       continue;
     }
-
-    Target t{ .name = dep.name, .version = dep.version };
-    reg_.install_from_server(t, index);
+    to_install.emplace_back(dep.name, dep.version);
   }
+  for (CAA t : RemoteTarget::get_targets(to_install))
+    reg_.install_from_server(t);
 }
 
 void Project::update_dependencies()
 {
   if_.info("Updating package dependencies...");
-  const auto &net   = Network::get();
-  const json  index = net.get_index();
+  vector<pair<string, Version>> to_update;
+
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "local" || dep.origin == "std")
       continue;
-
-    Target t{ .name = dep.name, .version = Version::latest() };
-    reg_.update_from_server(t, index);
-    pconf.change_dependency_version(dep.name, Version::latest());
+    to_update.emplace_back(dep.name, dep.version);
+  }
+  for (CAA t : RemoteTarget::get_targets(to_update))
+  {
+    reg_.update_from_server(t);
+    pconf.change_dependency_version(t.name, t.version);
   }
 }
 
@@ -657,11 +658,14 @@ void Project::init_variables(bool release)
 
   // Macros
   MakeVariable macros{ "MACROS" };
-  macros.add(release ? "-DZC_RELEASE" : "-DZC_DEBUG");
-  macros.add("-DZC_MAJOR=" + to_string(pconf.version.major()));
-  macros.add("-DZC_MINOR=" + to_string(pconf.version.minor()));
-  macros.add("-DZC_PATCH=" + to_string(pconf.version.patch()));
-  macros.add("-DZC_VERSION=\"" + pconf.version.string() + "\"");
+  macros.add_macro(release ? "ZC_RELEASE" : "ZC_DEBUG");
+  macros.add_macro("ZC_MAJOR", to_string(pconf.version.major()));
+  macros.add_macro("ZC_MINOR", to_string(pconf.version.minor()));
+  macros.add_macro("ZC_PATCH", to_string(pconf.version.patch()));
+  macros.add_macro("ZC_VERSION", "\"" + pconf.version.string() + "\"");
+
+  for (const auto &[name, value] : pconf.macros)
+    macros.add_macro(name, value);
 
   // Libraries and include directories
   MakeVariable incdirs{ "INCLUDE_DIRS" };

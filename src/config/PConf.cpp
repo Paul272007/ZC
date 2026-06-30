@@ -62,6 +62,7 @@ void PConf::load()
   get_key(root, "include_dirs", include_dirs, include_dirs);
   get_key(root, "type", type);
   get_key(root, "version", version);
+  get_key(root, "macros", macros, macros);
 
   if (version.empty())
     throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
@@ -87,8 +88,8 @@ void PConf::load()
     dependencies.clear();
     for (CAA[key, value] : root["dependencies"].items())
     {
-      auto  d = value.get<Dependency>();
-      d.name       = key;
+      auto d = value.get<Dependency>();
+      d.name = key;
       dependencies.insert_or_assign(key, d);
     }
   }
@@ -99,6 +100,7 @@ void PConf::write()
   json root;
 
   root["type"]         = type;
+  root["macros"]       = macros;
   root["version"]      = version;
   root["src_dirs"]     = src_dirs;
   root["include_dirs"] = include_dirs;

@@ -138,10 +138,7 @@ target_link_libraries(zc-core PRIVATE
 # Compile zc
 add_executable(zc src/zc.cpp)
 target_link_libraries(zc PRIVATE zc-core)
-
-# Compile zcc
-add_executable(zcc src/zcc.cpp)
-target_link_libraries(zcc PRIVATE zc-core)
+target_include_directories(zc PRIVATE src)
 
 # --- INSTALLATION RULES ---
 

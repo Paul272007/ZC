@@ -7,7 +7,7 @@
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
-#include "pkgs/Network.h"
+#include "pkgs/RemoteTarget.h"
 #include "project/Project.h"
 
 ZC_DEV_CONFIG_JSON
@@ -21,9 +21,13 @@ Install::Install(
   : Command(force),
     p_root_(targets.empty() && path.empty() ? get_project_root(p_root) : fs::current_path()),
     path_(std::move(path)),
-    targets_(parse_targets(targets)),
     std_(is_std)
 {
+  if (std_)
+    for (CAA t : targets)
+      targets_.push_back({ .name = t, .url = "", .sha256 = "", .version = { 0, 0, 0 } });
+  else
+    targets_ = RemoteTarget::parse(targets);
 }
 
 void Install::operator()()
@@ -57,14 +61,13 @@ void Install::install_targets()
   {
     if (!has_pkg_config())
       throw ZCException(ZCE_NOT_FOUND, "Command 'pkg-config' is required to install standard packages");
-    for (CAA[name, _] : targets_)
+    for (CAA[name, url, sha, version] : targets_)
       reg_.install_std(name);
   }
   else
   {
-    const json index = Network::get().get_index();
     for (auto &target : targets_)
-      reg_.install_from_server(target, index, force_);
+      reg_.install_from_server(target, force_);
   }
 }
 

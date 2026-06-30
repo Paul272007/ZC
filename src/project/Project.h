@@ -11,6 +11,7 @@
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
 #include "../Language.h"
+#include "../pkgs/LocalTarget.h"
 #include "../pkgs/Registry.h"
 #include "../ui/Interface.h"
 #include "MakeVariable.h"
@@ -69,9 +70,9 @@ public:
   void clean(bool cache = false) const;
   void publish();
 
-  void add_dependency(const Target &target, bool is_static = false);
+  void add_dependency(const LocalTarget &target, bool is_static = false);
   void remove_dependency(const std::string &name);
-  void change_dependency_version(const std::string &name, Version &new_version);
+  void change_dependency_version(const std::string &name, const Version &new_version);
 
   void install_dependencies() const;
   void update_dependencies();

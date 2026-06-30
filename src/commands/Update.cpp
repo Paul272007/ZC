@@ -4,6 +4,7 @@
 
 #include "commands/Command.h"
 #include "helpers.h"
+#include "pkgs/RemoteTarget.h"
 #include "project/Project.h"
 
 ZC_DEV_CONFIG_JSON
@@ -18,7 +19,7 @@ Update::Update(
   : Command(force),
     p_root_(get_project_root(p_root)),
     path_(std::move(path)),
-    targets_(parse_targets(targets)),
+    targets_(RemoteTarget::parse(targets)),
     sync_(sync)
 {
 }
@@ -43,14 +44,13 @@ void Update::operator()()
   }
   else
   {
-    const json index = Network::get().get_index();
     for (auto &target : targets_)
-      reg_.update_from_server(target, index, force_);
+      reg_.update_from_server(target, force_);
 
     if (sync_)
     {
       Project p(p_root_); // target.version now contains the newly installed version :
-      for (auto &[name, new_version] : targets_)
+      for (CAA[name, url, sha, new_version] : targets_)
         p.change_dependency_version(name, new_version);
     }
   }

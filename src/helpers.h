@@ -9,7 +9,8 @@
 #include <vector>
 
 #include "excepts/ZCException.h"
-#include "Version.h"
+#include "pkgs/Network.h"
+#include "ui/Interface.h"
 
 #define ZC_DEV_CONFIG             \
   using namespace std;            \
@@ -85,38 +86,46 @@
 namespace zc
 {
 
-struct Target
+inline zc::Interface &ui()
 {
-  const std::string name;
+  return zc::Interface::get();
+}
 
-  Version version = Version::latest();
-};
+inline zc::Network &net()
+{
+  return zc::Network::get();
+}
 
-std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
+// Operations on ZC directories
 const std::filesystem::path &zc_root();
+std::filesystem::path get_project_root(const std::filesystem::path &base = std::filesystem::current_path());
+bool is_in_a_zc_project();
 void create_zc_root();
-std::vector<Target> parse_targets(const std::vector<std::string> &targets);
-void check_name(const std::string &name);
 
+// Operations on files
 std::string read_file(const std::filesystem::path &file);
 void write_file(const std::filesystem::path &file, const std::string &content);
-
 nlohmann::json read_json(const std::filesystem::path &file_path);
 void write_json(const nlohmann::json &json, const std::filesystem::path &file_path);
 
+// Misc
+void check_name(const std::string &name);
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
+bool has_pkg_config();
+std::string get_pkg_config_flags(const std::string &pkg_name, bool cflags);
+std::string exec_command(const std::string &cmd);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 
+// String utilities
 std::string pretty_path(const std::filesystem::path &path);
 std::string join(const std::vector<std::string> &v, const std::string &separator = " ");
 std::string upper(const std::string &text);
 std::string lower(const std::string &text);
 std::string esc(const std::string &arg);
-std::string exec_command(const std::string &cmd);
+
+// Vector utilities
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
-bool has_pkg_config();
-std::string get_pkg_config_flags(const std::string &pkg_name, bool cflags);
 std::vector<std::string> split(const std::string &str, char delimiter = ' ');
 void merge(const std::vector<std::string> &src, std::vector<std::string> &dest);
 
@@ -146,7 +155,7 @@ template<typename T>
 void get_key(const nlohmann::json &json_conf, const std::string &key, T &variable)
 {
   if (!json_conf.contains(key))
-    throw ZCException(ZCE_MISSING_PROPERTY, "Expected property '" + key + "' missing.");
+    throw ZCException(ZCE_MISSING_PROPERTY, "Expected key '" + key + "' missing.");
 
   try
   {
