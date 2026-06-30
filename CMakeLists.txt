@@ -88,8 +88,6 @@ add_library(zc-core STATIC
         src/Language.h
         src/Version.cpp
         src/Version.h
-        src/ZCCompiler.cpp
-        src/ZCCompiler.h
 
         src/commands/Add.cpp
         src/commands/Add.h
@@ -142,4 +140,4 @@ target_include_directories(zc PRIVATE src)
 
 # --- INSTALLATION RULES ---
 
-install(TARGETS zc zcc DESTINATION bin)
+install(TARGETS zc DESTINATION bin)

@@ -15,7 +15,7 @@ class Update : public Command
 public:
   Update(
     bool force, const std::filesystem::path &p_root, std::filesystem::path path,
-    const std::vector<std::string> &targets, bool sync
+    const std::vector<std::string> &targets, bool sync, bool dont_use
   );
 
   void operator()() override;
@@ -28,6 +28,7 @@ private:
 
   std::vector<RemoteTarget> targets_;
   const bool                sync_;
+  const bool                use_;
 };
 
 } // namespace zc

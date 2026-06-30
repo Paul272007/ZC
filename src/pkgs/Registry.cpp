@@ -46,15 +46,14 @@ Dependency Registry::get_dependency(const LocalTarget &t)
 
   Version version_to_use{ t.version };
 
-  if (!version_to_use.empty()) // if version was precised verify that it exists
-  {
-    if (const auto version_it = ranges::find(versions, t.version); version_it == versions.end())
-      throw ZCException(
-        ZCE_PKG_NOT_FOUND, "Package '" + t.name + "' at version " + t.version.string() + " was not found"
-      );
-  }
-  else // else find the latest version
+  if (version_to_use.is_empty() || version_to_use.is_default())
+    version_to_use = it->second.default_version;
+  else if (version_to_use.is_latest())
     version_to_use = *ranges::max_element(versions);
+  else if (const auto version_it = ranges::find(versions, t.version); version_it == versions.end())
+    throw ZCException(
+      ZCE_PKG_NOT_FOUND, "Package '" + t.name + "' at version " + t.version.string() + " was not found"
+    );
 
   return {
     .name    = it->second.name,
@@ -82,20 +81,21 @@ void Registry::install_std(const std::string &name)
 
   add_pkg_to_index(
     {
-      .name     = name,
-      .target   = target,
-      .origin   = "std",
-      .type     = PkgType::LIB,
-      .versions = { 0, 0, 0 },
+      .name            = name,
+      .target          = target,
+      .origin          = "std",
+      .type            = PkgType::LIB,
+      .default_version = { 0, 0, 0 },
+      .versions        = { 0, 0, 0 },
     }
   );
 }
 
 void Registry::install_from_server(const RemoteTarget &target, const bool force)
 {
-  if (is_installed(target.name))
+  if (!force && is_installed(target.name))
   {
-    update_from_server(target, force);
+    update_from_server(target, force, true);
     return;
   }
   Project p(download_and_extract(target));
@@ -105,9 +105,9 @@ void Registry::install_from_server(const RemoteTarget &target, const bool force)
 void Registry::install_from_path(const std::filesystem::path &path, const bool force)
 {
   Project p(path);
-  if (is_installed(p.pconf.name))
+  if (!force && is_installed(p.pconf.name))
   {
-    update_from_path(path, force);
+    update_from_path(path, force, true);
     return;
   }
   finish_install(p, "local");
@@ -121,13 +121,15 @@ void Registry::finish_install(Project &p, const std::string &origin)
   p.build(BuildMode::release, true);
 
   ui().debug("Indexing package...");
-  add_pkg_to_index(
-    { .name     = p.pconf.name,
-      .target   = p.pconf.target,
-      .origin   = origin,
-      .type     = p.pconf.type,
-      .versions = { p.pconf.version } }
-  );
+  Pkg pkg{
+    .name            = p.pconf.name,
+    .target          = p.pconf.target,
+    .origin          = origin,
+    .type            = p.pconf.type,
+    .default_version = p.pconf.version,
+    .versions        = { p.pconf.version },
+  };
+  add_pkg_to_index(pkg);
   switch (p.pconf.type)
   {
   case PkgType::BIN:
@@ -145,10 +147,11 @@ void Registry::finish_install(Project &p, const std::string &origin)
     ui().debug("Not implemented yet.");
     break;
   }
+  update_symlinks(pkg);
   ui().success("Package successfully installed!");
 }
 
-void Registry::update_from_server(const RemoteTarget &target, const bool force)
+void Registry::update_from_server(const RemoteTarget &target, const bool force, const bool use)
 {
   if (get_pkg(target.name).origin != "main") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update local package with distant package");
@@ -159,10 +162,10 @@ void Registry::update_from_server(const RemoteTarget &target, const bool force)
     return;
   }
   Project p(download_and_extract(target));
-  finish_update(p);
+  finish_update(p, use);
 }
 
-Project Registry::update_from_path(const std::filesystem::path &path, const bool force)
+Project Registry::update_from_path(const std::filesystem::path &path, const bool force, const bool use)
 {
   Project p(path);
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
@@ -173,11 +176,11 @@ Project Registry::update_from_path(const std::filesystem::path &path, const bool
     ui().info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return p;
   }
-  finish_update(p);
+  finish_update(p, use);
   return p;
 }
 
-void Registry::finish_update(Project &p)
+void Registry::finish_update(Project &p, const bool use)
 {
   ui().debug("Building package...");
   verify_headers_structure(p);
@@ -204,6 +207,9 @@ void Registry::finish_update(Project &p)
     ui().debug("Not implemented yet.");
     break;
   }
+  if (use)
+    set_default_version(p.pconf.name, p.pconf.version);
+  ui().success("Package '" + p.pconf.name + "' updated successfully");
 }
 
 void Registry::uninstall(const std::string &pkg)
@@ -247,18 +253,10 @@ std::map<std::string, Pkg> Registry::pkgs() const
 
 Table Registry::pkgs_table() const
 {
-  vector<vector<string>> str_pkgs{ { "Package name", "Target", "Origin", "Latest version", "Type" } };
+  vector<vector<string>> str_pkgs{ { "Package name", "Target", "Origin", "Type", "Default version" } };
 
-  for (const auto &[name, target, origin, type, versions] : pkgs_ | views::values)
-    str_pkgs.push_back(
-      {
-        name,
-        target,
-        origin,
-        versions.back().string(),
-        pkg_type_to_pretty_str(type),
-      }
-    );
+  for (const auto &[name, target, origin, type, default_version, versions] : pkgs_ | views::values)
+    str_pkgs.push_back({ name, target, origin, pkg_type_to_pretty_str(type), default_version.string() });
 
   return { false, true, str_pkgs };
 }
@@ -347,6 +345,19 @@ void Registry::add_version_to_pkg(const std::string &name, const Version &versio
   modified_ = true;
 }
 
+void Registry::set_default_version(const std::string &name, const Version &version)
+{
+  auto it = get_pkg_it(name);
+  if (auto &versions = it->second.versions; ranges::find(versions, version) == versions.end())
+    throw ZCException(
+      ZCE_PKG_NOT_FOUND, "Version " + version.string() + " is not installed for package " + name
+    );
+
+  it->second.default_version = version;
+  modified_                  = true;
+  update_symlinks(it->second);
+}
+
 std::map<std::string, Pkg>::iterator Registry::get_pkg_it(const std::string &name)
 {
   auto it = pkgs_.find(name);
@@ -380,12 +391,6 @@ void Registry::copy_bin(const Project &p) const
   fs::permissions(
     dest, fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec, fs::perm_options::add
   );
-  // Edit symlink in ~/.zc/bin
-  const auto link = bin_links_dir_ / p.pconf.target;
-  fs::create_directories(bin_links_dir_);
-  if (fs::exists(link) || fs::is_symlink(link))
-    fs::remove(link);
-  fs::create_symlink(dest, link);
 }
 
 void Registry::copy_headers(const Project &p) const
@@ -402,17 +407,6 @@ void Registry::copy_headers(const Project &p) const
 
   fs::create_directories(dest_dir);
   fs::copy(source_dir, dest_dir, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-  // Edit symlink in ~/.zc/include for zc run
-  const auto link = include_links_dir_ / p.pconf.name;
-  fs::create_directories(include_links_dir_);
-  if (fs::exists(link) || fs::is_symlink(link))
-  {
-    if (fs::is_directory(link))
-      fs::remove_all(link);
-    else
-      fs::remove(link);
-  }
-  fs::create_directory_symlink(dest_dir, link);
 }
 
 void Registry::copy_libs(const Project &p) const
@@ -434,17 +428,51 @@ void Registry::copy_libs(const Project &p) const
     source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
     fs::copy_options::overwrite_existing
   );
-  // Edit symlink in ~/.zc/lib for zc run
-  const auto link = lib_links_dir_ / p.pconf.name;
-  fs::create_directories(lib_links_dir_);
-  if (fs::exists(link) || fs::is_symlink(link))
+}
+
+void Registry::update_symlinks(const Pkg &p) const
+{
+  std::string ver       = p.default_version.string();
+  const auto  pkg_cache = cache_dir_ / p.name / ver;
+
+  if (p.type == PkgType::BIN)
   {
-    if (fs::is_directory(link))
-      fs::remove_all(link);
-    else
+    const auto dest = pkg_cache / BIN_DIR / p.target;
+    const auto link = bin_links_dir_ / p.target;
+    fs::create_directories(bin_links_dir_);
+    if (fs::exists(link) || fs::is_symlink(link))
       fs::remove(link);
+    fs::create_symlink(dest, link);
   }
-  fs::create_directory_symlink(dest_dir, link);
+  else if (p.type == PkgType::LIB || p.type == PkgType::HEADER)
+  {
+    const auto dest_include = pkg_cache / INCLUDE_DIR / p.name;
+    const auto link_include = include_links_dir_ / p.name;
+    fs::create_directories(include_links_dir_);
+    if (fs::exists(link_include) || fs::is_symlink(link_include))
+    {
+      if (fs::is_directory(link_include))
+        fs::remove_all(link_include);
+      else
+        fs::remove(link_include);
+    }
+    fs::create_directory_symlink(dest_include, link_include);
+
+    if (p.type == PkgType::LIB)
+    {
+      const auto dest_lib = pkg_cache / LIB_DIR;
+      const auto link_lib = lib_links_dir_ / p.name;
+      fs::create_directories(lib_links_dir_);
+      if (fs::exists(link_lib) || fs::is_symlink(link_lib))
+      {
+        if (fs::is_directory(link_lib))
+          fs::remove_all(link_lib);
+        else
+          fs::remove(link_lib);
+      }
+      fs::create_directory_symlink(dest_lib, link_lib);
+    }
+  }
 }
 
 void Registry::clean() const

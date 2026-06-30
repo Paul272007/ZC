@@ -12,9 +12,19 @@ namespace zc
 
 Version::Version(const std::string &text)
 {
-  if (text == "latest")
+  if (text.empty())
   {
     (*this) = { 0, 0, 0 };
+    return;
+  }
+  if (text == "latest")
+  {
+    (*this) = { -1, -1, -1 };
+    return;
+  }
+  if (text == "default")
+  {
+    (*this) = { -2, -2, -2 };
     return;
   }
 
@@ -51,9 +61,19 @@ std::string Version::string() const
   return std::format("{}.{}.{}", major_, minor_, patch_);
 }
 
-bool Version::empty() const
+bool Version::is_empty() const
 {
-  return major_ == 0 && minor_ == 0 && patch_ == 0;
+  return *this == Version{ 0, 0, 0 };
+}
+
+bool Version::is_latest() const
+{
+  return *this == Version{ -1, -1, -1 };
+}
+
+bool Version::is_default() const
+{
+  return *this == Version{ -2, -2, -2 };
 }
 
 } // namespace zc

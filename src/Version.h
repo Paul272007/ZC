@@ -16,7 +16,9 @@ public:
 
   [[nodiscard]] std::string string() const;
 
-  [[nodiscard]] bool empty() const;
+  [[nodiscard]] bool is_empty() const;
+  [[nodiscard]] bool is_latest() const;
+  [[nodiscard]] bool is_default() const;
 
   [[nodiscard]] int major() const { return major_; }
 

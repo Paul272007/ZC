@@ -1,7 +1,6 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 
@@ -59,7 +58,7 @@ struct RemoteTarget
       if (!pkg.is_object())
         throw ZCException(ZCE_TYPE_ERROR, "Incorrect package declaration in index.");
 
-      version = get_version(pkg, requested_version.string());
+      version = get_version(pkg, requested_version).string();
       url     = get_url(pkg, version);
       sha256  = get_sha256(pkg, version);
 
@@ -68,14 +67,14 @@ struct RemoteTarget
     return results;
   }
 
-  static std::string get_version(const nlohmann::json &pkg, const std::string &requested_version)
+  static Version get_version(const nlohmann::json &pkg, const Version &requested_version)
   {
-    std::string version;
+    Version version;
 
-    if (requested_version.empty())               // If no requested version take latest
+    if (requested_version.is_empty() || requested_version.is_latest() || requested_version.is_default())
       version = pkg["latest"].get<std::string>();
     else if (!pkg["versions"].contains(version)) // If a version was requested verify that is exists
-      throw ZCException(ZCE_NOT_FOUND, "Version " + requested_version + " not found.");
+      throw ZCException(ZCE_NOT_FOUND, "Version " + requested_version.string() + " not found.");
     else
       version = requested_version;
 

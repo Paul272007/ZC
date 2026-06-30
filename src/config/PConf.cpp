@@ -64,7 +64,7 @@ void PConf::load()
   get_key(root, "version", version);
   get_key(root, "macros", macros, macros);
 
-  if (version.empty())
+  if (version.is_empty())
     throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
 
   if (type == PkgType::UNDEF)

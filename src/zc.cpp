@@ -85,7 +85,10 @@ int main(const int argc, char *argv[])
   bool simple_display   = false;
   bool show_remote      = false;
   // Update
-  bool sync = false;
+  bool sync     = false;
+  bool dont_use = false;
+  // Use
+  bool global = false;
 
   string author;
   string target;
@@ -230,8 +233,9 @@ int main(const int argc, char *argv[])
   use->add_option("targets", targets, "The dependencies and their version to use")->required();
 
   use->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  use->add_flag("--global,-g", global, "Change default version of a package");
 
-  use->callback([&] { command = make_unique<Use>(force, p_root, targets); });
+  use->callback([&] { command = make_unique<Use>(force, p_root, targets, global); });
 
   // Publish
   // TODO: add --force,-f flag
@@ -263,13 +267,13 @@ int main(const int argc, char *argv[])
   list->callback([&] { command = make_unique<List>(force, show_templates, show_p_templates, show_remote, simple_display); });
 
   // Install
-  // TODO: add --force,-f flag
 
   install->add_option("--project-path,-P", p_root, "Directory to use as project root");
   install->add_option("--path,-p", path, "Install from local project instead of remote");
   install->add_option("targets", targets, "Targets to install");
 
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  install->add_flag("--force,-f", force, "Force reinstalling packages");
   install->add_flag("--std", std, "Add dependency to a standard library instead of ZC library");
 
   install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, std); });
@@ -285,16 +289,17 @@ int main(const int argc, char *argv[])
   uninstall->callback([&] { command = make_unique<Uninstall>(force, targets); });
 
   // Update
-  // TODO: add --force,-f flag
 
   update->add_option("--project-path,-P", p_root, "Directory to use as project root");
   update->add_option("--path,-p", path, "Update local package from its root path");
   update->add_option("targets", targets, "Targets to update");
 
   update->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  update->add_flag("--force,-f", force, "Force reinstalling a specific version");
   update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
+  update->add_flag("--dont-use,-d", dont_use, "");
 
-  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync); });
+  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync, dont_use); });
 
   // Login
 

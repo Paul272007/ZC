@@ -36,9 +36,10 @@ public:
   void install_std(const std::string &name);
   void install_from_server(const RemoteTarget &target, bool force = false);
   void install_from_path(const std::filesystem::path &path, bool force = false);
-  void update_from_server(const RemoteTarget &target, bool force = false);
-  Project update_from_path(const std::filesystem::path &path, bool force = false);
+  void update_from_server(const RemoteTarget &target, bool force, bool use);
+  Project update_from_path(const std::filesystem::path &path, bool force, bool use);
   void uninstall(const std::string &pkg);
+  void set_default_version(const std::string &name, const Version &version);
 
   [[nodiscard]] bool is_installed(const std::string &name) const;
   [[nodiscard]] bool is_installed(const std::string &name, const Version &v);
@@ -70,11 +71,12 @@ private:
   [[nodiscard]] std::map<std::string, Pkg>::iterator get_pkg_it(const std::string &name);
 
   void finish_install(Project &p, const std::string &origin);
-  void finish_update(Project &p);
+  void finish_update(Project &p, bool use);
 
   void copy_bin(const Project &p) const;
   void copy_libs(const Project &p) const;
   void copy_headers(const Project &p) const;
+  void update_symlinks(const Pkg &p) const;
 
   /**
    * @brief Remove tmp dir

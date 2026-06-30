@@ -363,7 +363,7 @@ void Project::install_dependencies() const
     reg_.install_from_server(t);
 }
 
-void Project::update_dependencies()
+void Project::update_dependencies(const bool force, const bool use)
 {
   if_.info("Updating package dependencies...");
   vector<pair<string, Version>> to_update;
@@ -376,7 +376,7 @@ void Project::update_dependencies()
   }
   for (CAA t : RemoteTarget::get_targets(to_update))
   {
-    reg_.update_from_server(t);
+    reg_.update_from_server(t, force, use);
     pconf.change_dependency_version(t.name, t.version);
   }
 }

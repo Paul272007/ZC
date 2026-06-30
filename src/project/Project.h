@@ -75,7 +75,7 @@ public:
   void change_dependency_version(const std::string &name, const Version &new_version);
 
   void install_dependencies() const;
-  void update_dependencies();
+  void update_dependencies(bool force, bool use);
 
 private:
   GConf     &gc_  = GConf::get();

@@ -107,6 +107,10 @@ void Init::operator()()
   pconf.target = target_;
   pconf.author = author_;
   pconf.type   = type_;
+  if (type_ == PkgType::BIN)
+    pconf.include_dirs = { SRC_DIR };
+  elif (type_ == PkgType::LIB || type_ == PkgType::HEADER)
+    pconf.include_dirs = { INCLUDE_DIR };
 
   pconf.languages.clear();
   for (const auto l : languages_)

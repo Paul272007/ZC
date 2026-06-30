@@ -28,7 +28,7 @@ std::ostream &operator<<(std::ostream &stream, const ZCException &zc_exception)
   stream << RED "✗ Error: " RESET;
 
 #ifdef DEBUG_MODE
-  stream << "(exit code: " << zc_exception.code_ << ") ";
+  stream << "(exit code: " << static_cast<int>(zc_exception.code_) << ") ";
 #endif
 
   stream << zc_exception.message_;
