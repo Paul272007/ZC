@@ -60,10 +60,12 @@ void Run::operator()()
     if (!fs::exists(exec_path))
       p.build(); // TODO: add -j flag
 
-    ShellCommand exec_cmd;
-    exec_cmd << fs::absolute(exec_path);
+    ShellCommand exec_cmd{ { fs::absolute(exec_path).string() } };
     for (const auto &arg : args_)
       exec_cmd << arg;
+
+    if (gc_.clear_before_run)
+      if_.clear();
 
     if (const int run_res = exec_cmd(); run_res != 0)
       throw ZCException(ZCE_RUNTIME_ERROR, "Program ended with exit code " + to_string(run_res));
@@ -90,14 +92,12 @@ void Run::operator()()
     return;
   }
 
+  if_.info("Executing program...");
+
   if (gc_.clear_before_run)
     if_.clear();
 
-  if_.info("Executing program...");
-
-  ShellCommand exec_cmd;
-  exec_cmd << fs::absolute(output_name_);
-
+  ShellCommand exec_cmd{ { fs::absolute(output_name_).string() } };
   for (const auto &arg : args_)
     exec_cmd << arg;
 
@@ -146,7 +146,7 @@ ShellCommand Run::get_build_command() const
 
   // Source files
   for (const auto &file : files_)
-    cmd << file;
+    cmd << file.string();
 
   // Output
   cmd << "-o" << output_name_;

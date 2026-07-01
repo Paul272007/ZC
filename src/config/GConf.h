@@ -22,8 +22,8 @@ public:
 
   std::string token;
   std::string username;
-  std::string editor  = "vim";
-  std::string archive = "ar rcs";
+  std::string editor;
+  std::string archive;
 
   std::map<Language, LanguageConf> languages = {
     { C, { .std = "c17", .compiler = "clang", .flags = { "-Wall", "-Wextra" } } },
@@ -35,12 +35,11 @@ public:
   GConf &operator=(GConf &&)      = delete;
   GConf(const GConf &)            = delete;
   GConf &operator=(const GConf &) = delete;
+  ~GConf() override;
 
   void login(bool force = false);
-
   void logout();
-
-  ~GConf() override;
+  void edit_config(bool force = false);
 
 protected:
   void load() override;

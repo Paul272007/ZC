@@ -20,6 +20,7 @@
 #include "commands/Build.h"
 #include "commands/Clean.h"
 #include "commands/Command.h"
+#include "commands/Config.h"
 #include "commands/Create.h"
 #include "commands/Init.h"
 #include "commands/Install.h"
@@ -98,6 +99,9 @@ int main(const int argc, char *argv[])
   string path;
   string p_root;
 
+  string key;
+  string value;
+
   vector<string> run_args;
   vector<string> targets;
   vector<string> input_files;
@@ -126,6 +130,7 @@ int main(const int argc, char *argv[])
   // Configuration
   auto *const login     = app.add_subcommand("login",     "Log into an account");
   auto *const logout    = app.add_subcommand("logout",    "Log out");
+  auto *const config    = app.add_subcommand("config",    "Change configuration");
 
   // --- Subcommands arguments
   // Run
@@ -313,6 +318,16 @@ int main(const int argc, char *argv[])
   logout->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
   logout->callback([&] { command = make_unique<Logout>(force); });
+
+  // Config
+
+  config->add_option("key", key, "Key to modify")->required();
+  config->add_option("value", value, "Value to give to the key (default: restore to default option)");
+
+  config->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  config->add_flag("--force,-f", force, "When creating a new config, override already existing configuration");
+
+  config->callback([&] { command = make_unique<Config>(force, key, value); });
 
   // clang-format on
 

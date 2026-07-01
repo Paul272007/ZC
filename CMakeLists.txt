@@ -53,6 +53,7 @@ add_executable(zc
         src/config/GConf.h
         src/config/PConf.cpp
         src/config/PConf.h
+        src/config/Language.h
 
         src/excepts/ExitCode.h
         src/excepts/ZCException.cpp
@@ -87,7 +88,6 @@ add_executable(zc
         src/CompileMode.h
         src/helpers.cpp
         src/helpers.h
-        src/Language.h
         src/Version.cpp
         src/Version.h
 
@@ -98,6 +98,8 @@ add_executable(zc
         src/commands/Clean.cpp
         src/commands/Clean.h
         src/commands/Command.h
+        src/commands/Config.cpp
+        src/commands/Config.h
         src/commands/Create.cpp
         src/commands/Create.h
         src/commands/Init.cpp

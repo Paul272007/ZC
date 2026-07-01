@@ -111,6 +111,26 @@ void GConf::logout()
   }
 }
 
+void GConf::edit_config(bool force)
+{
+  if (!force && fs::exists(file_) &&
+      !ui().ask("A configuration already exists. Do you want to override it ?"))
+    throw ZCException(ZCE_ABORTED, "Aborted.");
+
+  always_add_std    = ui().ask("Always add standard when compiling single files ?", always_add_std);
+  always_keep       = ui().ask("Always keep binaries after program ends ?", always_keep);
+  clear_before_run  = ui().ask("Always clear terminal before executing programs ?", clear_before_run);
+  open_after_create = ui().ask("Always open files in editor after being created ?", open_after_create);
+  open_after_init   = ui().ask("Always open project in editor after being initialized ?", open_after_init);
+  move_bin_to_current_path =
+    ui().ask("Always move binary to current path after building packages ?", move_bin_to_current_path);
+
+  editor  = ui().input("Editor to use ?", editor);
+  archive = ui().input("Archive program to use ?", archive);
+
+  modified_ = true;
+}
+
 void GConf::load()
 {
   const json root = read_json(file_);
@@ -120,10 +140,10 @@ void GConf::load()
   get_key(root, "open_after_create", open_after_create, false);
   get_key(root, "clear_before_run", clear_before_run, false);
   get_key(root, "move_bin_to_current_path", move_bin_to_current_path, false);
-  get_key(root, "editor", editor, editor);
+  get_key(root, "editor", editor, string("nvim"));
   get_key(root, "token", token, string());
   get_key(root, "username", username, string());
-  get_key(root, "archive", archive, archive);
+  get_key(root, "archive", archive, string("ar rcs"));
 
   if (root.contains("languages") && root["languages"].is_object())
   {

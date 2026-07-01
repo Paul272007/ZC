@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../pkgs/LocalTarget.h"
 #include "Command.h"
+#include "pkgs/LocalTarget.h"
 
 namespace zc
 {
