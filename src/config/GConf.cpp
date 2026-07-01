@@ -5,15 +5,15 @@
 #include <sys/stat.h>
 #include <thread>
 
-#include "../excepts/ZCException.h"
-#include "../helpers.h"
-#include "../pkgs/Network.h"
-#include "../ui/Interface.h"
-#include "../ui/ui_utils.h"
 #include "Conf.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
+#include "helpers.h"
 #include "Language.h"
+#include "pkgs/Network.h"
+#include "ui/Interface.h"
+#include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -111,39 +111,80 @@ void GConf::logout()
   }
 }
 
-void GConf::edit_config(bool force)
+void GConf::edit_config(const bool force)
 {
   if (!force && fs::exists(file_) &&
       !ui().ask("A configuration already exists. Do you want to override it ?"))
     throw ZCException(ZCE_ABORTED, "Aborted.");
 
-  always_add_std    = ui().ask("Always add standard when compiling single files ?", always_add_std);
-  always_keep       = ui().ask("Always keep binaries after program ends ?", always_keep);
-  clear_before_run  = ui().ask("Always clear terminal before executing programs ?", clear_before_run);
-  open_after_create = ui().ask("Always open files in editor after being created ?", open_after_create);
-  open_after_init   = ui().ask("Always open project in editor after being initialized ?", open_after_init);
-  move_bin_to_current_path =
-    ui().ask("Always move binary to current path after building packages ?", move_bin_to_current_path);
+#define ASK_BOOL_FIELDS(name, deflt, question) name = ui().ask(question, name);
+  GCONF_BOOL_FIELDS(ASK_BOOL_FIELDS)
+#undef ASK_BOOL_FIELDS
 
-  editor  = ui().input("Editor to use ?", editor);
-  archive = ui().input("Archive program to use ?", archive);
+#define ASK_STR_FIELDS(name, deflt, question) name = ui().input(question, name);
+  GCONF_STR_FIELDS(ASK_STR_FIELDS)
+#undef ASK_STR_FIELDS
 
   modified_ = true;
+}
+
+void GConf::default_config(const bool force)
+{
+  if (!force && fs::exists(file_) &&
+      !ui().ask("A configuration already exists. Do you want to override it ?"))
+    throw ZCException(ZCE_ABORTED, "Aborted.");
+
+#define RESET_FIELDS(name, deflt, question) name = deflt;
+  GCONF_BOOL_FIELDS(RESET_FIELDS)
+  GCONF_STR_FIELDS(RESET_FIELDS)
+#undef RESET_FIELDS
+
+  modified_ = true;
+}
+
+void GConf::set(const std::string &key, const std::string &value)
+{
+#define CHECK_BOOL(name, deflt, question)                                                             \
+  if (key == #name)                                                                                   \
+  {                                                                                                   \
+    if (value == "true" || value == "1")                                                              \
+      (name) = true;                                                                                  \
+    else if (value == "false" || value == "0")                                                        \
+      (name) = false;                                                                                 \
+    else                                                                                              \
+      throw ZCException(ZCE_TYPE_ERROR, "Invalid value for key '" #name "': expected true or false"); \
+    modified_ = true;                                                                                 \
+    return;                                                                                           \
+  }
+  GCONF_BOOL_FIELDS(CHECK_BOOL)
+#undef CHECK_BOOL
+
+#define CHECK_STR(name, deflt, question) \
+  if (key == #name)                      \
+  {                                      \
+    (name)    = value;                   \
+    modified_ = true;                    \
+    return;                              \
+  }
+  GCONF_STR_FIELDS(CHECK_STR)
+#undef CHECK_STR
+
+  throw ZCException(ZCE_NOT_FOUND, "Unknown configuration key: '" + key + "'");
 }
 
 void GConf::load()
 {
   const json root = read_json(file_);
-  get_key(root, "always_keep", always_keep, false);
-  get_key(root, "always_add_std", always_add_std, false);
-  get_key(root, "open_after_init", open_after_init, false);
-  get_key(root, "open_after_create", open_after_create, false);
-  get_key(root, "clear_before_run", clear_before_run, false);
-  get_key(root, "move_bin_to_current_path", move_bin_to_current_path, false);
-  get_key(root, "editor", editor, string("nvim"));
+
+#define LOAD_BOOL_FIELD(name, deflt, question) get_key(root, #name, name, deflt);
+  GCONF_BOOL_FIELDS(LOAD_BOOL_FIELD)
+#undef LOAD_BOOL_FIELD
+#define LOAD_STR_FIELD(name, deflt, question) get_key(root, #name, name, string(deflt));
+  GCONF_STR_FIELDS(LOAD_STR_FIELD)
+#undef LOAD_STR_FIELD
+
   get_key(root, "token", token, string());
   get_key(root, "username", username, string());
-  get_key(root, "archive", archive, string("ar rcs"));
 
   if (root.contains("languages") && root["languages"].is_object())
   {
@@ -156,14 +197,10 @@ void GConf::load()
 void GConf::write()
 {
   json root;
-  root["always_keep"]              = always_keep;
-  root["always_add_std"]           = always_add_std;
-  root["open_after_init"]          = open_after_init;
-  root["open_after_create"]        = open_after_create;
-  root["clear_before_run"]         = clear_before_run;
-  root["move_bin_to_current_path"] = move_bin_to_current_path;
-  root["editor"]                   = editor;
-  root["archive"]                  = archive;
+#define WRITE_FIELD(name, deflt, question) root[#name] = name;
+  GCONF_BOOL_FIELDS(WRITE_FIELD)
+  GCONF_STR_FIELDS(WRITE_FIELD)
+#undef WRITE_FIELD
 
   json lang_json = json::object();
   for (const auto &l : languages)

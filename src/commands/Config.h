@@ -3,6 +3,7 @@
 #include <string>
 
 #include "Command.h"
+#include "config/GConf.h"
 
 namespace zc
 {
@@ -15,6 +16,8 @@ public:
   void operator()() override;
 
 private:
+  GConf &gc_ = GConf::get();
+
   const std::string key_;
   const std::string value_;
 };
