@@ -12,6 +12,7 @@
 #include "helpers.h"
 #include "pkgs/PkgType.h"
 #include "templates/TemplateEngine.h"
+#include "ui/ShellCommand.h"
 #include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG
@@ -87,7 +88,7 @@ void Init::operator()()
       languages_.push_back(language_from_str(result));
   }
 
-  if (git_ && system("git init") != 0)
+  if (git_ && ShellCommand::exec({ "git", "init" }) != 0)
     throw ZCException(ZCE_GIT_ERROR, "Git init failed");
 
   PConf pconf(p_root_ / ZC_FILE);

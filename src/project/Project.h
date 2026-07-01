@@ -15,7 +15,7 @@
 #include "pkgs/LocalTarget.h"
 #include "pkgs/Registry.h"
 #include "project/MakeVariable.h"
-#include "ui/Interface.h"
+#include "ui/ShellCommand.h"
 
 namespace zc
 {
@@ -79,9 +79,8 @@ public:
   void update_dependencies(bool force, bool use);
 
 private:
-  GConf     &gc_  = GConf::get();
-  Registry  &reg_ = Registry::get();
-  Interface &if_  = Interface::get();
+  GConf    &gc_  = GConf::get();
+  Registry &reg_ = Registry::get();
 
   const std::filesystem::path cache_dir_;
   const std::filesystem::path makefile_;
@@ -103,8 +102,9 @@ private:
   [[nodiscard]] std::string get_linker() const;
   [[nodiscard]] std::map<Language, std::vector<std::string>> get_sources() const;
 
-  void get_nb_to_compile(int &to_compile, int &to_link, const std::string &base_make_cmd) const;
   void init_variables(bool release);
+
+  static void get_nb_to_compile(int &to_compile, int &to_link, ShellCommand base_make_cmd);
 };
 
 } // namespace zc

@@ -17,6 +17,7 @@
 #include "pkgs/Network.h"
 #include "templates/TemplateEngine.h"
 #include "ui/Interface.h"
+#include "ui/ShellCommand.h"
 
 ZC_DEV_CONFIG
 
@@ -354,22 +355,17 @@ std::vector<std::string> split(const std::string &str, char delimiter)
 
 bool has_pkg_config()
 {
-  return system("pkg-config --version " HIDE_OUTPUT) == 0;
+  return ShellCommand::exec({ "pkg-config", "--version" }, output::hide_all) == 0;
 }
 
 std::string get_pkg_config_flags(const std::string &pkg_name, const bool cflags)
 {
-  const std::string cmd = "pkg-config --libs " + pkg_name + (cflags ? " --cflags " : "") + " 2>/dev/null";
-  std::string       result;
+  ShellCommand cmd{ vector<string>{ "pkg-config", "--libs", pkg_name } };
+  if (cflags)
+    cmd << "--cflags";
+  std::string result;
 
-  std::array<char, 128> buffer;
-
-  std::unique_ptr<FILE, int (*)(FILE *)> pipe(popen(cmd.c_str(), "r"), pclose);
-  if (!pipe)
-    return ""; // Command not found
-
-  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-    result += buffer.data();
+  cmd.output_actions(128, [&](const string &l) { result += l; }, output::hide_err);
 
   if (!result.empty() && result.back() == '\n')
     result.pop_back();

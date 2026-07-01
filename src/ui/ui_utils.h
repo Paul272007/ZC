@@ -202,4 +202,24 @@ inline void open_project_in_editor(const std::filesystem::path &p_root)
     throw ZCException(ZCE_INTERNAL_ERROR, "An error occurred while opening project in editor");
 }
 
+inline std::string get_suffix(output style)
+{
+  switch (style)
+  {
+  case output::hide_all:
+    return HIDE_ALL;
+  case output::hide_err:
+    return HIDE_ERR;
+  case output::hide_out:
+    return HIDE_OUT;
+  case output::err_to_out:
+    return ERR_TO_OUT;
+  case output::out_to_err:
+    return OUT_TO_ERR;
+  case output::show_all:
+  default:
+    return "";
+  }
+}
+
 } // namespace zc

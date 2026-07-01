@@ -4,14 +4,15 @@
 #include <filesystem>
 #include <vector>
 
-#include "../config/PConf.h"
-#include "../helpers.h"
-#include "../project/Project.h"
+#include "config/PConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "helpers.h"
 #include "Network.h"
 #include "PkgType.h"
+#include "project/Project.h"
 #include "RemoteTarget.h"
+#include "ui/Interface.h"
 #include "Version.h"
 
 ZC_DEV_CONFIG_JSON
@@ -72,10 +73,7 @@ void Registry::install_std(const std::string &name)
     target = "GL";
 
   if (get_pkg_config_flags(name, false).empty())
-    ui().warning(
-      "Package '" + name + "' not found by pkg-config. Assuming it's a built-in OS library (-l" + target +
-      ")."
-    );
+    ui().warning("Package '" + name + "' not found by pkg-config. Assuming it's a built-in OS library.");
   else
     ui().success("System package found: " + name);
 

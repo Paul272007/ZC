@@ -21,6 +21,8 @@
 #include "pkgs/Registry.h"
 #include "pkgs/RemoteTarget.h"
 #include "project/MakeVariable.h"
+#include "ui/Interface.h"
+#include "ui/ShellCommand.h"
 #include "Version.h"
 
 ZC_DEV_CONFIG_JSON
@@ -37,23 +39,20 @@ Project::Project(const std::filesystem::path &root)
 {
 }
 
-void Project::get_nb_to_compile(int &to_compile, int &to_link, const std::string &base_make_cmd) const
+void Project::get_nb_to_compile(int &to_compile, int &to_link, ShellCommand base_make_cmd)
 {
-  const string dry_run_cmd = base_make_cmd + " -n 2>/dev/null";
-  FILE        *dry_pipe    = popen(dry_run_cmd.c_str(), "r");
-  if (dry_pipe == nullptr)
-    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
-
-  char buffer_dry[512];
-  while (fgets(buffer_dry, sizeof(buffer_dry), dry_pipe) != nullptr)
-  {
-    string line(buffer_dry);
-    if (line.contains("ZC_COMPILE|"))
-      to_compile++;
-    elif (line.contains("ZC_BIN|") || line.contains("ZC_STATIC|") || line.contains("ZC_SHARED|"))
-      to_link++;
-  }
-  pclose(dry_pipe);
+  base_make_cmd << "-n";
+  base_make_cmd.output_actions(
+    512,
+    [&](const string &line)
+    {
+      if (line.contains("ZC_COMPILE|"))
+        to_compile++;
+      elif (line.contains("ZC_BIN|") || line.contains("ZC_STATIC|") || line.contains("ZC_SHARED|"))
+        to_link++;
+    },
+    output::hide_err, "Make failed."
+  );
 }
 
 void Project::build(BuildMode current_mode, const bool is_install, const size_t jobs)
@@ -66,102 +65,98 @@ void Project::build(BuildMode current_mode, const bool is_install, const size_t 
   int to_compile = 0;
   int to_link    = 0;
 
-  const string make_cmd =
-    "make --no-print-directory -j" + to_string(jobs) + " -C " + build_dir.string() + " all";
+  const ShellCommand make_cmd{
+    vector<string>{
+      "make",
+      "--no-print-directory",
+      "-j" + to_string(jobs),
+      "-C",
+      build_dir.string(),
+      "all",
+    },
+  };
 
   get_nb_to_compile(to_compile, to_link, make_cmd);
 
   if (to_compile == 0 && to_link == 0)
   {
-    if_.success("Project is already up to date! Nothing to do.");
+    ui().success("Project is already up to date! Nothing to do.");
     return;
   }
-  if_.info(to_string(to_compile) + " file(s) to compile, " + to_string(to_link) + " target(s) to link");
+  ui().info(to_string(to_compile) + " file(s) to compile, " + to_string(to_link) + " target(s) to link");
 
   const int todo = to_compile + to_link;
   int       done = 0;
 
-  ui().debug("Make command: " + make_cmd);
-  FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
-  if (pipe == nullptr)
-    throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
-
-  char buffer[1024];
-
-  while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-  {
-    string line(buffer);
-    if (!line.empty() && line.back() == '\n')
-      line.pop_back();
-
-    if (line.starts_with("ZC_"))
+  make_cmd.output_actions(
+    1024,
+    [&](string &line)
     {
-      constexpr int bar_width = 20;
-      done++;
-      int percent = std::min((done * 100) / todo, 100);
+      if (!line.empty() && line.back() == '\n')
+        line.pop_back();
 
-      string message;
-      string target_name;
+      if (line.starts_with("ZC_"))
+      {
+        constexpr int bar_width = 20;
+        done++;
+        int percent = std::min((done * 100) / todo, 100);
 
-      if (string rest = line.substr(3); rest.starts_with("COMPILE|"))
-      {
-        message     = "Compiling object ";
-        target_name = rest.substr(8);
+        string message;
+        string target_name;
+
+        if (string rest = line.substr(3); rest.starts_with("COMPILE|"))
+        {
+          message     = "Compiling object ";
+          target_name = rest.substr(8);
+        }
+        elif (rest.starts_with("STATIC|"))
+        {
+          message     = "Linking static library ";
+          target_name = rest.substr(7);
+        }
+        elif (rest.starts_with("SHARED|"))
+        {
+          message     = "Linking shared library ";
+          target_name = rest.substr(7);
+        }
+        elif (rest.starts_with("BIN|"))
+        {
+          message     = "Linking executable ";
+          target_name = rest.substr(4);
+        }
+        ui().loading_bar(bar_width, percent, message + target_name);
       }
-      elif (rest.starts_with("STATIC|"))
-      {
-        message     = "Linking static library ";
-        target_name = rest.substr(7);
-      }
-      elif (rest.starts_with("SHARED|"))
-      {
-        message     = "Linking shared library ";
-        target_name = rest.substr(7);
-      }
-      elif (rest.starts_with("BIN|"))
-      {
-        message     = "Linking executable ";
-        target_name = rest.substr(4);
-      }
-      if_.loading_bar(bar_width, percent, message + target_name);
-    }
 #ifndef DEBUG_MODE
-    else if (line.starts_with("make"))
-    {
-      continue; // do not display make messages in release mode for cleaner ui
-    }
+      else if (line.starts_with("make"))
+      {
+        continue; // do not display make messages in release mode for cleaner ui
+      }
 #endif
-    else
-    {
-      if_.clear_loading_bar();
-      if_.print(line); // TODO: parse to detect if it is an error / warning to change display style
-    }
-  }
-  if_.clear_loading_bar();
-
-  const int result = pclose(pipe);
-  if (WEXITSTATUS(result) == 0) // FIX: find solution for windows
-    if_.success("Project was successfully built in " + pretty_path(build_dir));
-  else
-    throw ZCException(
-      ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result))
-    );
+      else
+      {
+        ui().clear_loading_bar();
+        ui().print(line); // TODO: parse to detect if it is an error / warning to change display style
+      }
+    },
+    output::err_to_out
+  );
+  ui().clear_loading_bar();
 }
 
 void Project::clean(bool cache) const
 {
   if (fs::exists(build_dir) && fs::is_directory(build_dir))
     if (fs::remove_all(build_dir) > 0)
-      if_.info("Cleaned " + pretty_path(build_dir));
+      ui().info("Cleaned " + pretty_path(build_dir));
 
   if (cache && fs::exists(cache_dir_) && fs::is_directory(cache_dir_))
     if (fs::remove_all(cache_dir_) > 0)
-      if_.info("Cleaned " + pretty_path(cache_dir_));
+      ui().info("Cleaned " + pretty_path(cache_dir_));
 }
 
 void Project::publish()
 {
-  if_.info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
+  ui().info("Preparing to publish package " + pconf.name + " at version " + pconf.version.string() + "...");
 
   for (const auto &dep : pconf.dependencies | views::values)
     if (reg_.get_pkg(dep.name).origin == "local")
@@ -180,7 +175,7 @@ void Project::publish()
       ZCE_MISSING_PROPERTY, "Authentication error: token is empty. Please run 'zc login' first."
     );
 
-  if_.info("Verifying GitHub identity...");
+  ui().info("Verifying GitHub identity...");
   Network &net(Network::get());
   string   user_info_raw = net.get("https://api.github.com/user", "", gc_.token); // empty payload
   auto     user_info     = nlohmann::json::parse(user_info_raw);
@@ -193,13 +188,13 @@ void Project::publish()
                                   "'. Publication blocked for security reasons."
     );
 
-  if_.success("Authenticated as " + github_login);
+  ui().success("Authenticated as " + github_login);
 
   string tag = "v" + pconf.version.string();
   string archive_url =
     "https://github.com/" + pconf.author + "/" + pconf.name + "/archive/refs/tags/" + tag + ".tar.gz";
 
-  if_.info("Expected archive URL: " + archive_url);
+  ui().info("Expected archive URL: " + archive_url);
 
   const fs::path tmp_dir      = zc_root() / TMP_DIR;
   const fs::path archive_path = tmp_dir / (pconf.name + "_" + tag + ".tar.gz");
@@ -211,15 +206,15 @@ void Project::publish()
 
   try
   {
-    if_.info("Checking if release '" + tag + "' exists on GitHub...");
+    ui().info("Checking if release '" + tag + "' exists on GitHub...");
     net.get(release_api_url, "", gc_.token);
-    if_.success("Release " + tag + " found!");
+    ui().success("Release " + tag + " found!");
   }
   catch (const ZCException &)
   {
-    if_.warning("Release " + tag + " not found. Attempting to create it...");
+    ui().warning("Release " + tag + " not found. Attempting to create it...");
 
-    if (!if_.ask("Do you want to create the tag " + tag + " ?"))
+    if (!ui().ask("Do you want to create the tag " + tag + " ?"))
       return;
 
     nlohmann::json release_payload;
@@ -234,7 +229,7 @@ void Project::publish()
     try
     {
       net.post(create_release_url, release_payload.dump(), gc_.token);
-      if_.success("Release " + tag + " created successfully!");
+      ui().success("Release " + tag + " created successfully!");
     }
     catch (const ZCException &) // TODO: handle different error types directly in Network.cpp
     {
@@ -245,11 +240,11 @@ void Project::publish()
   }
 
   // Download and calculate hash
-  if_.info("Downloading archive for verification...");
+  ui().info("Downloading archive for verification...");
   net.download(archive_url, archive_path);
 
   string sha = sha256(archive_path);
-  if_.success("SHA-256 calculated: " + sha);
+  ui().success("SHA-256 calculated: " + sha);
   fs::remove(archive_path);
 
   // Upload recipe to registry
@@ -267,14 +262,14 @@ void Project::publish()
 
   string api_url = "https://api.github.com/repos/" GH_REPO "/contents/" + file_path;
 
-  if_.info("Uploading recipe to registry...");
+  ui().info("Uploading recipe to registry...");
   try
   {
     // Safety Check: Ensure the package owner doesn't change
     string package_dir_url = "https://api.github.com/repos/" GH_REPO "/contents/packages/" + pconf.name;
     try
     {
-      if_.debug("Verifying package ownership in registry...");
+      ui().debug("Verifying package ownership in registry...");
       string dir_content_raw = net.get(package_dir_url, "", gc_.token);
 
       if (auto dir_content = nlohmann::json::parse(dir_content_raw);
@@ -304,7 +299,7 @@ void Project::publish()
 
     // Upload the recipe
     net.put(api_url, payload.dump(), gc_.token);
-    if_.success("Your package has been successfully published to the registry!");
+    ui().success("Your package has been successfully published to the registry!");
   }
   catch (const ZCException &e)
   {
@@ -349,18 +344,18 @@ void Project::change_dependency_version(const std::string &name, const Version &
 
 void Project::install_dependencies() const
 {
-  if_.info("Installing package dependencies...");
+  ui().info("Installing package dependencies...");
   vector<pair<string, Version>> to_install;
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "local")
     {
-      if_.warning("Dependency '" + dep.name + "' is a local package. Make sure it's installed.");
+      ui().warning("Dependency '" + dep.name + "' is a local package. Make sure it's installed.");
       continue;
     }
     if (dep.origin == "std")
     {
-      if_.warning(
+      ui().warning(
         "Dependency '" + dep.name + "' is a standard package. Make sure it's installed on your system."
       );
       continue;
@@ -373,7 +368,7 @@ void Project::install_dependencies() const
 
 void Project::update_dependencies(const bool force, const bool use)
 {
-  if_.info("Updating package dependencies...");
+  ui().info("Updating package dependencies...");
   vector<pair<string, Version>> to_update;
 
   for (const auto &dep : pconf.dependencies | views::values)
@@ -736,7 +731,7 @@ BuildMode Project::get_mode(BuildMode current_mode) const
   }
   else if (fs::exists(build_mode_file) && current_mode != build_mode_from_str(read_file(build_mode_file)))
   {
-    if_.info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
+    ui().info("Build mode switched to " + build_mode_to_str(current_mode) + ". Forcing full rebuild...");
     clean();
   }
   // If current is the same as the previous mode do nothing

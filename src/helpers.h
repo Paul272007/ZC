@@ -24,7 +24,8 @@
   #define RM_COMMAND            "del"
   #define MKDIR_COMMAND         "mkdir"
   #define USER_HOME_ENV         "USERPROFILE"
-  #define HIDE_OUTPUT           " > NUL 2>&1" // Powershell : " *> $null"
+// TODO: add other HIDE_... macros
+  #define HIDE_ALL              " > NUL 2>&1" // Powershell : " *> $null"
 #elifdef __APPLE__
   #define BIN_NAME(name)        name
   #define STATIC_LIB_NAME(name) ("lib" + name + ".a")
@@ -32,7 +33,11 @@
   #define RM_COMMAND            "rm"
   #define MKDIR_COMMAND         "mkdir -p"
   #define USER_HOME_ENV         "HOME"
-  #define HIDE_OUTPUT           " &>/dev/null"
+  #define HIDE_OUT              " 1>/dev/null"
+  #define HIDE_ERR              " 2>/dev/null"
+  #define HIDE_ALL              " &>/dev/null"
+  #define ERR_TO_OUT            " 2>&1"
+  #define OUT_TO_ERR            " 1>&2"
 #else
   #define BIN_NAME(name)        name
   #define STATIC_LIB_NAME(name) ("lib" + name + ".a")
@@ -40,7 +45,11 @@
   #define RM_COMMAND            "rm"
   #define MKDIR_COMMAND         "mkdir -p"
   #define USER_HOME_ENV         "HOME"
-  #define HIDE_OUTPUT           " &>/dev/null"
+  #define HIDE_OUT              " 1>/dev/null"
+  #define HIDE_ERR              " 2>/dev/null"
+  #define HIDE_ALL              " &>/dev/null"
+  #define ERR_TO_OUT            " 2>&1"
+  #define OUT_TO_ERR            " 1>&2"
 #endif
 
 #define CAA  const auto &

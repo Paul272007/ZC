@@ -80,7 +80,7 @@ void Run::operator()()
 
   // TODO: capture build command output for better ui
 
-  if (build_cmd_(!if_.is_quiet()) != 0)
+  if (build_cmd_(if_.is_quiet() ? output::hide_all : output::show_all) != 0)
     throw ZCException(ZCE_COMPILATION_ERROR, "Compilation failed");
   if_.success("Compilation successful.");
 
