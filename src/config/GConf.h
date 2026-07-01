@@ -3,9 +3,9 @@
 #include <map>
 #include <string>
 
-#include "../Language.h"
-#include "Conf.h"
-#include "LanguageConf.h"
+#include "config/Conf.h"
+#include "config/Language.h"
+#include "config/LanguageConf.h"
 
 namespace zc
 {

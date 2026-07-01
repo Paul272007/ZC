@@ -1,12 +1,24 @@
 #pragma once
 
 #include <cstdio>
+#include <filesystem>
+#include <string>
+#include <vector>
+
+#include "config/GConf.h"
+#include "pkgs/PkgType.h"
+#include "ui/Interface.h"
+#include "ui/ShellCommand.h"
+
 #if defined(_WIN32) || defined(_WIN64)
   #include <conio.h> // _getch()
 #else
   #include <termios.h>
   #include <unistd.h>
 #endif
+
+#include "helpers.h"
+#include "templates/TemplateEngine.h"
 
 namespace zc
 {
@@ -163,5 +175,31 @@ inline char get_char_raw()
 #define VERTICAL_SINGLE_HORIZONTAL_DOUBLE "\u256A"
 #define LIGHT_UP_LEFT                     "\u2518"
 #define LIGHT_DOWN_RIGHT                  "\u250C"
+
+inline std::string choose_p_template()
+{
+  std::vector<std::string> options = { "none" };
+  options.append_range(te().p_templates());
+  return options.at(ui().radios("Project template to use:", options));
+}
+
+inline PkgType choose_pkg_type()
+{
+  const std::vector<std::string> options = {
+    "binary",
+    "library",
+    "header-only library",
+    "composed package",
+  };
+  return static_cast<PkgType>(ui().radios("Package type:", options));
+}
+
+inline void open_project_in_editor(const std::filesystem::path &p_root)
+{
+  ShellCommand cmd;
+  cmd << gc().editor << p_root;
+  if (cmd() != 0)
+    throw ZCException(ZCE_INTERNAL_ERROR, "An error occurred while opening project in editor");
+}
 
 } // namespace zc

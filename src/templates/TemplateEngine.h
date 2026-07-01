@@ -4,9 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "../Language.h"
-#include "../ui/Interface.h"
-#include "../ui/Table.h"
+#include "config/Language.h"
+#include "ui/Table.h"
 
 namespace zc
 {
@@ -33,8 +32,6 @@ public:
   init_with_p_template(const std::filesystem::path &root, const std::string &p_template, bool force) const;
 
 private:
-  Interface &if_ = Interface::get();
-
   const std::filesystem::path templates_dir_;
   const std::filesystem::path p_templates_dir_;
 

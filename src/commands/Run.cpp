@@ -5,14 +5,17 @@
 #include <string>
 #include <vector>
 
-#include "../clang_utils.h"
-#include "../helpers.h"
+#include "clang_utils.h"
 #include "commands/Command.h"
 #include "CompileMode.h"
+#include "config/Language.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
-#include "Language.h"
+#include "helpers.h"
+#include "pkgs/PkgType.h"
+#include "project/Project.h"
+#include "ui/ShellCommand.h"
 
 ZC_DEV_CONFIG
 
@@ -48,6 +51,25 @@ Run::Run(
 
 void Run::operator()()
 {
+  if (files_.empty())
+  {
+    Project p{}; // TODO: add -P flag
+    if (p.pconf.type != PkgType::BIN)
+      throw ZCException(ZCE_TYPE_ERROR, "Cannot execute project which is not of type BIN");
+    const fs::path exec_path{ p.build_dir / p.pconf.target };
+    if (!fs::exists(exec_path))
+      p.build(); // TODO: add -j flag
+
+    ShellCommand exec_cmd;
+    exec_cmd << fs::absolute(exec_path);
+    for (const auto &arg : args_)
+      exec_cmd << arg;
+
+    if (const int run_res = exec_cmd(); run_res != 0)
+      throw ZCException(ZCE_RUNTIME_ERROR, "Program ended with exit code " + to_string(run_res));
+    return;
+  }
+
   for (const auto &f : files_)
     if (!fs::exists(f))
       throw ZCException(ZCE_NOT_FOUND, "File not found: " + f.string());
@@ -56,13 +78,10 @@ void Run::operator()()
     if (!if_.ask("The file '" + output_name_ + "' already exists. Do you want to overwrite it ?"))
       throw ZCException(ZCE_ABORTED, "Compilation aborted.");
 
-  if_.debug(build_cmd_);
-
   // TODO: capture build command output for better ui
 
-  if (system(build_cmd_.c_str()) != 0)
+  if (build_cmd_(!if_.is_quiet()) != 0)
     throw ZCException(ZCE_COMPILATION_ERROR, "Compilation failed");
-
   if_.success("Compilation successful.");
 
   if (mode_ != CompileMode::full)
@@ -75,21 +94,20 @@ void Run::operator()()
     if_.clear();
 
   if_.info("Executing program...");
-  string exec_cmd = esc(fs::absolute(output_name_).string());
 
-  if_.debug(exec_cmd);
+  ShellCommand exec_cmd;
+  exec_cmd << fs::absolute(output_name_);
 
   for (const auto &arg : args_)
-    exec_cmd += " " + esc(arg);
+    exec_cmd << arg;
 
-  const int run_res = system(exec_cmd.c_str());
+  const int run_res = exec_cmd();
 
   if (!gc_.always_keep && !keep_ && fs::exists(output_name_))
   {
     fs::remove(output_name_);
     if_.debug("Temporary file removed: " + output_name_);
   }
-
   if (run_res != 0)
     throw ZCException(ZCE_RUNTIME_ERROR, "Program ended with exit code " + to_string(run_res));
 }
@@ -99,9 +117,11 @@ bool Run::has_cpp() const
   return ranges::any_of(files_, [&](const auto &f) { return is_of_language(CXX, f); });
 }
 
-std::string Run::get_build_command() const
+ShellCommand Run::get_build_command() const
 {
-  stringstream cmd;
+  if (files_.empty())
+    return {};
+  ShellCommand cmd;
 
   // Compiler and standard
   LanguageConf lc;
@@ -110,82 +130,84 @@ std::string Run::get_build_command() const
   else
     lc = gc_.languages.at(C);
 
-  cmd << esc(lc.compiler) << " ";
+  cmd << lc.compiler;
   if (gc_.always_add_std || add_std_)
-    cmd << esc("-std=" + lc.std) << " ";
+    cmd << "-std=" + lc.std;
 
   // User flags
   if (add_flags_)
     for (const auto &flag : lc.flags)
-      cmd << esc(flag) << " ";
+      cmd << flag;
 
   if (release_)
-    cmd << "-O3 ";
+    cmd << "-O3";
   else
-    cmd << "-g ";
+    cmd << "-g";
 
   // Source files
   for (const auto &file : files_)
-    cmd << esc(file.string()) << " ";
+    cmd << file;
 
   // Output
-  cmd << "-o " << esc(output_name_) << " ";
+  cmd << "-o" << output_name_;
 
   // Include directories
-  cmd << "-I" << zc_root() / INCLUDE_DIR << " ";
+  cmd << "-I" + (zc_root() / INCLUDE_DIR).string();
 
   // Mode and libraries for normal mode
   switch (mode_)
   {
-  case zc::CompileMode::preprocess:
-    cmd << "-E ";
+  case CompileMode::preprocess:
+    cmd << "-E";
     break;
-  case zc::CompileMode::compile:
-    cmd << "-S ";
+  case CompileMode::compile:
+    cmd << "-S";
     break;
-  case zc::CompileMode::assemble:
-    cmd << "-c ";
+  case CompileMode::assemble:
+    cmd << "-c";
     break;
-  case zc::CompileMode::full: // Else link libraries
+  case CompileMode::full:
   default:
-    for (const auto &lib : get_dependencies())
-    {
-      const string target = rg_.get_pkg(lib.name).target;
-      if (lib.origin == "std")
-      {
-        const string flags = get_pkg_config_flags(lib.name, true);
-        if (!flags.empty())
-          cmd << flags << " ";
-        else
-          cmd << "-l" << esc(target) << " ";
-      }
-      else
-      {
-        fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
-        if (fs::exists(lib_dir))
-        {
-          cmd << "-L" << esc(lib_dir.string()) << " ";
-          cmd << "-Wl,-rpath," << esc(lib_dir.string()) << " ";
-        }
-        cmd << "-l" << esc(target) << " ";
-      }
-    }
+    add_deps_to_cmd(cmd); // Else link libraries
     break;
   }
-
   if (static_)
-    cmd << "-static ";
+    cmd << "-static";
 
   cmd << "-fdiagnostics-color=always";
+  return cmd;
+}
 
-  if (if_.is_quiet())
-    cmd << HIDE_OUTPUT;
-
-  return cmd.str();
+void Run::add_deps_to_cmd(ShellCommand &cmd) const
+{
+  for (const auto &lib : get_dependencies())
+  {
+    const string target = rg_.get_pkg(lib.name).target;
+    if (lib.origin == "std")
+    {
+      const string flags = get_pkg_config_flags(lib.name, true);
+      if (!flags.empty())
+        cmd << flags;
+      else
+        cmd << "-l" + target;
+    }
+    else
+    {
+      fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
+      if (fs::exists(lib_dir))
+      {
+        cmd << "-L" + lib_dir.string();
+        cmd << "-Wl,-rpath," + lib_dir.string();
+      }
+      cmd << "-l" + target;
+    }
+  }
 }
 
 string Run::get_output_name() const
 {
+  if (files_.empty())
+    return "";
   fs::path out = files_[0];
   switch (mode_)
   {

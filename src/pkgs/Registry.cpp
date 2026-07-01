@@ -329,9 +329,6 @@ Registry::Registry(const std::filesystem::path &root)
 
 void Registry::add_pkg_to_index(const Pkg &pkg)
 {
-  if (is_installed(pkg.name))
-    throw ZCException(ZCE_ALREADY_INSTALLED, "Package " + pkg.name + " is already installed.");
-
   pkgs_.insert_or_assign(pkg.name, pkg);
   modified_ = true;
 }
@@ -339,7 +336,6 @@ void Registry::add_pkg_to_index(const Pkg &pkg)
 void Registry::add_version_to_pkg(const std::string &name, const Version &version)
 {
   const auto pkg = get_pkg_it(name); // throws error if not found
-
   if (auto &versions = pkg->second.versions; ranges::find(versions, version) == versions.end())
     versions.push_back(version);
   modified_ = true;

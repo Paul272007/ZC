@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
-#include "../project/Project.h"
 #include "Command.h"
+#include "project/Project.h"
 
 namespace zc
 {
@@ -13,8 +14,8 @@ class Build : public Command
 {
 public:
   Build(
-    bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run = false,
-    const std::vector<std::string> &run_args = {}
+    bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run,
+    const std::vector<std::string> &run_args, bool jobs_given, int input_jobs
   );
 
   void operator()() override;
@@ -23,9 +24,10 @@ private:
   const std::filesystem::path    p_root_;
   const std::vector<std::string> run_args_;
 
-  const bool run_;
-  const bool clean_;
-  BuildMode  mode_;
+  const bool   run_;
+  const bool   clean_;
+  const size_t jobs_;
+  BuildMode    mode_;
 };
 
 } // namespace zc

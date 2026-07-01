@@ -1,20 +1,21 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <set>
 #include <string>
 
-#include "../config/GConf.h"
-#include "../config/PConf.h"
-#include "../excepts/ExitCode.h"
-#include "../excepts/ZCException.h"
-#include "../helpers.h"
-#include "../Language.h"
-#include "../pkgs/LocalTarget.h"
-#include "../pkgs/Registry.h"
-#include "../ui/Interface.h"
-#include "MakeVariable.h"
+#include "config/GConf.h"
+#include "config/Language.h"
+#include "config/PConf.h"
+#include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
+#include "helpers.h"
+#include "pkgs/LocalTarget.h"
+#include "pkgs/Registry.h"
+#include "project/MakeVariable.h"
+#include "ui/Interface.h"
 
 namespace zc
 {
@@ -66,7 +67,7 @@ public:
   ~Project()                          = default;
 
   void generate_build_config(BuildMode current_mode = BuildMode::debug, bool is_install = false);
-  void build(BuildMode current_mode = BuildMode::debug, bool is_install = false);
+  void build(BuildMode current_mode = BuildMode::automatic, bool is_install = false, size_t jobs = 1);
   void clean(bool cache = false) const;
   void publish();
 
@@ -102,6 +103,7 @@ private:
   [[nodiscard]] std::string get_linker() const;
   [[nodiscard]] std::map<Language, std::vector<std::string>> get_sources() const;
 
+  void get_nb_to_compile(int &to_compile, int &to_link, const std::string &base_make_cmd) const;
   void init_variables(bool release);
 };
 

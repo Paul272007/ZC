@@ -7,6 +7,7 @@
 #include "../config/Dependency.h"
 #include "../pkgs/Registry.h"
 #include "Command.h"
+#include "ui/ShellCommand.h"
 
 namespace zc
 {
@@ -35,13 +36,14 @@ private:
   const bool static_;
   const bool release_;
 
-  const CompileMode mode_;
-  const std::string output_name_;
-  const std::string build_cmd_;
+  const CompileMode  mode_;
+  const std::string  output_name_;
+  const ShellCommand build_cmd_;
 
+  void add_deps_to_cmd(ShellCommand &cmd) const;
   [[nodiscard]] bool has_cpp() const;
-  [[nodiscard]] std::string get_build_command() const;
   [[nodiscard]] std::string get_output_name() const;
+  [[nodiscard]] ShellCommand get_build_command() const;
   [[nodiscard]] std::vector<Dependency> get_dependencies() const;
 };
 

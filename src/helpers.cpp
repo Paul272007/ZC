@@ -7,16 +7,41 @@
 #include <filesystem>
 #include <fstream>
 #include <openssl/evp.h>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
+#include "config/GConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "pkgs/Network.h"
+#include "templates/TemplateEngine.h"
+#include "ui/Interface.h"
 
 ZC_DEV_CONFIG
 
 namespace zc
 {
+
+zc::Interface &ui()
+{
+  return zc::Interface::get();
+}
+
+zc::Network &net()
+{
+  return zc::Network::get();
+}
+
+zc::TemplateEngine &te()
+{
+  return zc::TemplateEngine::get();
+}
+
+zc::GConf &gc()
+{
+  return zc::GConf::get();
+}
 
 const fs::path &zc_root()
 {
@@ -148,11 +173,29 @@ std::string base64_encode(const std::string &in)
   return out;
 }
 
+size_t get_jobs_count(const int input_jobs)
+{
+  if (input_jobs > 0)
+    return static_cast<size_t>(input_jobs);
+
+  size_t jobs = std::thread::hardware_concurrency();
+  if (jobs == 0)
+    return 1;
+  return jobs;
+}
+
 std::string pretty_path(const std::filesystem::path &path)
 {
+  std::string p{ path.string() };
+  if (const char *home = getenv(USER_HOME_ENV))
+  {
+    std::string home_str{ home };
+    if (p.starts_with(home_str))
+      p.replace(0, home_str.length(), "~");
+  }
   if (fs::exists(path) && fs::is_directory(path))
-    return fs::relative(path).string() + "/";
-  return fs::relative(path).string();
+    return p + "/";
+  return p;
 }
 
 std::string join(const std::vector<std::string> &v, const std::string &separator)

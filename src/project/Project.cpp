@@ -9,12 +9,12 @@
 #include <sstream>
 #include <string>
 
-#include "../config/GConf.h"
-#include "../helpers.h"
 #include "config/Dependency.h"
+#include "config/GConf.h"
+#include "config/Language.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
-#include "Language.h"
+#include "helpers.h"
 #include "pkgs/LocalTarget.h"
 #include "pkgs/Network.h"
 #include "pkgs/PkgType.h"
@@ -37,18 +37,9 @@ Project::Project(const std::filesystem::path &root)
 {
 }
 
-void Project::build(BuildMode current_mode, bool is_install)
+void Project::get_nb_to_compile(int &to_compile, int &to_link, const std::string &base_make_cmd) const
 {
-  if (pconf.type == PkgType::HEADER)
-    return;
-
-  generate_build_config(current_mode, is_install);
-
-  int to_compile = 0;
-  int to_link    = 0;
-
-  const string make_cmd    = "make --no-print-directory -C " + build_dir.string() + " all";
-  const string dry_run_cmd = make_cmd + " -n 2>/dev/null";
+  const string dry_run_cmd = base_make_cmd + " -n 2>/dev/null";
   FILE        *dry_pipe    = popen(dry_run_cmd.c_str(), "r");
   if (dry_pipe == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
@@ -63,6 +54,22 @@ void Project::build(BuildMode current_mode, bool is_install)
       to_link++;
   }
   pclose(dry_pipe);
+}
+
+void Project::build(BuildMode current_mode, const bool is_install, const size_t jobs)
+{
+  if (pconf.type == PkgType::HEADER)
+    return;
+
+  generate_build_config(current_mode, is_install);
+
+  int to_compile = 0;
+  int to_link    = 0;
+
+  const string make_cmd =
+    "make --no-print-directory -j" + to_string(jobs) + " -C " + build_dir.string() + " all";
+
+  get_nb_to_compile(to_compile, to_link, make_cmd);
 
   if (to_compile == 0 && to_link == 0)
   {
@@ -74,6 +81,7 @@ void Project::build(BuildMode current_mode, bool is_install)
   const int todo = to_compile + to_link;
   int       done = 0;
 
+  ui().debug("Make command: " + make_cmd);
   FILE *pipe = popen((make_cmd + " 2>&1").c_str(), "r");
   if (pipe == nullptr)
     throw ZCException(ZCE_INTERNAL_ERROR, "Failed to run make");
@@ -133,7 +141,7 @@ void Project::build(BuildMode current_mode, bool is_install)
 
   const int result = pclose(pipe);
   if (WEXITSTATUS(result) == 0) // FIX: find solution for windows
-    if_.success("Project was successfully built in " + build_dir.string());
+    if_.success("Project was successfully built in " + pretty_path(build_dir));
   else
     throw ZCException(
       ZCE_COMPILATION_ERROR, "Build failed with exit code " + to_string(WEXITSTATUS(result))

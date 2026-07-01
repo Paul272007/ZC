@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <initializer_list>
 #include <nlohmann/json.hpp>
@@ -9,8 +10,6 @@
 #include <vector>
 
 #include "excepts/ZCException.h"
-#include "pkgs/Network.h"
-#include "ui/Interface.h"
 
 #define ZC_DEV_CONFIG             \
   using namespace std;            \
@@ -86,15 +85,15 @@
 namespace zc
 {
 
-inline zc::Interface &ui()
-{
-  return zc::Interface::get();
-}
+class Interface;
+class Network;
+class TemplateEngine;
+class GConf;
 
-inline zc::Network &net()
-{
-  return zc::Network::get();
-}
+zc::Interface &ui();
+zc::Network &net();
+zc::TemplateEngine &te();
+zc::GConf &gc();
 
 // Operations on ZC directories
 const std::filesystem::path &zc_root();
@@ -116,6 +115,7 @@ std::string get_pkg_config_flags(const std::string &pkg_name, bool cflags);
 std::string exec_command(const std::string &cmd);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
+size_t get_jobs_count(int input_jobs);
 
 // String utilities
 std::string pretty_path(const std::filesystem::path &path);

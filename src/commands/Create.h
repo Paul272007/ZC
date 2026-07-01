@@ -3,10 +3,10 @@
 #include <map>
 #include <vector>
 
-#include "../clang_utils.h"
-#include "../Language.h"
-#include "../templates/TemplateEngine.h"
-#include "Command.h"
+#include "clang_utils.h"
+#include "commands/Command.h"
+#include "config/Language.h"
+#include "templates/TemplateEngine.h"
 
 namespace zc
 {

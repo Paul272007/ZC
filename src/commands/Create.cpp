@@ -8,9 +8,9 @@
 
 #include "clang_utils.h"
 #include "commands/Command.h"
+#include "config/Language.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
-#include "Language.h"
 #include "templates/TemplateEngine.h"
 
 ZC_DEV_CONFIG

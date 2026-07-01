@@ -3,13 +3,13 @@
 #include <map>
 #include <string>
 
-#include "../helpers.h"
-#include "../Language.h"
-#include "../pkgs/PkgType.h"
-#include "../Version.h"
-#include "Conf.h"
-#include "Dependency.h"
-#include "LanguageConf.h"
+#include "config/Conf.h"
+#include "config/Dependency.h"
+#include "config/Language.h"
+#include "config/LanguageConf.h"
+#include "helpers.h"
+#include "pkgs/PkgType.h"
+#include "Version.h"
 
 namespace zc
 {

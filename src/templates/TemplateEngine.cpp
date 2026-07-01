@@ -3,10 +3,10 @@
 #include <filesystem>
 #include <string>
 
-#include "../excepts/ZCException.h"
-#include "../helpers.h"
-#include "../ui/Interface.h"
-#include "Language.h"
+#include "config/Language.h"
+#include "excepts/ZCException.h"
+#include "helpers.h"
+#include "ui/Interface.h"
 
 ZC_DEV_CONFIG
 
@@ -92,11 +92,11 @@ bool TemplateEngine::init_with_template(const std::filesystem::path &file, Langu
 
   if (found_templates_for_language.empty())
   {
-    if_.error("Skipped file " + file.string() + ": no template available");
+    ui().error("Skipped file " + file.string() + ": no template available");
     return false;
   }
   if (found_templates_for_language.size() > 1)
-    template_to_use = found_templates_for_language[if_.radios(
+    template_to_use = found_templates_for_language[ui().radios(
       "Which template do you want to use for file " + file.string(), found_templates_for_language
     )];
   else
@@ -126,7 +126,7 @@ void TemplateEngine::init_with_p_template(
 
     fs::path dest_path = root / rel_path;
     if (fs::exists(dest_path) && !force)
-      if (!if_.ask(
+      if (!ui().ask(
             "The entry '" + pretty_path(dest_path) + "' already exists. Do you want to overwrite it ?"
           ))
         continue;

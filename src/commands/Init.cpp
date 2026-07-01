@@ -5,13 +5,14 @@
 #include <vector>
 
 #include "commands/Command.h"
+#include "config/Language.h"
 #include "config/PConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
-#include "Language.h"
 #include "pkgs/PkgType.h"
 #include "templates/TemplateEngine.h"
+#include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG
 
@@ -69,18 +70,10 @@ void Init::operator()()
     author_ = if_.input("Package author", gc_.username);
 
   if (p_template_.empty())
-  {
-    vector<string> options = { "none" };
-    options.append_range(te_.p_templates());
-    p_template_ = options.at(if_.radios("Project template to use:", options));
-  }
+    p_template_ = choose_p_template();
 
   if (type_ == PkgType::UNDEF)
-  {
-    const vector<string> options = { "binary", "library", "header-only library", "composed package" };
-
-    type_ = static_cast<PkgType>(if_.radios("Package type:", options));
-  }
+    type_ = choose_pkg_type();
 
   te_.init_with_p_template(p_root_, p_template_, force_);
 
@@ -94,12 +87,8 @@ void Init::operator()()
       languages_.push_back(language_from_str(result));
   }
 
-  if (git_)
-  {
-    if_.info("Initializing git repo...");
-    if (system("git init") != 0)
-      throw ZCException(ZCE_GIT_ERROR, "Git init failed");
-  }
+  if (git_ && system("git init") != 0)
+    throw ZCException(ZCE_GIT_ERROR, "Git init failed");
 
   PConf pconf(p_root_ / ZC_FILE);
 
@@ -121,10 +110,8 @@ void Init::operator()()
     else
       pconf.languages.insert_or_assign(l, gc_.languages.at(l));
 
-  // TODO: replace with function to send command as array/vector and escape arguments
   if (gc_.open_after_init || edit_)
-    if (system(string(esc(gc_.editor) + " " + esc(p_root_.string())).c_str()) != 0)
-      throw ZCException(ZCE_INTERNAL_ERROR, "An error occurred while opening project in editor");
+    open_project_in_editor(p_root_);
 }
 
 } // namespace zc

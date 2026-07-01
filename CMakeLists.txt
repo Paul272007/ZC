@@ -46,7 +46,7 @@ add_compile_options(
 )
 
 # Create library
-add_library(zc-core STATIC
+add_executable(zc
         src/config/Conf.h
         src/config/Dependency.h
         src/config/GConf.cpp
@@ -73,6 +73,8 @@ add_library(zc-core STATIC
         src/templates/TemplateEngine.cpp
         src/templates/TemplateEngine.h
 
+        src/ui/ShellCommand.cpp
+        src/ui/ShellCommand.h
         src/ui/Interface.cpp
         src/ui/Interface.h
         src/ui/Table.cpp
@@ -122,21 +124,18 @@ add_library(zc-core STATIC
         src/commands/Update.h
         src/commands/Use.cpp
         src/commands/Use.h
+
+        src/zc.cpp
 )
 
-target_include_directories(zc-core PRIVATE src)
-target_link_libraries(zc-core PRIVATE
+target_include_directories(zc PRIVATE src)
+target_link_libraries(zc PRIVATE
         libclang
         nlohmann_json::nlohmann_json
         CURL::libcurl
         LibArchive::LibArchive
         OpenSSL::Crypto
 )
-
-# Compile zc
-add_executable(zc src/zc.cpp)
-target_link_libraries(zc PRIVATE zc-core)
-target_include_directories(zc PRIVATE src)
 
 # --- INSTALLATION RULES ---
 

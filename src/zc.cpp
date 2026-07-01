@@ -72,6 +72,7 @@ int main(const int argc, char *argv[])
   bool clean_before = false;
   bool debug        = false;
   bool release      = false;
+  int  jobs         = 1;
   // Init
   bool git        = false;
   bool edit       = false;
@@ -129,7 +130,7 @@ int main(const int argc, char *argv[])
   // --- Subcommands arguments
   // Run
 
-  run->add_option("files", targets, "Files to compile and run")->required();
+  run->add_option("files", targets, "Files to compile and run");
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
 
   run->add_flag("--quiet,-q", quiet, "Do not show any messages");
@@ -191,7 +192,8 @@ int main(const int argc, char *argv[])
   // TODO: add --force,-f flag
 
   build->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  auto *opt = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
+  auto *opt_jobs = build->add_option("--jobs,-j", jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
+  auto *opt_args = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
   build->add_flag("--clean,-c", clean_before, "Clean before building");
@@ -199,10 +201,7 @@ int main(const int argc, char *argv[])
   build->add_flag("--debug,-d", debug, "Build in debug mode");
 
   build->callback([&] {
-    if (*opt)
-      command = make_unique<Build>(force, p_root, clean_before, release, debug, true, run_args);
-    else
-      command = make_unique<Build>(force, p_root, clean_before, release, debug);
+    command = make_unique<Build>(force, p_root, clean_before, release, debug, static_cast<bool>((*opt_args)), run_args, static_cast<bool>((*opt_jobs)), jobs);
   });
 
   // Add
