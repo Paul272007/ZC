@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
+
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 project(ZC VERSION 0.1 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -13,6 +18,15 @@ find_package(CURL REQUIRED)
 find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json REQUIRED)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 # --- BUILD ---
 
@@ -45,8 +59,8 @@ add_compile_options(
   -Wno-comment
 )
 
-# Create library
-add_executable(zc
+# Create core library for testing and executable
+add_library(zc_core STATIC
         src/config/Conf.h
         src/config/Dependency.h
         src/config/GConf.cpp
@@ -126,18 +140,23 @@ add_executable(zc
         src/commands/Update.h
         src/commands/Use.cpp
         src/commands/Use.h
-
-        src/zc.cpp
 )
 
-target_include_directories(zc PRIVATE src)
-target_link_libraries(zc PRIVATE
+target_include_directories(zc_core PUBLIC src)
+target_link_libraries(zc_core PUBLIC
         libclang
         nlohmann_json::nlohmann_json
         CURL::libcurl
         LibArchive::LibArchive
         OpenSSL::Crypto
 )
+
+# Main executable
+add_executable(zc src/zc.cpp)
+target_link_libraries(zc PRIVATE zc_core)
+
+enable_testing()
+add_subdirectory(tests/unit)
 
 # --- INSTALLATION RULES ---
 
