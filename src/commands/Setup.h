@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../project/Project.h"
-#include "Command.h"
+#include "commands/ProjectCommand.h"
+#include "project/Project.h"
 
 namespace zc
 {
 
-class Setup : public Command
+class Setup : public ProjectCommand
 {
 public:
   Setup(bool force, const std::filesystem::path &p_root, bool release, bool debug);
@@ -14,8 +14,6 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path p_root_;
-
   BuildMode mode_;
 };
 

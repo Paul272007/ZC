@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Command.h"
+#include "commands/Command.h"
 #include "config/GConf.h"
 
 namespace zc

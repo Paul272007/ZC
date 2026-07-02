@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "../pkgs/Registry.h"
-#include "Command.h"
+#include "commands/ProjectCommand.h"
+#include "pkgs/Registry.h"
 
 namespace zc
 {
 
-class Update : public Command
+class Update : public ProjectCommand
 {
 public:
   Update(
@@ -23,12 +23,16 @@ public:
 private:
   Registry &reg_ = Registry::get();
 
-  const std::filesystem::path p_root_;
   const std::filesystem::path path_;
+  std::vector<RemoteTarget>   targets_;
 
-  std::vector<RemoteTarget> targets_;
-  const bool                sync_;
-  const bool                use_;
+  const bool use_;
+  const bool sync_;
+
+  void update_from_path();
+  void update_dependencies();
+  void update_targets();
+  void sync_project();
 };
 
 } // namespace zc

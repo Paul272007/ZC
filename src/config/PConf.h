@@ -35,6 +35,12 @@ public:
   void remove_dependency(const std::string &dep_name);
   void change_dependency_version(const std::string &dep_name, const Version &new_version);
 
+  [[nodiscard]] bool has_language(Language l) const;
+  void add_language(Language l);
+  void remove_language(Language l);
+  void edit_language(Language l);
+  void edit_languages();
+
   ~PConf() override;
   explicit PConf(const std::filesystem::path &file = get_project_root() / ZC_FILE);
 

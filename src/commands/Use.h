@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "Command.h"
+#include "commands/ProjectCommand.h"
 #include "pkgs/LocalTarget.h"
 
 namespace zc
 {
 
-class Use : public Command
+class Use : public ProjectCommand
 {
 public:
   Use(
@@ -20,10 +20,9 @@ public:
   void operator()() override;
 
 private:
-  const bool                  global_;
-  const std::filesystem::path p_root_;
-
   std::vector<LocalTarget> targets_;
+
+  const bool global_;
 };
 
 } // namespace zc

@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include "Command.h"
+#include "commands/ProjectCommand.h"
 #include "project/Project.h"
 
 namespace zc
 {
 
-class Build : public Command
+class Build : public ProjectCommand
 {
 public:
   Build(
@@ -21,7 +21,6 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path    p_root_;
   const std::vector<std::string> run_args_;
 
   const bool   run_;

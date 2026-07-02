@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <string>
 
 #include "../excepts/ZCException.h"
 #include "../helpers.h"
@@ -107,6 +108,43 @@ string Interface::input(const string &question) const
   return line;
 }
 
+vector<string> Interface::input_list(const string &question, const vector<string> &default_ans) const
+{
+  vector<string> answers;
+  cout << question << ": \n";
+  cout << "Hit " BLUE "Enter" RESET " to accept the default options:\n    " BLUE
+       << join(default_ans, "\n    ") << RESET "\n";
+  info("Type a value and hit " BLUE "Enter" RESET " to add this value.");
+  info("Type " BLUE "exit" RESET " to confirm the given values and exit.");
+
+  while (true)
+  {
+    string answer;
+    cout << "❯ " BLUE;
+
+    if (!getline(cin, answer))
+    {
+      cout << RESET;
+      if (cin.eof())
+        answer = "";
+
+      cin.clear();
+      answer = "";
+    }
+    cout << RESET;
+
+    if (answer.empty())    // if answer is empty
+    {
+      if (answers.empty()) // if no values given return default
+        return default_ans;
+      return answers;      // if already some values return them
+    }
+    if (answer == "exit")
+      return answers;
+    answers.push_back(answer); // else add value and continue
+  }
+}
+
 string Interface::input(const string &question, const string &default_ans) const
 {
   string line;
@@ -154,10 +192,10 @@ void Interface::clear_loading_bar() const
     cout << "\r" CLEAR_LINE << flush;
 }
 
-vector<string> Interface::checkboxes(const string &question, const vector<string> &options) const
+void
+Interface::checkboxes(const string &question, const vector<string> &options, vector<bool> &selected) const
 {
-  size_t       cursor = 0;
-  vector<bool> selected(options.size(), false);
+  size_t cursor = 0;
   cout << BLUE "? " RESET << question << '\n' << HIDE_CURSOR;
 
   set_raw_mode(true);
@@ -223,8 +261,6 @@ vector<string> Interface::checkboxes(const string &question, const vector<string
       result.push_back(options[i]);
 
   cout << BLUE << "? " << RESET << question << " " BLUE << join(result, ", ") << RESET << '\n';
-
-  return result;
 }
 
 size_t Interface::radios(

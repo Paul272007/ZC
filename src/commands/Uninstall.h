@@ -1,27 +1,26 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
-#include "../pkgs/Registry.h"
-#include "Command.h"
+#include "pkgs/Registry.h"
+#include "ProjectCommand.h"
 
 namespace zc
 {
 
-// TODO: Uninstall a particular version instead of the entire package each time
-
-class Uninstall : public Command
+class Uninstall : public ProjectCommand
 {
 public:
-  Uninstall(bool force, const std::vector<std::string> &targets);
+  Uninstall(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
 
   void operator()() override;
 
 private:
   Registry &reg_ = Registry::get();
 
-  std::vector<std::string> targets_;
+  std::vector<LocalTarget> targets_;
 };
 
 } // namespace zc

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "config/GConf.h"
 #include "config/Language.h"
@@ -70,12 +71,14 @@ public:
   void build(BuildMode current_mode = BuildMode::automatic, bool is_install = false, size_t jobs = 1);
   void clean(bool cache = false) const;
   void publish();
+  void execute(const std::vector<std::string> &args) const;
 
   void add_dependency(const LocalTarget &target, bool is_static = false);
   void remove_dependency(const std::string &name);
   void change_dependency_version(const std::string &name, const Version &new_version);
 
   void install_dependencies() const;
+  void uninstall_dependencies() const;
   void update_dependencies(bool force, bool use);
 
 private:

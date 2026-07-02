@@ -2,13 +2,15 @@
 
 #include <string>
 
-#include "../helpers.h"
-#include "Conf.h"
+#include "config/Conf.h"
 #include "config/Dependency.h"
 #include "config/GConf.h"
+#include "config/Language.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
+#include "helpers.h"
+#include "ui/Interface.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -123,6 +125,64 @@ void PConf::write()
   root["dependencies"] = deps_json;
 
   write_json(root, file_);
+}
+
+bool PConf::has_language(Language l) const
+{
+  return languages.contains(l);
+}
+
+void PConf::add_language(Language l)
+{
+  // TODO: maybe prompt for config instead of taking from gconf ?
+  if (!gc().languages.contains(l))
+    throw ZCException(
+      ZCE_UNSUPPORTED_LANGUAGE, "No configuration available for language: " + language_to_str(l)
+    );
+  languages.insert_or_assign(l, gc().languages.at(l));
+  modified_ = true;
+}
+
+void PConf::remove_language(Language l)
+{
+  if (!languages.contains(l))
+    throw ZCException(ZCE_NOT_FOUND, "Language " + language_to_str(l) + " not found.");
+  languages.erase(l);
+  modified_ = true;
+}
+
+void PConf::edit_language(Language l)
+{
+  if (!has_language(l))
+    throw ZCException(ZCE_NOT_FOUND, "Language " + language_to_str(l) + " not found.");
+  ui().info("Editing configuration for language " + language_to_str(l));
+
+  LanguageConf &lc = languages.at(l);
+  lc.compiler      = ui().input("Compiler to use", lc.compiler);
+  lc.std           = ui().input("Standard to use", lc.std);
+  lc.flags         = ui().input_list("Flags to add to the compiler", lc.flags);
+  modified_        = true;
+}
+
+void PConf::edit_languages()
+{
+  vector<string> options;
+  vector<bool>   selected;
+
+  for (const auto &key : gc().languages | views::keys)
+  {
+    options.push_back(language_to_str(key));
+    selected.push_back(has_language(key));
+  }
+
+  ui().checkboxes("Package languages:", options, selected);
+
+  languages.clear();
+  for (size_t i = 0; i < options.size(); i++)
+    if (selected[i])
+      add_language(language_from_str(options[i]));
+
+  modified_ = true;
 }
 
 } // namespace zc

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Command.h"
+#include "ProjectCommand.h"
 
 namespace zc
 {
 
-class Remove : public Command
+class Remove : public ProjectCommand
 {
 public:
   Remove(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
@@ -13,7 +13,6 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path    p_root_;
   const std::vector<std::string> targets_;
 };
 

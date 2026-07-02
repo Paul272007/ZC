@@ -4,19 +4,19 @@
 #include <string>
 #include <vector>
 
-#include "../pkgs/Registry.h"
-#include "../pkgs/RemoteTarget.h"
-#include "Command.h"
+#include "commands/ProjectCommand.h"
+#include "pkgs/Registry.h"
+#include "pkgs/RemoteTarget.h"
 
 namespace zc
 {
 
-class Install : public Command
+class Install : public ProjectCommand
 {
 public:
   Install(
     bool force, const std::filesystem::path &p_root, std::filesystem::path path,
-    const std::vector<std::string> &targets, bool is_std
+    const std::vector<std::string> &targets, bool sync, bool is_std
   );
 
   void operator()() override;
@@ -24,16 +24,16 @@ public:
 private:
   Registry &reg_ = Registry::get();
 
-  const std::filesystem::path p_root_;
   const std::filesystem::path path_;
-
-  std::vector<RemoteTarget> targets_;
+  std::vector<RemoteTarget>   targets_;
 
   const bool std_;
+  const bool sync_;
 
-  void install_from_path() const;
-  void install_dependencies() const;
+  void install_from_path();
+  void install_dependencies();
   void install_targets();
+  void sync_project();
 };
 
 } // namespace zc

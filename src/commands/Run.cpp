@@ -6,14 +6,13 @@
 #include <vector>
 
 #include "clang_utils.h"
-#include "commands/Command.h"
+#include "commands/ProjectCommand.h"
 #include "CompileMode.h"
 #include "config/Language.h"
 #include "config/LanguageConf.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
-#include "pkgs/PkgType.h"
 #include "project/Project.h"
 #include "ui/ShellCommand.h"
 
@@ -23,11 +22,12 @@ namespace zc
 {
 
 Run::Run(
-  const bool force, const vector<string> &files, const vector<string> &args, const bool preprocess,
-  const bool compile, const bool assemble, const bool plus, const bool keep, const bool add_std,
-  const bool static_link, const bool no_flags, const bool release
+  const bool force, const vector<string> &files, const vector<string> &args,
+  const std::filesystem::path &p_root, const bool preprocess, const bool compile, const bool assemble,
+  const bool plus, const bool keep, const bool add_std, const bool static_link, const bool no_flags,
+  const bool release
 )
-  : Command(force),
+  : ProjectCommand(force, p_root, files.empty()),
     files_(str_to_path(files)),
     args_(args),
     add_flags_(!no_flags),
@@ -51,24 +51,13 @@ Run::Run(
 
 void Run::operator()()
 {
-  if (files_.empty())
+  if (has_project())
   {
-    Project p{}; // TODO: add -P flag
-    if (p.pconf.type != PkgType::BIN)
-      throw ZCException(ZCE_TYPE_ERROR, "Cannot execute project which is not of type BIN");
-    const fs::path exec_path{ p.build_dir / p.pconf.target };
+    const fs::path exec_path{ p().build_dir / p().pconf.target };
     if (!fs::exists(exec_path))
-      p.build(); // TODO: add -j flag
+      p().build(); // TODO: add -j flag
 
-    ShellCommand exec_cmd{ { fs::absolute(exec_path).string() } };
-    for (const auto &arg : args_)
-      exec_cmd << arg;
-
-    if (gc_.clear_before_run)
-      if_.clear();
-
-    if (const int run_res = exec_cmd(); run_res != 0)
-      throw ZCException(ZCE_RUNTIME_ERROR, "Program ended with exit code " + to_string(run_res));
+    p().execute(args_);
     return;
   }
 
@@ -119,7 +108,7 @@ bool Run::has_cpp() const
 
 ShellCommand Run::get_build_command() const
 {
-  if (files_.empty())
+  if (has_project())
     return {};
   ShellCommand cmd;
 
@@ -206,7 +195,7 @@ void Run::add_deps_to_cmd(ShellCommand &cmd) const
 
 string Run::get_output_name() const
 {
-  if (files_.empty())
+  if (has_project())
     return "";
   fs::path out = files_[0];
   switch (mode_)

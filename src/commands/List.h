@@ -21,6 +21,7 @@ public:
   List(bool force, bool templates, bool p_templates, bool remote, bool simple);
 
   void operator()() override;
+  // TODO: --project to see project dependencies and this class inherits from ProjectCommand
 
 private:
   Registry       &reg_ = Registry::get();

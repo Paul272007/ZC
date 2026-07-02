@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Command.h"
+#include "commands/ProjectCommand.h"
 #include "pkgs/LocalTarget.h"
 
 namespace zc
 {
 
-class Add : public Command
+class Add : public ProjectCommand
 {
 public:
   Add(
@@ -16,7 +16,6 @@ public:
   void operator()() override;
 
 private:
-  const std::filesystem::path    p_root_;
   const std::vector<LocalTarget> targets_;
 
   const bool static_;

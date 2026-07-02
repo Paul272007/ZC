@@ -126,6 +126,7 @@ add_library(zc_core STATIC
         src/commands/Login.h
         src/commands/Logout.cpp
         src/commands/Logout.h
+        src/commands/ProjectCommand.h
         src/commands/Publish.cpp
         src/commands/Publish.h
         src/commands/Remove.cpp
@@ -140,6 +141,14 @@ add_library(zc_core STATIC
         src/commands/Update.h
         src/commands/Use.cpp
         src/commands/Use.h
+
+        src/commands/Languages/Languages.h
+        src/commands/Languages/LanguagesAdd.cpp
+        src/commands/Languages/LanguagesAdd.h
+        src/commands/Languages/LanguagesEdit.cpp
+        src/commands/Languages/LanguagesEdit.h
+        src/commands/Languages/LanguagesRemove.cpp
+        src/commands/Languages/LanguagesRemove.h
 )
 
 target_include_directories(zc_core PUBLIC src)

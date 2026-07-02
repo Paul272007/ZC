@@ -5,19 +5,19 @@
 #include <utility>
 #include <vector>
 
-#include "../config/Conf.h"
-#include "../config/Dependency.h"
-#include "../helpers.h"
-#include "../ui/Table.h"
-#include "../Version.h"
-#include "LocalTarget.h"
+#include "config/Conf.h"
+#include "config/Dependency.h"
+#include "helpers.h"
 #include "Pkg.h"
-#include "RemoteTarget.h"
+#include "ui/Table.h"
+#include "Version.h"
 
 namespace zc
 {
 
 class Project;
+struct LocalTarget;
+struct RemoteTarget;
 
 class Registry : public Conf
 {
@@ -35,10 +35,11 @@ public:
 
   void install_std(const std::string &name);
   void install_from_server(const RemoteTarget &target, bool force = false);
-  void install_from_path(const std::filesystem::path &path, bool force = false);
+  Project install_from_path(const std::filesystem::path &path, bool force = false);
   void update_from_server(const RemoteTarget &target, bool force, bool use);
   Project update_from_path(const std::filesystem::path &path, bool force, bool use);
   void uninstall(const std::string &pkg);
+  void uninstall(const LocalTarget &t);
   void set_default_version(const std::string &name, const Version &version);
 
   [[nodiscard]] bool is_installed(const std::string &name) const;

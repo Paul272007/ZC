@@ -1,24 +1,25 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
-#include "../CompileMode.h"
-#include "../config/Dependency.h"
-#include "../pkgs/Registry.h"
-#include "Command.h"
+#include "commands/ProjectCommand.h"
+#include "CompileMode.h"
+#include "config/Dependency.h"
+#include "pkgs/Registry.h"
 #include "ui/ShellCommand.h"
 
 namespace zc
 {
 
-class Run : public Command
+class Run : public ProjectCommand
 {
 public:
   Run(
     bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-    bool preprocess, bool compile, bool assemble, bool plus, bool keep, bool add_std, bool static_link,
-    bool no_flags, bool release
+    const std::filesystem::path &p_root, bool preprocess, bool compile, bool assemble, bool plus, bool keep,
+    bool add_std, bool static_link, bool no_flags, bool release
   );
 
   void operator()() override;

@@ -61,55 +61,33 @@ void Init::operator()()
     fs::remove(p_root_ / ZC_FILE);
   }
 
-  if (name_.empty())
-    name_ = if_.input("Package name", fs::current_path().filename().string());
+  PConf pconf(p_root_ / ZC_FILE);
 
-  if (target_.empty())
-    target_ = if_.input("Package target", name_);
+  pconf.name   = name_.empty() ? if_.input("Package name", fs::current_path().filename().string()) : name_;
+  pconf.target = target_.empty() ? if_.input("Package target", name_) : target_;
+  pconf.author = author_.empty() ? if_.input("Package author", gc_.username) : author_;
+  pconf.type   = type_ == PkgType::UNDEF ? choose_pkg_type() : type_;
 
-  if (author_.empty())
-    author_ = if_.input("Package author", gc_.username);
+  if (languages_.empty())
+    pconf.edit_languages();
+  else
+  {
+    pconf.languages.clear();
+    for (const auto l : languages_)
+      pconf.add_language(l);
+  }
 
   if (p_template_.empty())
     p_template_ = choose_p_template();
-
-  if (type_ == PkgType::UNDEF)
-    type_ = choose_pkg_type();
-
   te_.init_with_p_template(p_root_, p_template_, force_);
 
-  if (languages_.empty())
-  {
-    vector<string> options;
-    for (const auto &key : gc_.languages | views::keys)
-      options.push_back(language_to_str(key));
-    for (const vector<string> results = if_.checkboxes("Package language(s):", options);
-         const auto          &result : results)
-      languages_.push_back(language_from_str(result));
-  }
+  if (pconf.type == PkgType::BIN)
+    pconf.include_dirs = { SRC_DIR };
+  elif (pconf.type == PkgType::LIB || pconf.type == PkgType::HEADER)
+    pconf.include_dirs = { INCLUDE_DIR };
 
   if (git_ && ShellCommand::exec({ "git", "init" }) != 0)
     throw ZCException(ZCE_GIT_ERROR, "Git init failed");
-
-  PConf pconf(p_root_ / ZC_FILE);
-
-  pconf.name   = name_;
-  pconf.target = target_;
-  pconf.author = author_;
-  pconf.type   = type_;
-  if (type_ == PkgType::BIN)
-    pconf.include_dirs = { SRC_DIR };
-  elif (type_ == PkgType::LIB || type_ == PkgType::HEADER)
-    pconf.include_dirs = { INCLUDE_DIR };
-
-  pconf.languages.clear();
-  for (const auto l : languages_)
-    if (!gc_.languages.contains(l))
-      throw ZCException(
-        ZCE_UNSUPPORTED_LANGUAGE, "No configuration available for language: " + language_to_str(l)
-      );
-    else
-      pconf.languages.insert_or_assign(l, gc_.languages.at(l));
 
   if (gc_.open_after_init || edit_)
     open_project_in_editor(p_root_);

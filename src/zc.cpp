@@ -24,6 +24,9 @@
 #include "commands/Create.h"
 #include "commands/Init.h"
 #include "commands/Install.h"
+#include "commands/Languages/LanguagesAdd.h"
+#include "commands/Languages/LanguagesEdit.h"
+#include "commands/Languages/LanguagesRemove.h"
 #include "commands/List.h"
 #include "commands/Login.h"
 #include "commands/Logout.h"
@@ -105,7 +108,7 @@ int main(const int argc, char *argv[])
   vector<string> run_args;
   vector<string> targets;
   vector<string> input_files;
-  vector<string> languages;
+  vector<string> langs;
 
   // clang-format off
 
@@ -119,7 +122,7 @@ int main(const int argc, char *argv[])
   auto *const build     = app.add_subcommand("build",     "Build project");
   auto *const add       = app.add_subcommand("add",       "Add dependencies to project");
   auto *const remove    = app.add_subcommand("remove",    "Remove dependencies from project");
-  auto *const use       = app.add_subcommand("use",       "Choose version of dependency to use");
+  auto *const use       = app.add_subcommand("use",       "Choose version of a package to use");
   auto *const publish   = app.add_subcommand("publish",   "Publish package to server");
   auto *const clean     = app.add_subcommand("clean",     "Clean all temporary files and directories");
   // Packages
@@ -132,11 +135,17 @@ int main(const int argc, char *argv[])
   auto *const logout    = app.add_subcommand("logout",    "Log out");
   auto *const config    = app.add_subcommand("config",    "Change configuration");
 
+  auto *const languages = app.add_subcommand("languages", "Manage languages")->require_subcommand();
+  auto *const languages_add     = languages->add_subcommand("add", "Add languages");
+  auto *const languages_edit    = languages->add_subcommand("edit", "Edit languages");
+  auto *const languages_remove  = languages->add_subcommand("remove", "Remove languages");
+
   // --- Subcommands arguments
   // Run
 
   run->add_option("files", targets, "Files to compile and run");
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
+  run->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
   run->add_flag("--quiet,-q", quiet, "Do not show any messages");
   run->add_flag("--force,-f", force, "Force compiling even if target already exists");
@@ -150,7 +159,7 @@ int main(const int argc, char *argv[])
   run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
   run->add_flag("--release,-r", release, "Compile in release mode");
 
-  run->callback([&] { command = make_unique<Run>(force, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags, release); });
+  run->callback([&] { command = make_unique<Run>(force, targets, run_args, p_root, preprocess, compile, assemble, plus, keep, std, static_link, no_flags, release); });
 
   // Create
 
@@ -169,7 +178,7 @@ int main(const int argc, char *argv[])
   init->add_option("--target,-t", target, "Package target");
   init->add_option("--project-template,-p", p_template, "Project template to use");
   init->add_option("--name,-n", name, "Name of the package");
-  init->add_option("--languages,-l", languages, "Languages of the project");
+  init->add_option("--languages,-l", langs, "Languages of the project");
 
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");
   init->add_flag("--force,-f", force, "Force initialization even if a project already exists");
@@ -180,7 +189,7 @@ int main(const int argc, char *argv[])
   init->add_flag("--header,-H", is_header, "Make package of type HEADER");
   init->add_flag("--compose,-C", is_compose, "Make package of type COMPOSE");
 
-  init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, languages); });
+  init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, langs); });
 
   // Setup
   // TODO: add --force,-f flag
@@ -278,19 +287,20 @@ int main(const int argc, char *argv[])
 
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
   install->add_flag("--force,-f", force, "Force reinstalling packages");
+  install->add_flag("--sync,-s", sync, "Also add installed packages to project dependencies");
   install->add_flag("--std", std, "Add dependency to a standard library instead of ZC library");
 
-  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, std); });
+  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, sync, std); });
 
   // Uninstall
-  // TODO: add --project-path to uninstall all project dependencies
   // TODO: add --force,-f flag
 
+  uninstall->add_option("--project-path,-P", p_root, "Directory to use as project root");
   uninstall->add_option("targets", targets, "Targets to uninstall");
 
   uninstall->add_flag("--quiet,-q", quiet, "Do not show any messages");
 
-  uninstall->callback([&] { command = make_unique<Uninstall>(force, targets); });
+  uninstall->callback([&] { command = make_unique<Uninstall>(force, p_root, targets); });
 
   // Update
 
@@ -301,7 +311,7 @@ int main(const int argc, char *argv[])
   update->add_flag("--quiet,-q", quiet, "Do not show any messages");
   update->add_flag("--force,-f", force, "Force reinstalling a specific version");
   update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
-  update->add_flag("--dont-use,-d", dont_use, "");
+  update->add_flag("--dont-use,-d", dont_use, "Do not set newly installed version as default version for updated package");
 
   update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync, dont_use); });
 
@@ -328,6 +338,36 @@ int main(const int argc, char *argv[])
   config->add_flag("--force,-f", force, "When creating a new config, override already existing configuration");
 
   config->callback([&] { command = make_unique<Config>(force, key, value); });
+
+  // Languages Add
+  // TODO: add --force,-f flag
+
+  languages_add->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  languages_add->add_option("languages", langs, "Languages to add")->required();
+
+  languages_add->add_flag("--global,-g", global, "Modify global configuration");
+
+  languages_add->callback([&] { command = make_unique<LanguagesAdd>(force, p_root, langs, global); });
+
+  // Languages Edit
+  // TODO: add --force,-f flag
+
+  languages_edit->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  languages_edit->add_option("languages", langs, "Languages to edit");
+
+  languages_edit->add_flag("--global,-g", global, "Modify global configuration");
+
+  languages_edit->callback([&] { command = make_unique<LanguagesEdit>(force, p_root, langs, global); });
+
+  // Languages Remove
+  // TODO: add --force,-f flag
+
+  languages_remove->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  languages_remove->add_option("languages", langs, "Languages to remove")->required();
+
+  languages_remove->add_flag("--global,-g", global, "Modify global configuration");
+
+  languages_remove->callback([&] { command = make_unique<LanguagesRemove>(force, p_root, langs, global); });
 
   // clang-format on
 

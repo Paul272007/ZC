@@ -15,6 +15,7 @@
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "pkgs/Network.h"
+#include "pkgs/Registry.h"
 #include "templates/TemplateEngine.h"
 #include "ui/Interface.h"
 #include "ui/ShellCommand.h"
@@ -42,6 +43,11 @@ zc::TemplateEngine &te()
 zc::GConf &gc()
 {
   return zc::GConf::get();
+}
+
+zc::Registry &rg()
+{
+  return zc::Registry::get();
 }
 
 const fs::path &zc_root()
@@ -183,6 +189,17 @@ size_t get_jobs_count(const int input_jobs)
   if (jobs == 0)
     return 1;
   return jobs;
+}
+
+std::vector<Target> parse_targets(const std::vector<std::string> &targets)
+{
+  std::vector<Target> pairs;
+  for (const auto &target : targets)
+    if (const size_t at_pos = target.find('@'); at_pos != std::string::npos)
+      pairs.emplace_back(target.substr(0, at_pos), target.substr(at_pos + 1));
+    else
+      pairs.emplace_back(target, Version{ 0, 0, 0 });
+  return pairs;
 }
 
 std::string pretty_path(const std::filesystem::path &path)

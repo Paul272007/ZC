@@ -35,19 +35,17 @@ public:
   [[nodiscard]] bool ask(const std::string &question, bool default_ans = true) const;
 
   [[nodiscard]] std::string input(const std::string &question) const;
-
-  /**
-   * @param question The question to be answered
-   * @param default_ans The default answer if no one was given
-   */
   [[nodiscard]] std::string input(const std::string &question, const std::string &default_ans) const;
+  [[nodiscard]] std::vector<std::string>
+  input_list(const std::string &question, const std::vector<std::string> &default_ans) const;
 
   void loading_bar(int bar_width, int percent_filled, const std::string &message) const;
 
   void clear_loading_bar() const;
 
-  [[nodiscard]] std::vector<std::string>
-  checkboxes(const std::string &question, const std::vector<std::string> &options) const;
+  void checkboxes(
+    const std::string &question, const std::vector<std::string> &options, std::vector<bool> &selected
+  ) const;
 
   [[nodiscard]] size_t radios(
     const std::string &question, const std::vector<std::string> &options, size_t default_ans = 0

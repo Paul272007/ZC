@@ -94,15 +94,20 @@
 namespace zc
 {
 
+class Version;
 class Interface;
 class Network;
 class TemplateEngine;
 class GConf;
+class Registry;
+
+using Target = std::pair<std::string, Version>;
 
 zc::Interface &ui();
 zc::Network &net();
 zc::TemplateEngine &te();
 zc::GConf &gc();
+zc::Registry &rg();
 
 // Operations on ZC directories
 const std::filesystem::path &zc_root();
@@ -125,6 +130,7 @@ std::string exec_command(const std::string &cmd);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 size_t get_jobs_count(int input_jobs);
+std::vector<Target> parse_targets(const std::vector<std::string> &targets);
 
 // String utilities
 std::string pretty_path(const std::filesystem::path &path);

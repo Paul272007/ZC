@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "../excepts/ExitCode.h"
-#include "../excepts/ZCException.h"
-#include "../helpers.h"
-#include "../Version.h"
-#include "Network.h"
+#include "excepts/ExitCode.h"
+#include "excepts/ZCException.h"
+#include "helpers.h"
+#include "pkgs/Network.h"
+#include "Version.h"
 
 namespace zc
 {
@@ -22,20 +22,10 @@ struct RemoteTarget
 
   static std::vector<RemoteTarget> parse(const std::vector<std::string> &targets)
   {
-    if (targets.empty())
-      return {};
-    std::vector<std::pair<std::string, Version>> pairs;
-
-    for (const auto &target : targets)
-      if (const size_t at_pos = target.find('@'); at_pos != std::string::npos)
-        pairs.emplace_back(target.substr(0, at_pos), target.substr(at_pos + 1));
-      else
-        pairs.emplace_back(target, Version{ 0, 0, 0 });
-
-    return get_targets(pairs);
+    return get_targets(parse_targets(targets));
   }
 
-  static std::vector<RemoteTarget> get_targets(std::vector<std::pair<std::string, Version>> &pairs)
+  static std::vector<RemoteTarget> get_targets(const std::vector<Target> &pairs)
   {
     if (pairs.empty())
       return {};
@@ -45,7 +35,7 @@ struct RemoteTarget
 
     get_key(index, "packages", pkgs);
 
-    for (auto &[name, requested_version] : pairs)
+    for (CAA[name, requested_version] : pairs)
     {
       std::string version;
       std::string url;

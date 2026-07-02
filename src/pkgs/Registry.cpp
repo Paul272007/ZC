@@ -100,15 +100,14 @@ void Registry::install_from_server(const RemoteTarget &target, const bool force)
   finish_install(p, "main");
 }
 
-void Registry::install_from_path(const std::filesystem::path &path, const bool force)
+Project Registry::install_from_path(const std::filesystem::path &path, const bool force)
 {
   Project p(path);
   if (!force && is_installed(p.pconf.name))
-  {
-    update_from_path(path, force, true);
-    return;
-  }
+    return update_from_path(path, force, true);
+
   finish_install(p, "local");
+  return p;
 }
 
 void Registry::finish_install(Project &p, const std::string &origin)
@@ -214,13 +213,58 @@ void Registry::uninstall(const std::string &pkg)
 {
   const Pkg p = remove_pkg_from_index(pkg); // throws error if not found
 
-  if (p.type == PkgType::BIN)
+  switch (p.type)
+  {
+  case PkgType::BIN:
     if (const auto target = bin_links_dir_ / p.target; fs::exists(target))
       fs::remove(target);
-
+    break;
+  case PkgType::HEADER:
+    if (const auto target = include_links_dir_ / p.target; fs::exists(target))
+      fs::remove(target);
+    break;
+  case PkgType::LIB:
+    if (const auto target = lib_links_dir_ / p.target; fs::exists(target))
+      fs::remove(target);
+    if (const auto target = include_links_dir_ / p.target; fs::exists(target))
+      fs::remove(target);
+    break;
+  case PkgType::COMPOSE:
+  case PkgType::UNDEF:
+  default:
+    break;
+  }
   // Remove entire directory
   if (const auto pkg_path = cache_dir_ / p.name; fs::exists(pkg_path))
     fs::remove_all(pkg_path);
+}
+
+void Registry::uninstall(const LocalTarget &t)
+{
+  auto it = get_pkg_it(t.name);
+  Pkg &p  = it->second;
+
+  auto &versions = p.versions;
+  auto  v_it     = ranges::find(versions, t.version);
+
+  if (versions.size() == 1)
+  {
+    uninstall(t.name);
+    return;
+  }
+
+  versions.erase(v_it);
+  modified_ = true;
+
+  if (const auto version_path = cache_dir_ / p.name / t.version.string(); fs::exists(version_path))
+    fs::remove_all(version_path);
+
+  if (p.default_version == t.version)
+  {
+    p.default_version = *ranges::max_element(versions);
+    update_symlinks(p);
+    ui().info("Default version of '" + t.name + "' automatically updated to " + p.default_version.string());
+  }
 }
 
 Version Registry::get_latest(const std::string &name)
@@ -444,12 +488,7 @@ void Registry::update_symlinks(const Pkg &p) const
     const auto link_include = include_links_dir_ / p.name;
     fs::create_directories(include_links_dir_);
     if (fs::exists(link_include) || fs::is_symlink(link_include))
-    {
-      if (fs::is_directory(link_include))
-        fs::remove_all(link_include);
-      else
-        fs::remove(link_include);
-    }
+      fs::remove_all(link_include);
     fs::create_directory_symlink(dest_include, link_include);
 
     if (p.type == PkgType::LIB)
@@ -458,12 +497,7 @@ void Registry::update_symlinks(const Pkg &p) const
       const auto link_lib = lib_links_dir_ / p.name;
       fs::create_directories(lib_links_dir_);
       if (fs::exists(link_lib) || fs::is_symlink(link_lib))
-      {
-        if (fs::is_directory(link_lib))
-          fs::remove_all(link_lib);
-        else
-          fs::remove(link_lib);
-      }
+        fs::remove_all(link_lib);
       fs::create_directory_symlink(dest_lib, link_lib);
     }
   }

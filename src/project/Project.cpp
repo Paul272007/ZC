@@ -313,6 +313,28 @@ void Project::publish()
   }
 }
 
+void Project::execute(const std::vector<std::string> &args) const
+{
+  if (pconf.type != PkgType::BIN)
+    throw ZCException(ZCE_TYPE_ERROR, "Cannot execute project which is not of type BIN");
+
+  ShellCommand exec_cmd{ {
+    fs::absolute(
+      gc_.move_bin_to_current_path ? fs::current_path() / pconf.target : build_dir / pconf.target
+    )
+      .string(), // FIX: wtf is this format ?
+  } };
+
+  for (const auto &arg : args)
+    exec_cmd << arg;
+
+  if (gc_.clear_before_run)
+    ui().clear();
+
+  if (const int run_res = exec_cmd(); run_res != 0)
+    throw ZCException(ZCE_RUNTIME_ERROR, "Program exited with code " + to_string(run_res));
+}
+
 void Project::add_dependency(const LocalTarget &target, const bool is_static)
 {
   if (pconf.name == target.name)
@@ -345,7 +367,7 @@ void Project::change_dependency_version(const std::string &name, const Version &
 void Project::install_dependencies() const
 {
   ui().info("Installing package dependencies...");
-  vector<pair<string, Version>> to_install;
+  vector<Target> to_install;
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "local")
@@ -382,6 +404,24 @@ void Project::update_dependencies(const bool force, const bool use)
     reg_.update_from_server(t, force, use);
     pconf.change_dependency_version(t.name, t.version);
   }
+}
+
+void Project::uninstall_dependencies() const
+{
+  ui().info("Uninstalling package dependencies...");
+  vector<LocalTarget> to_uninstall;
+  for (const auto &dep : pconf.dependencies | views::values)
+  {
+    if (dep.origin == "std")
+    {
+      ui().warning("Skipped dependency '" + dep.name + "' which is a standard package.");
+      continue; // TODO: or still remove from index ?
+    }
+    if (reg_.is_installed(dep.name, dep.version))
+      to_uninstall.emplace_back(dep.name, dep.version);
+  }
+  for (CAA t : to_uninstall)
+    reg_.uninstall(t);
 }
 
 void Project::generate_build_config(BuildMode current_mode, bool is_install)

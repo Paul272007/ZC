@@ -1,19 +1,16 @@
 #pragma once
 
-#include "Command.h"
+#include "commands/ProjectCommand.h"
 
 namespace zc
 {
 
-class Clean : public Command
+class Clean : public ProjectCommand
 {
 public:
   Clean(bool force, const std::filesystem::path &p_root);
 
   void operator()() override;
-
-private:
-  const std::filesystem::path p_root_;
 };
 
 } // namespace zc
