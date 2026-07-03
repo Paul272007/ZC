@@ -29,7 +29,7 @@ public:
   Registry &operator=(const Registry &) = delete;
   [[nodiscard]] static Registry &get();
 
-  [[nodiscard]] Pkg get_pkg(const std::string &name);
+  [[nodiscard]] const Pkg &get_pkg(const std::string &name);
   [[nodiscard]] Version get_latest(const std::string &name);
   [[nodiscard]] Dependency get_dependency(const LocalTarget &t);
 

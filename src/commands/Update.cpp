@@ -25,9 +25,6 @@ Update::Update(
     sync_(sync),
     save_path_(save_path)
 {
-  for (CAA[name, version] : targets_)
-    if (!reg_.is_installed(name))
-      throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' is not installed.");
 }
 
 void Update::operator()()
@@ -44,7 +41,7 @@ void Update::update_targets()
 {
   for (CAA[name, version] : targets_)
   {
-    Pkg pkg = reg_.get_pkg(name);
+    const Pkg &pkg = reg_.get_pkg(name);
     if (pkg.origin == "local")
     {
       if (pkg.path.empty())

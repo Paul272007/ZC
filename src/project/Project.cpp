@@ -743,7 +743,7 @@ void Project::init_variables(bool release)
     const fs::path inc_dir = pkg_dir / INCLUDE_DIR;
     incdirs.add("-I" + inc_dir.string());
 
-    Pkg pkg = reg_.get_pkg(name);
+    const Pkg &pkg = reg_.get_pkg(name);
     if (pkg.type == PkgType::HEADER)
       continue;
 

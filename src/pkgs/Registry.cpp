@@ -26,7 +26,7 @@ Registry &Registry::get()
   return instance;
 }
 
-Pkg Registry::get_pkg(const std::string &name)
+const Pkg &Registry::get_pkg(const std::string &name)
 {
   auto it = pkgs_.find(name);
   if (it == pkgs_.end())
