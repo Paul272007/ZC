@@ -85,6 +85,7 @@ int main(const int argc, char *argv[])
   bool is_header  = false;
   bool is_compose = false;
   // List
+  bool show_deps        = false;
   bool show_templates   = false;
   bool show_p_templates = false;
   bool simple_display   = false;
@@ -270,14 +271,16 @@ int main(const int argc, char *argv[])
 
   // List
   // TODO: add --force,-f flag
+  list->add_option("--project-path,-P", p_root, "Directory to use as project root");
 
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  list->add_flag("--dependencies,-d", show_deps, "Show project dependencies");
   list->add_flag("--templates,-t", show_templates, "Show available templates instead of packages");
   list->add_flag("--project-templates,-p", show_p_templates, "Show available project templates instead of packages");
   list->add_flag("--remote,-r", show_remote, "Show remote packages instead of local ones");
   list->add_flag("--simple,-s", simple_display, "Use a simpler display");
 
-  list->callback([&] { command = make_unique<List>(force, show_templates, show_p_templates, show_remote, simple_display); });
+  list->callback([&] { command = make_unique<List>(force, p_root, show_deps, show_templates, show_p_templates, show_remote, simple_display); });
 
   // Install
 

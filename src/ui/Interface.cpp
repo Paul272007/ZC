@@ -111,7 +111,7 @@ string Interface::input(const string &question) const
 vector<string> Interface::input_list(const string &question, const vector<string> &default_ans) const
 {
   vector<string> answers;
-  cout << question << ": \n";
+  cout << question << ":\n";
   cout << "Hit " BLUE "Enter" RESET " to accept the default options:\n    " BLUE
        << join(default_ans, "\n    ") << RESET "\n";
   info("Type a value and hit " BLUE "Enter" RESET " to add this value.");

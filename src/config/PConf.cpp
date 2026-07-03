@@ -1,5 +1,6 @@
 #include "PConf.h"
 
+#include <ranges>
 #include <string>
 
 #include "config/Conf.h"
@@ -183,6 +184,15 @@ void PConf::edit_languages()
       add_language(language_from_str(options[i]));
 
   modified_ = true;
+}
+
+Table PConf::dependencies_table() const
+{
+  vector<vector<string>> str_deps = { { "Name", "Package origin", "Link type", "Version" } };
+  for (const auto &d : dependencies | views::values)
+    str_deps.push_back({ d.name, d.origin, d.static_link ? "Static" : "Dynamic", d.version.string() });
+
+  return { false, true, str_deps };
 }
 
 } // namespace zc

@@ -1,27 +1,32 @@
 #pragma once
 
-#include "../pkgs/Registry.h"
-#include "../templates/TemplateEngine.h"
-#include "Command.h"
+#include <filesystem>
+
+#include "commands/ProjectCommand.h"
+#include "pkgs/Registry.h"
+#include "templates/TemplateEngine.h"
 
 namespace zc
 {
 
 enum class ListType : uint8_t
 {
-  ZC_LIST_SHOW_PKGS,
-  ZC_LIST_SHOW_REMOTE,
-  ZC_LIST_SHOW_TEMPLATES,
-  ZC_LIST_SHOW_P_TEMPLATES,
+  SHOW_PKGS,
+  SHOW_DEPS,
+  SHOW_REMOTE,
+  SHOW_TEMPLATES,
+  SHOW_P_TEMPLATES,
 };
 
-class List : public Command
+class List : public ProjectCommand
 {
 public:
-  List(bool force, bool templates, bool p_templates, bool remote, bool simple);
+  List(
+    bool force, const std::filesystem::path &p_root, bool deps, bool templates, bool p_templates,
+    bool remote, bool simple
+  );
 
   void operator()() override;
-  // TODO: --project to see project dependencies and this class inherits from ProjectCommand
 
 private:
   Registry       &reg_ = Registry::get();

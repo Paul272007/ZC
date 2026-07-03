@@ -9,6 +9,7 @@
 #include "config/LanguageConf.h"
 #include "helpers.h"
 #include "pkgs/PkgType.h"
+#include "ui/Table.h"
 #include "Version.h"
 
 namespace zc
@@ -40,6 +41,8 @@ public:
   void remove_language(Language l);
   void edit_language(Language l);
   void edit_languages();
+
+  [[nodiscard]] Table dependencies_table() const;
 
   ~PConf() override;
   explicit PConf(const std::filesystem::path &file = get_project_root() / ZC_FILE);
