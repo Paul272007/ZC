@@ -149,6 +149,8 @@ add_library(zc_core STATIC
         src/commands/Languages/LanguagesEdit.h
         src/commands/Languages/LanguagesRemove.cpp
         src/commands/Languages/LanguagesRemove.h
+        src/commands/Languages/LanguagesShow.cpp
+        src/commands/Languages/LanguagesShow.h
 )
 
 target_include_directories(zc_core PUBLIC src)

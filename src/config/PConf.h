@@ -37,6 +37,8 @@ public:
   void change_dependency_version(const std::string &dep_name, const Version &new_version);
 
   [[nodiscard]] bool has_language(Language l) const;
+  void show_language(Language l) const;
+  void show_languages() const;
   void add_language(Language l);
   void remove_language(Language l);
   void edit_language(Language l);

@@ -12,6 +12,7 @@
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "ui/Interface.h"
+#include "ui/ui_utils.h"
 
 ZC_DEV_CONFIG_JSON
 
@@ -131,6 +132,27 @@ void PConf::write()
 bool PConf::has_language(Language l) const
 {
   return languages.contains(l);
+}
+
+void PConf::show_language(Language l) const
+{
+  if (!has_language(l))
+    throw ZCException(ZCE_NOT_FOUND, "Language " + language_to_str(l) + " not found.");
+
+  const LanguageConf &lc = languages.at(l);
+  ui().new_line();
+  ui().print(PURPLE + language_to_str(l) + RESET ":");
+  ui().info("Compiler: " + lc.compiler);
+  ui().info("Standard: " + lc.std);
+  ui().info("Flags:");
+  for (CAA f : lc.flags)
+    ui().print("   " + f);
+}
+
+void PConf::show_languages() const
+{
+  for (CAA l : languages | views::keys)
+    show_language(l);
 }
 
 void PConf::add_language(Language l)

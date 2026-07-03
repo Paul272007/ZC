@@ -27,6 +27,7 @@
 #include "commands/Languages/LanguagesAdd.h"
 #include "commands/Languages/LanguagesEdit.h"
 #include "commands/Languages/LanguagesRemove.h"
+#include "commands/Languages/LanguagesShow.h"
 #include "commands/List.h"
 #include "commands/Login.h"
 #include "commands/Logout.h"
@@ -137,9 +138,10 @@ int main(const int argc, char *argv[])
   auto *const config    = app.add_subcommand("config",    "Change configuration");
 
   auto *const languages = app.add_subcommand("languages", "Manage languages")->require_subcommand();
-  auto *const languages_add     = languages->add_subcommand("add", "Add languages");
-  auto *const languages_edit    = languages->add_subcommand("edit", "Edit languages");
+  auto *const languages_add     = languages->add_subcommand("add",    "Add languages");
+  auto *const languages_edit    = languages->add_subcommand("edit",   "Edit languages");
   auto *const languages_remove  = languages->add_subcommand("remove", "Remove languages");
+  auto *const languages_show    = languages->add_subcommand("show",   "Show languages");
 
   // --- Subcommands arguments
   // Run
@@ -371,6 +373,16 @@ int main(const int argc, char *argv[])
   languages_remove->add_flag("--global,-g", global, "Modify global configuration");
 
   languages_remove->callback([&] { command = make_unique<LanguagesRemove>(force, p_root, langs, global); });
+
+  // Languages Show
+  // TODO: add --force,-f flag
+
+  languages_show->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  languages_show->add_option("languages", langs, "Languages to show");
+
+  languages_show->add_flag("--global,-g", global, "Show global configuration");
+
+  languages_show->callback([&] { command = make_unique<LanguagesShow>(force, p_root, langs, global); });
 
   // clang-format on
 
