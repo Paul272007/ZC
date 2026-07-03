@@ -16,7 +16,7 @@ class Install : public ProjectCommand
 public:
   Install(
     bool force, const std::filesystem::path &p_root, std::filesystem::path path,
-    const std::vector<std::string> &targets, bool sync, bool is_std
+    const std::vector<std::string> &targets, bool is_std, bool sync, bool save_path
   );
 
   void operator()() override;
@@ -29,6 +29,7 @@ private:
 
   const bool std_;
   const bool sync_;
+  const bool save_path_;
 
   void install_from_path();
   void install_dependencies();

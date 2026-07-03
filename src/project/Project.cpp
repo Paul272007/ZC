@@ -364,45 +364,51 @@ void Project::change_dependency_version(const std::string &name, const Version &
   generate_compile_commands();
 }
 
-void Project::install_dependencies() const
+void Project::install_dependencies(const bool force) const
 {
   ui().info("Installing package dependencies...");
-  vector<Target> to_install;
+
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "local")
     {
       ui().warning("Dependency '" + dep.name + "' is a local package. Make sure it's installed.");
-      continue;
     }
-    if (dep.origin == "std")
+    else if (dep.origin == "std")
     {
-      ui().warning(
-        "Dependency '" + dep.name + "' is a standard package. Make sure it's installed on your system."
-      );
-      continue;
+      reg_.install_std(dep.name, force);
     }
-    to_install.emplace_back(dep.name, dep.version);
+    else
+    {
+      RemoteTarget t = RemoteTarget::get_target({ dep.name, dep.version });
+      reg_.install_from_server(t, force);
+    }
   }
-  for (CAA t : RemoteTarget::get_targets(to_install))
-    reg_.install_from_server(t);
 }
 
 void Project::update_dependencies(const bool force, const bool use)
 {
   ui().info("Updating package dependencies...");
-  vector<pair<string, Version>> to_update;
 
   for (const auto &dep : pconf.dependencies | views::values)
   {
-    if (dep.origin == "local" || dep.origin == "std")
+    if (dep.origin == "std")
       continue;
-    to_update.emplace_back(dep.name, dep.version);
-  }
-  for (CAA t : RemoteTarget::get_targets(to_update))
-  {
-    reg_.update_from_server(t, force, use);
-    pconf.change_dependency_version(t.name, t.version);
+
+    if (dep.origin == "local")
+    {
+      if (auto path = reg_.get_pkg(dep.name).path; !path.empty() && fs::exists(path))
+      {
+        Project p = reg_.update_from_path(path, force, use);
+        pconf.change_dependency_version(dep.name, p.pconf.version);
+      }
+    }
+    else
+    {
+      RemoteTarget t = RemoteTarget::get_target({ dep.name, Version::latest() });
+      reg_.update_from_server(t, force, use);
+      pconf.change_dependency_version(t.name, t.version);
+    }
   }
 }
 

@@ -8,6 +8,7 @@
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "pkgs/Network.h"
+#include "pkgs/Registry.h"
 #include "Version.h"
 
 namespace zc
@@ -22,39 +23,41 @@ struct RemoteTarget
 
   static std::vector<RemoteTarget> parse(const std::vector<std::string> &targets)
   {
-    return get_targets(parse_targets(targets));
+    std::vector<Target>       pairs = parse_targets(targets);
+    std::vector<RemoteTarget> results;
+
+    results.reserve(pairs.size());
+    for (CAA pair : pairs)
+      results.push_back(get_target(pair));
+
+    return results;
   }
 
-  static std::vector<RemoteTarget> get_targets(const std::vector<Target> &pairs)
+  static RemoteTarget get_target(const Target &t)
   {
-    if (pairs.empty())
-      return {};
-    std::vector<RemoteTarget> results;
-    const nlohmann::json      index = net().get_index();
-    nlohmann::json            pkgs;
-
-    get_key(index, "packages", pkgs);
-
-    for (CAA[name, requested_version] : pairs)
+    static const nlohmann::json pkgs = []
     {
-      std::string version;
-      std::string url;
-      std::string sha256;
+      const nlohmann::json &index = net().get_index();
+      nlohmann::json        index_pkgs;
+      get_key(index, "packages", index_pkgs);
+      return index_pkgs;
+    }();
+    std::string version;
+    std::string url;
+    std::string sha256;
 
-      if (!pkgs.contains(name))
-        throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' not found.");
+    if (!pkgs.contains(t.first))
+      throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + t.first + "' not found.");
 
-      const nlohmann::json pkg = pkgs[name];
-      if (!pkg.is_object())
-        throw ZCException(ZCE_TYPE_ERROR, "Incorrect package declaration in index.");
+    const nlohmann::json &pkg = pkgs[t.first];
+    if (!pkg.is_object())
+      throw ZCException(ZCE_TYPE_ERROR, "Incorrect package declaration in index.");
 
-      version = get_version(pkg, requested_version).string();
-      url     = get_url(pkg, version);
-      sha256  = get_sha256(pkg, version);
+    version = get_version(pkg, t.second).string();
+    url     = get_url(pkg, version);
+    sha256  = get_sha256(pkg, version);
 
-      results.push_back({ .name = name, .url = url, .sha256 = sha256, .version = version });
-    }
-    return results;
+    return { .name = t.first, .url = url, .sha256 = sha256, .version = version };
   }
 
   static Version get_version(const nlohmann::json &pkg, const Version &requested_version)

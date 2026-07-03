@@ -11,6 +11,7 @@ namespace zc
 
 struct Pkg
 {
+  std::string path;
   std::string name;
   std::string target;
   std::string origin = "main";
@@ -30,6 +31,8 @@ inline void to_json(nlohmann::json &j, const Pkg &p)
     { "origin", p.origin },     { "default", p.default_version },
     { "versions", p.versions },
   };
+  if (!p.path.empty())
+    j["path"] = p.path;
 }
 
 inline void from_json(const nlohmann::json &j, Pkg &p)
@@ -38,6 +41,7 @@ inline void from_json(const nlohmann::json &j, Pkg &p)
   get_key(j, "target", p.target);
   get_key(j, "origin", p.origin);
   get_key(j, "default", p.default_version);
+  get_key(j, "path", p.path, p.path);
   get_key(j, "versions", p.versions);
 }
 

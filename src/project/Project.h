@@ -77,7 +77,7 @@ public:
   void remove_dependency(const std::string &name);
   void change_dependency_version(const std::string &name, const Version &new_version);
 
-  void install_dependencies() const;
+  void install_dependencies(bool force = false) const;
   void uninstall_dependencies() const;
   void update_dependencies(bool force, bool use);
 

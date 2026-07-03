@@ -16,6 +16,12 @@ public:
 
   [[nodiscard]] std::string string() const;
 
+  [[nodiscard]] static Version empty() { return { 0, 0, 0 }; }
+
+  [[nodiscard]] static Version latest() { return { -1, -1, -1 }; }
+
+  [[nodiscard]] static Version defaultv() { return { -2, -2, -2 }; }
+
   [[nodiscard]] bool is_empty() const;
   [[nodiscard]] bool is_latest() const;
   [[nodiscard]] bool is_default() const;

@@ -14,17 +14,17 @@ Version::Version(const std::string &text)
 {
   if (text.empty())
   {
-    (*this) = { 0, 0, 0 };
+    (*this) = empty();
     return;
   }
   if (text == "latest")
   {
-    (*this) = { -1, -1, -1 };
+    (*this) = latest();
     return;
   }
   if (text == "default")
   {
-    (*this) = { -2, -2, -2 };
+    (*this) = defaultv();
     return;
   }
 
@@ -63,17 +63,17 @@ std::string Version::string() const
 
 bool Version::is_empty() const
 {
-  return *this == Version{ 0, 0, 0 };
+  return *this == empty();
 }
 
 bool Version::is_latest() const
 {
-  return *this == Version{ -1, -1, -1 };
+  return *this == latest();
 }
 
 bool Version::is_default() const
 {
-  return *this == Version{ -2, -2, -2 };
+  return *this == defaultv();
 }
 
 } // namespace zc

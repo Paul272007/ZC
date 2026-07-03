@@ -33,14 +33,16 @@ public:
   [[nodiscard]] Version get_latest(const std::string &name);
   [[nodiscard]] Dependency get_dependency(const LocalTarget &t);
 
-  void install_std(const std::string &name);
+  void install_std(const std::string &name, bool force = false);
   void install_from_server(const RemoteTarget &target, bool force = false);
-  Project install_from_path(const std::filesystem::path &path, bool force = false);
+  Project install_from_path(const std::filesystem::path &path, bool force = false, bool save_path = false);
   void update_from_server(const RemoteTarget &target, bool force, bool use);
-  Project update_from_path(const std::filesystem::path &path, bool force, bool use);
+  Project update_from_path(const std::filesystem::path &path, bool force, bool use, bool save_path = false);
   void uninstall(const std::string &pkg);
   void uninstall(const LocalTarget &t);
+
   void set_default_version(const std::string &name, const Version &version);
+  void set_path(const std::string &name, const std::filesystem::path &path);
 
   [[nodiscard]] bool is_installed(const std::string &name) const;
   [[nodiscard]] bool is_installed(const std::string &name, const Version &v);

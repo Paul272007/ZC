@@ -63,8 +63,13 @@ Dependency Registry::get_dependency(const LocalTarget &t)
   };
 }
 
-void Registry::install_std(const std::string &name)
+void Registry::install_std(const std::string &name, const bool force)
 {
+  if (!force && is_installed(name))
+  {
+    ui().info("Skipped package " + name + ": already installed.");
+    return;
+  }
   std::string target = name;
 
   if (name == "math")
@@ -79,6 +84,7 @@ void Registry::install_std(const std::string &name)
 
   add_pkg_to_index(
     {
+      .path            = "",
       .name            = name,
       .target          = target,
       .origin          = "std",
@@ -100,13 +106,16 @@ void Registry::install_from_server(const RemoteTarget &target, const bool force)
   finish_install(p, "main");
 }
 
-Project Registry::install_from_path(const std::filesystem::path &path, const bool force)
+Project
+Registry::install_from_path(const std::filesystem::path &path, const bool force, const bool save_path)
 {
   Project p(path);
   if (!force && is_installed(p.pconf.name))
     return update_from_path(path, force, true);
 
   finish_install(p, "local");
+  if (save_path)
+    set_path(p.pconf.name, p.root_dir);
   return p;
 }
 
@@ -119,6 +128,7 @@ void Registry::finish_install(Project &p, const std::string &origin)
 
   ui().debug("Indexing package...");
   Pkg pkg{
+    .path            = "",
     .name            = p.pconf.name,
     .target          = p.pconf.target,
     .origin          = origin,
@@ -162,7 +172,9 @@ void Registry::update_from_server(const RemoteTarget &target, const bool force, 
   finish_update(p, use);
 }
 
-Project Registry::update_from_path(const std::filesystem::path &path, const bool force, const bool use)
+Project Registry::update_from_path(
+  const std::filesystem::path &path, const bool force, const bool use, const bool save_path
+)
 {
   Project p(path);
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
@@ -174,6 +186,8 @@ Project Registry::update_from_path(const std::filesystem::path &path, const bool
     return p;
   }
   finish_update(p, use);
+  if (save_path)
+    set_path(p.pconf.name, p.root_dir);
   return p;
 }
 
@@ -297,7 +311,7 @@ Table Registry::pkgs_table() const
 {
   vector<vector<string>> str_pkgs{ { "Package name", "Target", "Origin", "Type", "Default version" } };
 
-  for (const auto &[name, target, origin, type, default_version, versions] : pkgs_ | views::values)
+  for (const auto &[path, name, target, origin, type, default_version, versions] : pkgs_ | views::values)
     str_pkgs.push_back({ name, target, origin, pkg_type_to_pretty_str(type), default_version.string() });
 
   return { false, true, str_pkgs };
@@ -394,6 +408,13 @@ void Registry::set_default_version(const std::string &name, const Version &versi
   it->second.default_version = version;
   modified_                  = true;
   update_symlinks(it->second);
+}
+
+void Registry::set_path(const std::string &name, const std::filesystem::path &path)
+{
+  auto it         = get_pkg_it(name);
+  it->second.path = fs::absolute(path);
+  modified_       = true;
 }
 
 std::map<std::string, Pkg>::iterator Registry::get_pkg_it(const std::string &name)

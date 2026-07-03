@@ -13,13 +13,14 @@ namespace zc
 {
 
 Install::Install(
-  const bool force, const fs::path &p_root, fs::path path, const vector<string> &targets, const bool sync,
-  const bool is_std
+  const bool force, const fs::path &p_root, fs::path path, const vector<string> &targets, const bool is_std,
+  const bool sync, const bool save_path
 )
   : ProjectCommand(force, p_root, (targets.empty() && path.empty()) || sync),
     path_(std::move(path)),
     std_(is_std),
-    sync_(sync)
+    sync_(sync),
+    save_path_(save_path)
 {
   if (std_)
     for (CAA t : targets)
@@ -45,14 +46,14 @@ void Install::install_from_path()
       ZCE_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local project at the same time"
     );
 
-  Project project = reg_.install_from_path(path_, force_);
+  Project project = reg_.install_from_path(path_, force_, save_path_);
   if (sync_)
     p().add_dependency({ .name = project.pconf.name, .version = project.pconf.version });
 }
 
 void Install::install_dependencies()
 {
-  p().install_dependencies();
+  p().install_dependencies(force_);
 }
 
 void Install::install_targets()
@@ -69,6 +70,7 @@ void Install::install_targets()
     for (CAA target : targets_)
       reg_.install_from_server(target, force_);
   }
+  sync_project();
 }
 
 void Install::sync_project()

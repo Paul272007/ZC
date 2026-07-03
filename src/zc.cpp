@@ -92,9 +92,10 @@ int main(const int argc, char *argv[])
   bool simple_display   = false;
   bool show_remote      = false;
   // Update
-  bool sync     = false;
-  bool dont_use = false;
-  // Use
+  bool sync      = false;
+  bool dont_use  = false;
+  bool save_path = false;
+  // Use / Languages
   bool global = false;
 
   string author;
@@ -292,10 +293,11 @@ int main(const int argc, char *argv[])
 
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
   install->add_flag("--force,-f", force, "Force reinstalling packages");
-  install->add_flag("--sync,-s", sync, "Also add installed packages to project dependencies");
   install->add_flag("--std", std, "Add dependency to a standard library instead of ZC library");
+  install->add_flag("--sync,-s", sync, "Also add installed packages to project dependencies");
+  install->add_flag("--save-path,-S", save_path, "Save the path of the local project in the registry");
 
-  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, sync, std); });
+  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, std, sync, save_path); });
 
   // Uninstall
   // TODO: add --force,-f flag
@@ -317,8 +319,9 @@ int main(const int argc, char *argv[])
   update->add_flag("--force,-f", force, "Force reinstalling a specific version");
   update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
   update->add_flag("--dont-use,-d", dont_use, "Do not set newly installed version as default version for updated package");
+  update->add_flag("--save-path,-S", save_path, "Save the path of the local project in the registry");
 
-  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync, dont_use); });
+  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync, dont_use, save_path); });
 
   // Login
 
