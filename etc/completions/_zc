@@ -29,6 +29,8 @@ _zc() {
                 update)    _zc_update    ;;
                 login)     _zc_login     ;;
                 logout)    _zc_logout    ;;
+                config)    _zc_config    ;;
+                languages) _zc_languages ;;
             esac
     esac
 }
@@ -66,6 +68,8 @@ _zc_subcommands() {
         'update:Update packages'
         'login:Log into an account'
         'logout:Log out'
+        'config:Manage configuration'
+        'languages:Manage languages'
     )
     _describe 'subcommand' subcommands
 }
@@ -73,30 +77,34 @@ _zc_subcommands() {
 _zc_run() {
     _arguments \
         '*:source file:_files -g "*.{c,cc,cpp,cxx,C,o,i,s,asm}"' \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-a --args)'{-a,--args}'[Arguments passed to the program]:args' \
         '(-f --force)'{-f,--force}'[Force compiling even if target already exists]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-k --keep)'{-k,--keep}'[Do not delete executable after being executed]' \
         '(-p --plus)'{-p,--plus}'[Force compilation as C++]' \
-        '(-s --static)'{-s,--static}'[Compile using static libraries]' \
+        '(-s --static)'{-s,--static}'[Compile prioritizing the use of static libraries]' \
         '(-E --preprocess)'{-E,--preprocess}'[Preprocess only]' \
-        '(-S --assemble)'{-S,--assemble}'[Compile but do not assemble or link]' \
-        '(-c --compile)'{-c,--compile}'[Compile and assemble but do not link]' \
+        '(-S --assemble)'{-S,--assemble}'[Compile, but do not assemble or link]' \
+        '(-c --compile)'{-c,--compile}'[Compile and assemble, but do not link]' \
         '(-n --no-flags)'{-n,--no-flags}'[Do not add flags from configuration file]' \
+        '(-r --release)'{-r,--release}'[Compile in release mode]' \
         '--std[Add C/C++ standard from config file]'
 }
 
 _zc_create() {
     _arguments \
         '*:file to create:_files' \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-i --input)'{-i,--input}'[Files to use as basis]:file:_files -g "*.{c,cc,cpp,cxx,C}"' \
-        '(-f --force)'{-f,--force}'[Force writing even if files already exist]' \
+        '(-f --force)'{-f,--force}'[Force creating file even if it already exists]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-e --edit)'{-e,--edit}'[Open files in editor once created]'
 }
 
 _zc_init() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-a --author)'{-a,--author}'[Package author]:author' \
         '(-t --target)'{-t,--target}'[Package target]:target' \
@@ -115,6 +123,7 @@ _zc_init() {
 
 _zc_setup() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-r --release)'{-r,--release}'[Create config for release mode]' \
@@ -123,16 +132,18 @@ _zc_setup() {
 
 _zc_build() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-R --run)'{-R,--run}'[Run binary after compiling and optionally add parameters]:args' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-c --clean)'{-c,--clean}'[Clean before building]' \
-        '(-r --release)'{-r,--release}'[Build in release mode instead of debug mode]' \
+        '(-r --release)'{-r,--release}'[Build in release mode]' \
         '(-d --debug)'{-d,--debug}'[Build in debug mode]'
 }
 
 _zc_add() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-s --static)'{-s,--static}'[Add dependency as static library instead of shared library]' \
@@ -141,6 +152,7 @@ _zc_add() {
 
 _zc_remove() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '*:package:{_zc_get_packages}'
@@ -148,26 +160,32 @@ _zc_remove() {
 
 _zc_use() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-g --global)'{-g,--global}'[Change default version of a package]' \
         '*:package:{_zc_get_packages}'
 }
 
 _zc_publish() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc_clean() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
 }
 
 _zc_list() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-d --dependencies)'{-d,--dependencies}'[Show project dependencies]' \
         '(-t --templates)'{-t,--templates}'[Show available templates instead of packages]' \
         '(-p --project-templates)'{-p,--project-templates}'[Show available project templates instead of packages]' \
         '(-r --remote)'{-r,--remote}'[Show remote packages instead of local ones]' \
@@ -176,37 +194,112 @@ _zc_list() {
 
 _zc_install() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-p --path)'{-p,--path}'[Install from local project instead of remote]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force reinstalling packages]' \
+        '(-s --sync)'{-s,--sync}'[Also add installed packages to project dependencies]' \
+        '(-S --save-path)'{-S,--save-path}'[Save the path of the local project in the registry]' \
         '--std[Add dependency to a standard library instead of ZC library]' \
         '*:package:{_zc_get_packages -r}'
 }
 
 _zc_uninstall() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '*:package:{_zc_get_packages}'
 }
 
 _zc_update() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-p --path)'{-p,--path}'[Update local package from its root path]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force reinstalling a specific version]' \
         '(-s --sync)'{-s,--sync}'[Sync project dependencies after updating packages]' \
+        '(-d --dont-use)'{-d,--dont-use}'[Do not set newly installed version as default version for updated package]' \
+        '(-S --save-path)'{-S,--save-path}'[Save the path of the local project in the registry]' \
         '*:package:{_zc_get_packages}'
 }
 
 _zc_login() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-f --force)'{-f,--force}'[Force login even if an account is already logged in]'
 }
 
 _zc_logout() {
     _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+}
+
+_zc_config() {
+    _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[When creating a new config, override already existing configuration]' \
+        '1:key:' \
+        '2:value:'
+}
+
+_zc_languages() {
+    local context state state_descr line
+    typeset -A opt_args
+
+    _arguments -C \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '1: :_zc_languages_subcommands' \
+        '*::args:->args'
+
+    case $state in
+        args)
+            case $line[1] in
+                add)    _zc_languages_add    ;;
+                remove) _zc_languages_remove ;;
+                edit)   _zc_languages_edit   ;;
+                show)   _zc_languages_show   ;;
+            esac
+    esac
+}
+
+_zc_languages_subcommands() {
+    local subcommands
+    subcommands=(
+        'add:Add a language'
+        'remove:Remove a language'
+        'edit:Edit a language'
+        'show:Show language configuration'
+    )
+    _describe 'subcommand' subcommands
+}
+
+_zc_languages_add() {
+    _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '(-g --global)'{-g,--global}'[Modify global configuration]'
+}
+
+_zc_languages_remove() {
+    _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '(-g --global)'{-g,--global}'[Modify global configuration]'
+}
+
+_zc_languages_edit() {
+    _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '(-g --global)'{-g,--global}'[Modify global configuration]'
+}
+
+_zc_languages_show() {
+    _arguments \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '(-g --global)'{-g,--global}'[Show global configuration]'
 }
 
 _zc "$@"
