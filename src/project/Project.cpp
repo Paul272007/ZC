@@ -129,7 +129,7 @@ void Project::build(BuildMode current_mode, const bool is_install, const size_t 
 #ifndef DEBUG_MODE
       else if (line.starts_with("make"))
       {
-        continue; // do not display make messages in release mode for cleaner ui
+        return; // do not display make messages in release mode for cleaner ui
       }
 #endif
       else
