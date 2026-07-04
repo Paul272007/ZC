@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-#include "commands/ProjectCommand.h"
+#include "commands/InstallCommand.h"
 #include "helpers.h"
 #include "pkgs/RemoteTarget.h"
 #include "project/Project.h"
@@ -13,20 +13,10 @@ namespace zc
 {
 
 Install::Install(
-  const bool force, const fs::path &p_root, fs::path path, const vector<string> &targets, const bool is_std,
-  const bool sync, const bool save_path
+  CommandContext &c_ctx, const BuildContext &b_ctx, InstallContext &i_ctx, bool is_std, bool save_path
 )
-  : ProjectCommand(force, p_root, (targets.empty() && path.empty()) || sync),
-    path_(std::move(path)),
-    std_(is_std),
-    sync_(sync),
-    save_path_(save_path)
+  : BuildCommand(b_ctx), InstallCommand(c_ctx, i_ctx), std_(is_std), save_path_(save_path)
 {
-  if (std_)
-    for (CAA t : targets)
-      targets_.push_back({ .name = t, .url = "", .sha256 = "", .version = { 0, 0, 0 } });
-  else
-    targets_ = RemoteTarget::parse(targets);
 }
 
 void Install::operator()()
@@ -46,9 +36,9 @@ void Install::install_from_path()
       ZCE_INCOMPATIBLE_FLAGS, "Cannot install from remote and from local project at the same time"
     );
 
-  Project project = reg_.install_from_path(path_, force_, save_path_);
+  Project project = reg_.install_from_path(path_, force_, save_path_, jobs_);
   if (sync_)
-    p().add_dependency({ .name = project.pconf.name, .version = project.pconf.version });
+    p().add_dependency(LocalTarget::get_target({ project.pconf.name, project.pconf.version }));
 }
 
 void Install::install_dependencies()
@@ -62,22 +52,17 @@ void Install::install_targets()
   {
     if (!has_pkg_config())
       throw ZCException(ZCE_NOT_FOUND, "Command 'pkg-config' is required to install standard packages");
-    for (CAA[name, url, sha, version] : targets_)
+    for (CAA[name, version] : targets_)
       reg_.install_std(name);
   }
   else
   {
     for (CAA target : targets_)
-      reg_.install_from_server(target, force_);
+      reg_.install_from_server(RemoteTarget::get_target(target), force_, jobs_);
   }
-  sync_project();
-}
-
-void Install::sync_project()
-{
   if (sync_)
-    for (CAA[name, url, sha, version] : targets_)
-      p().add_dependency({ .name = name, .version = version });
+    for (CAA target : targets_)
+      p().add_dependency(LocalTarget::get_target(target));
 }
 
 } // namespace zc

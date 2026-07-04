@@ -1,11 +1,9 @@
 #include "commands/List.h"
 
-#include <filesystem>
 #include <iostream>
 #include <ranges>
 #include <vector>
 
-#include "commands/ProjectCommand.h"
 #include "helpers.h"
 #include "pkgs/Registry.h"
 #include "templates/TemplateEngine.h"
@@ -16,11 +14,8 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-List::List(
-  const bool force, const fs::path &p_root, const bool deps, const bool templates, const bool p_templates,
-  const bool remote, const bool simple
-)
-  : ProjectCommand(force, p_root, deps), simple_(simple)
+List::List(const CommandContext &ctx, bool deps, bool templates, bool p_templates, bool remote, bool simple)
+  : Command(ctx, deps), simple_(simple)
 {
   type_ = parse_mode<ListType>(
     {

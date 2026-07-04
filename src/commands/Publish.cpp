@@ -1,6 +1,7 @@
 #include "commands/Publish.h"
 
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 #include "helpers.h"
 #include "project/Project.h"
 
@@ -9,7 +10,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Publish::Publish(const bool force, const std::filesystem::path &p_root) : ProjectCommand(force, p_root) {}
+Publish::Publish(const CommandContext &ctx) : Command(ctx) {}
 
 void Publish::operator()()
 {

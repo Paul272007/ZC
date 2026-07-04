@@ -1,12 +1,12 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "config/Conf.h"
-#include "config/Dependency.h"
 #include "helpers.h"
 #include "Pkg.h"
 #include "ui/Table.h"
@@ -31,15 +31,21 @@ public:
 
   [[nodiscard]] const Pkg &get_pkg(const std::string &name);
   [[nodiscard]] Version get_latest(const std::string &name);
-  [[nodiscard]] Dependency get_dependency(const LocalTarget &t);
 
   void install_std(const std::string &name, bool force = false);
-  void install_from_server(const RemoteTarget &target, bool force = false);
-  Project install_from_path(const std::filesystem::path &path, bool force = false, bool save_path = false);
-  void update_from_server(const RemoteTarget &target, bool force, bool use);
-  Project update_from_path(const std::filesystem::path &path, bool force, bool use, bool save_path = false);
-  void uninstall(const std::string &pkg);
-  void uninstall(const LocalTarget &t);
+
+  void install_from_server(const RemoteTarget &target, bool force = false, size_t jobs = 1);
+  void update_from_server(const RemoteTarget &target, bool force, bool use, size_t jobs = 1);
+
+  Project
+  install_from_path(const std::filesystem::path &path, bool force, bool save_path = false, size_t jobs = 1);
+  Project update_from_path(
+    const std::filesystem::path &path, bool force, bool use, bool save_path = false, size_t jobs = 1
+  );
+  void uninstall_from_path(const std::filesystem::path &path, bool force);
+
+  void uninstall(const std::string &pkg, bool force);
+  void uninstall(const LocalTarget &t, bool force);
 
   void set_default_version(const std::string &name, const Version &version);
   void set_path(const std::string &name, const std::filesystem::path &path);
@@ -68,18 +74,26 @@ private:
   explicit Registry(const std::filesystem::path &root = zc_root());
 
   void add_pkg_to_index(const Pkg &pkg);
-  void add_version_to_pkg(const std::string &name, const Version &version);
+  void add_version_to_pkg(
+    const std::string &name, const Version &version, const std::map<std::string, Version> &deps
+  );
   Pkg remove_pkg_from_index(const std::string &name);
 
   [[nodiscard]] std::map<std::string, Pkg>::iterator get_pkg_it(const std::string &name);
 
-  void finish_install(Project &p, const std::string &origin);
-  void finish_update(Project &p, bool use);
+  void finish_install(Project &p, const std::string &origin, size_t jobs = 1);
+  void finish_update(Project &p, bool use, size_t jobs = 1);
 
   void copy_bin(const Project &p) const;
   void copy_libs(const Project &p) const;
   void copy_headers(const Project &p) const;
   void update_symlinks(const Pkg &p) const;
+
+  [[nodiscard]] std::vector<std::pair<std::string, Version>>
+  dependents_of(const std::string &target_pkg_name) const;
+
+  [[nodiscard]] std::vector<std::pair<std::string, Version>>
+  dependents_of(const std::string &target_pkg_name, const Version &target_version) const;
 
   /**
    * @brief Remove tmp dir

@@ -340,8 +340,15 @@ void Project::add_dependency(const LocalTarget &target, const bool is_static)
   if (pconf.name == target.name)
     throw ZCException(ZCE_RECURSIVE_DEPENDENCY, "Cannot add package as its own dependency.");
 
-  Dependency dep  = reg_.get_dependency(target); // throws an error if package is not found
-  dep.static_link = is_static;
+  Dependency dep{
+    .name        = target.name,
+    .origin      = target.origin,
+    .static_link = is_static,
+    .version     = target.version,
+  };
+
+  if (reg_.get_pkg(dep.name).type == PkgType::BIN)
+    throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN");
 
   pconf.add_dependency(dep);
   fs::create_directories(build_dir);
@@ -412,10 +419,10 @@ void Project::update_dependencies(const bool force, const bool use)
   }
 }
 
-void Project::uninstall_dependencies() const
+void Project::uninstall_dependencies(const bool force) const
 {
   ui().info("Uninstalling package dependencies...");
-  vector<LocalTarget> to_uninstall;
+
   for (const auto &dep : pconf.dependencies | views::values)
   {
     if (dep.origin == "std")
@@ -423,11 +430,10 @@ void Project::uninstall_dependencies() const
       ui().warning("Skipped dependency '" + dep.name + "' which is a standard package.");
       continue; // TODO: or still remove from index ?
     }
-    if (reg_.is_installed(dep.name, dep.version))
-      to_uninstall.emplace_back(dep.name, dep.version);
+    LocalTarget t = LocalTarget::get_target({ dep.name, dep.version });
+    // pconf.remove_dependency(t.name);
+    reg_.uninstall(t, force);
   }
-  for (CAA t : to_uninstall)
-    reg_.uninstall(t);
 }
 
 void Project::generate_build_config(BuildMode current_mode, bool is_install)
@@ -707,7 +713,13 @@ void Project::init_variables(bool release)
 
   // Macros
   MakeVariable macros{ "MACROS" };
-  macros.add_macro(release ? "ZC_RELEASE" : "ZC_DEBUG");
+  if (release)
+  {
+    macros.add_macro("ZC_RELEASE");
+    macros.add_macro("NDEBUG");
+  }
+  else
+    macros.add_macro("ZC_DEBUG");
   macros.add_macro("ZC_MAJOR", to_string(pconf.version.major()));
   macros.add_macro("ZC_MINOR", to_string(pconf.version.minor()));
   macros.add_macro("ZC_PATCH", to_string(pconf.version.patch()));

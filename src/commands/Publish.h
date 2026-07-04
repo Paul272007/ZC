@@ -1,14 +1,15 @@
 #pragma once
 
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 
 namespace zc
 {
 
-class Publish : public ProjectCommand
+class Publish : public Command
 {
 public:
-  Publish(bool force, const std::filesystem::path &p_root);
+  Publish(const CommandContext &ctx);
 
   void operator()() override;
 };

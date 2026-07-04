@@ -21,12 +21,12 @@ namespace zc
 {
 
 Init::Init(
-  const bool force, const std::filesystem::path &p_root, const bool git, const bool edit,
-  std::string author, std::string target, std::string p_template, std::string name, bool is_bin,
-  bool is_lib, bool is_header, bool is_compose, const vector<string> &languages
+  const CommandContext &ctx, std::filesystem::path p_root, bool git, bool edit, std::string author,
+  std::string target, std::string p_template, std::string name, bool is_bin, bool is_lib, bool is_header,
+  bool is_compose, const std::vector<std::string> &languages
 )
-  : Command(force),
-    p_root_(p_root.empty() ? fs::current_path() : p_root),
+  : Command(ctx, false),
+    p_root_(std::move(p_root)),
     git_(git),
     edit_(edit),
     name_(std::move(name)),

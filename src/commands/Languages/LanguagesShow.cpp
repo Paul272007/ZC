@@ -1,15 +1,11 @@
 #include "LanguagesShow.h"
 
+#include "Context.h"
+
 namespace zc
 {
 
-LanguagesShow::LanguagesShow(
-  const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &languages,
-  const bool global
-)
-  : Languages(force, p_root, languages, global)
-{
-}
+LanguagesShow::LanguagesShow(const LanguagesContext &ctx) : Languages(ctx) {}
 
 void LanguagesShow::operator()()
 {

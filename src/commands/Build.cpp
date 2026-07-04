@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include "commands/BuildCommand.h"
+#include "commands/Command.h"
 #include "config/GConf.h"
 #include "helpers.h"
 #include "pkgs/PkgType.h"
@@ -13,14 +15,10 @@ namespace zc
 {
 
 Build::Build(
-  const bool force, const std::filesystem::path &p_root, bool clean, bool release, bool debug, bool run,
-  const std::vector<std::string> &run_args, const bool jobs_given, const int input_jobs
+  const CommandContext &c_ctx, const BuildContext &b_ctx, bool clean, bool release, bool debug, bool run,
+  const std::vector<std::string> &run_args
 )
-  : ProjectCommand(force, p_root),
-    run_args_(run_args),
-    run_(run),
-    clean_(clean),
-    jobs_(jobs_given ? get_jobs_count(input_jobs) : 1)
+  : Command(c_ctx), BuildCommand(b_ctx), run_args_(run_args), run_(run), clean_(clean)
 {
   mode_ = parse_mode<BuildMode>(
     {

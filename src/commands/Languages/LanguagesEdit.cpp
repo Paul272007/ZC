@@ -3,13 +3,7 @@
 namespace zc
 {
 
-LanguagesEdit::LanguagesEdit(
-  const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &languages,
-  const bool global
-)
-  : Languages(force, p_root, languages, global)
-{
-}
+LanguagesEdit::LanguagesEdit(const LanguagesContext &ctx) : Languages(ctx) {}
 
 void LanguagesEdit::operator()()
 {

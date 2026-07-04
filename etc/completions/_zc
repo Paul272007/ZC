@@ -127,7 +127,8 @@ _zc_setup() {
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-r --release)'{-r,--release}'[Create config for release mode]' \
-        '(-d --debug)'{-d,--debug}'[Create config for debug mode]'
+        '(-d --debug)'{-d,--debug}'[Create config for debug mode]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_build() {
@@ -138,7 +139,8 @@ _zc_build() {
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-c --clean)'{-c,--clean}'[Clean before building]' \
         '(-r --release)'{-r,--release}'[Build in release mode]' \
-        '(-d --debug)'{-d,--debug}'[Build in debug mode]'
+        '(-d --debug)'{-d,--debug}'[Build in debug mode]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_add() {
@@ -147,7 +149,8 @@ _zc_add() {
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-s --static)'{-s,--static}'[Add dependency as static library instead of shared library]' \
-        '*:package:{_zc_get_packages -r}'
+        '*:package:{_zc_get_packages -r}' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_remove() {
@@ -155,7 +158,8 @@ _zc_remove() {
         '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '*:package:{_zc_get_packages}'
+        '*:package:{_zc_get_packages}' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_use() {
@@ -164,21 +168,24 @@ _zc_use() {
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-g --global)'{-g,--global}'[Change default version of a package]' \
-        '*:package:{_zc_get_packages}'
+        '*:package:{_zc_get_packages}' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_publish() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
-        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_clean() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
         '(-P --project-path)'{-P,--project-path}'[Directory to use as project root]:path:_directories' \
-        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_list() {
@@ -189,7 +196,8 @@ _zc_list() {
         '(-t --templates)'{-t,--templates}'[Show available templates instead of packages]' \
         '(-p --project-templates)'{-p,--project-templates}'[Show available project templates instead of packages]' \
         '(-r --remote)'{-r,--remote}'[Show remote packages instead of local ones]' \
-        '(-s --simple)'{-s,--simple}'[Use a simpler display]'
+        '(-s --simple)'{-s,--simple}'[Use a simpler display]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_install() {
@@ -199,6 +207,7 @@ _zc_install() {
         '(-p --path)'{-p,--path}'[Install from local project instead of remote]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-f --force)'{-f,--force}'[Force reinstalling packages]' \
+        '(-j --jobs)'{-j,--jobs}'[Number of concurrent jobs for compilation]' \
         '(-s --sync)'{-s,--sync}'[Also add installed packages to project dependencies]' \
         '(-S --save-path)'{-S,--save-path}'[Save the path of the local project in the registry]' \
         '--std[Add dependency to a standard library instead of ZC library]' \
@@ -209,7 +218,8 @@ _zc_uninstall() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
-        '*:package:{_zc_get_packages}'
+        '*:package:{_zc_get_packages}' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_update() {
@@ -219,6 +229,7 @@ _zc_update() {
         '(-p --path)'{-p,--path}'[Update local package from its root path]:path:_directories' \
         '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
         '(-f --force)'{-f,--force}'[Force reinstalling a specific version]' \
+        '(-j --jobs)'{-j,--jobs}'[Number of concurrent jobs for compilation]' \
         '(-s --sync)'{-s,--sync}'[Sync project dependencies after updating packages]' \
         '(-d --dont-use)'{-d,--dont-use}'[Do not set newly installed version as default version for updated package]' \
         '(-S --save-path)'{-S,--save-path}'[Save the path of the local project in the registry]' \
@@ -235,7 +246,8 @@ _zc_login() {
 _zc_logout() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
-        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]'
+        '(-q --quiet)'{-q,--quiet}'[Do not show any messages]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_config() {
@@ -281,25 +293,29 @@ _zc_languages_subcommands() {
 _zc_languages_add() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
-        '(-g --global)'{-g,--global}'[Modify global configuration]'
+        '(-g --global)'{-g,--global}'[Modify global configuration]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_languages_remove() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
-        '(-g --global)'{-g,--global}'[Modify global configuration]'
+        '(-g --global)'{-g,--global}'[Modify global configuration]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_languages_edit() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
-        '(-g --global)'{-g,--global}'[Modify global configuration]'
+        '(-g --global)'{-g,--global}'[Modify global configuration]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc_languages_show() {
     _arguments \
         '(-h --help)'{-h,--help}'[Show help]' \
-        '(-g --global)'{-g,--global}'[Show global configuration]'
+        '(-g --global)'{-g,--global}'[Show global configuration]' \
+        '(-f --force)'{-f,--force}'[Force execution]'
 }
 
 _zc "$@"

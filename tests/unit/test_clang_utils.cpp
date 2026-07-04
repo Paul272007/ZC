@@ -77,7 +77,7 @@ TEST_F(ClangUtilsTest, GetFileIncludes)
   zc::Pkg                        p;
   p.name         = "my_lib";
   p.origin       = "main";
-  p.versions     = { zc::Version("1.0.0") };
+  p.versions     = { {zc::Version("1.0.0"), {}} };
   pkgs["my_lib"] = p;
 
   auto deps = zc::get_file_includes(temp_file, pkgs);

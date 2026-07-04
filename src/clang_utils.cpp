@@ -222,7 +222,7 @@ vector<Dependency> get_file_includes(const fs::path &file, const map<string, Pkg
             {
               .name    = pair.first,
               .origin  = pair.second.origin,
-              .version = *ranges::max_element(pair.second.versions),
+              .version = pair.second.versions.rbegin()->first,
               // FIX: the used library in the include_links_dir is not always the latest one
             }
           );

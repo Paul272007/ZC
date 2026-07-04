@@ -82,6 +82,7 @@ complete -c zc -n '__zc_using_command setup' -s P -l project-path -d 'Directory 
 complete -c zc -n '__zc_using_command setup' -s q -l quiet -d 'Do not show any messages'
 complete -c zc -n '__zc_using_command setup' -s r -l release -d 'Create config for release mode'
 complete -c zc -n '__zc_using_command setup' -s d -l debug -d 'Create config for debug mode'
+complete -c zc -n '__zc_using_command setup' -s f -l force -d 'Force execution'
 
 # build
 complete -c zc -n '__zc_using_command build' -s P -l project-path -d 'Directory to use as project root' -r
@@ -90,28 +91,34 @@ complete -c zc -n '__zc_using_command build' -s q -l quiet -d 'Do not show any m
 complete -c zc -n '__zc_using_command build' -s c -l clean -d 'Clean before building'
 complete -c zc -n '__zc_using_command build' -s r -l release -d 'Build in release mode'
 complete -c zc -n '__zc_using_command build' -s d -l debug -d 'Build in debug mode'
+complete -c zc -n '__zc_using_command build' -s f -l force -d 'Force execution'
 
 # add
 complete -c zc -n '__zc_using_command add' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command add' -s q -l quiet -d 'Do not show any messages'
 complete -c zc -n '__zc_using_command add' -s s -l static -d 'Add dependency as static library'
+complete -c zc -n '__zc_using_command add' -s f -l force -d 'Force execution'
 
 # remove
 complete -c zc -n '__zc_using_command remove' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command remove' -s q -l quiet -d 'Do not show any messages'
+complete -c zc -n '__zc_using_command remove' -s f -l force -d 'Force execution'
 
 # use
 complete -c zc -n '__zc_using_command use' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command use' -s q -l quiet -d 'Do not show any messages'
 complete -c zc -n '__zc_using_command use' -s g -l global -d 'Change default version of a package'
+complete -c zc -n '__zc_using_command use' -s f -l force -d 'Force execution'
 
 # publish
 complete -c zc -n '__zc_using_command publish' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command publish' -s q -l quiet -d 'Do not show any messages'
+complete -c zc -n '__zc_using_command publish' -s f -l force -d 'Force execution'
 
 # clean
 complete -c zc -n '__zc_using_command clean' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command clean' -s q -l quiet -d 'Do not show any messages'
+complete -c zc -n '__zc_using_command clean' -s f -l force -d 'Force execution'
 
 # list
 complete -c zc -n '__zc_using_command list' -s q -l quiet -d 'Do not show any messages'
@@ -120,24 +127,28 @@ complete -c zc -n '__zc_using_command list' -s t -l templates -d 'Show available
 complete -c zc -n '__zc_using_command list' -s p -l project-templates -d 'Show available project templates instead of packages'
 complete -c zc -n '__zc_using_command list' -s r -l remote -d 'Show remote packages instead of local ones'
 complete -c zc -n '__zc_using_command list' -s s -l simple -d 'Use a simpler display'
+complete -c zc -n '__zc_using_command list' -s f -l force -d 'Force execution'
 
 # install
 complete -c zc -n '__zc_using_command install' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command install' -s p -l path -d 'Install from local project instead of remote' -r
 complete -c zc -n '__zc_using_command install' -s q -l quiet -d 'Do not show any messages'
 complete -c zc -n '__zc_using_command install' -s f -l force -d 'Force reinstalling packages'
+complete -c zc -n '__zc_using_command install' -s j -l jobs -d 'Number of concurrent jobs for compilation'
 complete -c zc -n '__zc_using_command install' -s s -l sync -d 'Also add installed packages to project dependencies'
 complete -c zc -n '__zc_using_command install' -s S -l save-path -d 'Save the path of the local project in the registry'
 complete -c zc -n '__zc_using_command install' -l std -d 'Add dependency to a standard library'
 
 # uninstall
 complete -c zc -n '__zc_using_command uninstall' -s q -l quiet -d 'Do not show any messages'
+complete -c zc -n '__zc_using_command uninstall' -s f -l force -d 'Force execution'
 
 # update
 complete -c zc -n '__zc_using_command update' -s P -l project-path -d 'Directory to use as project root' -r
 complete -c zc -n '__zc_using_command update' -s p -l path -d 'Update local package from its root path' -r
 complete -c zc -n '__zc_using_command update' -s q -l quiet -d 'Do not show any messages'
 complete -c zc -n '__zc_using_command update' -s f -l force -d 'Force reinstalling a specific version'
+complete -c zc -n '__zc_using_command update' -s j -l jobs -d 'Number of concurrent jobs for compilation'
 complete -c zc -n '__zc_using_command update' -s s -l sync -d 'Sync project dependencies after updating packages'
 complete -c zc -n '__zc_using_command update' -s d -l dont-use -d 'Do not set newly installed version as default version'
 complete -c zc -n '__zc_using_command update' -s S -l save-path -d 'Save the path of the local project in the registry'
@@ -148,6 +159,7 @@ complete -c zc -n '__zc_using_command login' -s f -l force -d 'Force login even 
 
 # logout
 complete -c zc -n '__zc_using_command logout' -s q -l quiet -d 'Do not show any messages'
+complete -c zc -n '__zc_using_command logout' -s f -l force -d 'Force execution'
 
 # config
 complete -c zc -n '__zc_using_command config' -s q -l quiet -d 'Do not show any messages'
@@ -156,7 +168,11 @@ complete -c zc -n '__zc_using_command config' -s f -l force -d 'Override already
 # languages
 complete -c zc -n '__zc_using_command languages; and not __zc_using_subcommand languages add; and not __zc_using_subcommand languages remove; and not __zc_using_subcommand languages edit; and not __zc_using_subcommand languages show' -a 'add remove edit show'
 
+complete -c zc -n '__zc_using_subcommand languages add' -s f -l force -d 'Force execution'
 complete -c zc -n '__zc_using_subcommand languages add' -s g -l global -d 'Modify global configuration'
+complete -c zc -n '__zc_using_subcommand languages remove' -s f -l force -d 'Force execution'
 complete -c zc -n '__zc_using_subcommand languages remove' -s g -l global -d 'Modify global configuration'
+complete -c zc -n '__zc_using_subcommand languages edit' -s f -l force -d 'Force execution'
 complete -c zc -n '__zc_using_subcommand languages edit' -s g -l global -d 'Modify global configuration'
+complete -c zc -n '__zc_using_subcommand languages show' -s f -l force -d 'Force execution'
 complete -c zc -n '__zc_using_subcommand languages show' -s g -l global -d 'Show global configuration'

@@ -12,6 +12,7 @@
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "templates/TemplateEngine.h"
+#include "ui/ShellCommand.h"
 
 ZC_DEV_CONFIG
 
@@ -19,10 +20,10 @@ namespace zc
 {
 
 Create::Create(
-  const bool force, const bool edit, const std::vector<std::string> &files,
+  const CommandContext &ctx, bool edit, const std::vector<std::string> &files,
   const std::vector<std::string> &input_files
 )
-  : Command(force), edit_(edit)
+  : Command(ctx, false), edit_(edit)
 {
   for (CAA f : files)
   {
@@ -100,11 +101,10 @@ void Create::operator()()
 
   if ((gc_.open_after_create || edit_) && !files_to_edit_.empty())
   {
-    stringstream cmd;
-    cmd << gc_.editor;
+    ShellCommand cmd{ { gc_.editor } };
     for (const auto &f : files_to_edit_)
-      cmd << " " << esc(f);
-    if (system(cmd.str().c_str()) != 0)
+      cmd << f;
+    if (cmd() != 0)
       throw ZCException(ZCE_INTERNAL_ERROR, "Could not open file(s) in editor");
   }
 }

@@ -1,8 +1,7 @@
 #pragma once
 
-#include <filesystem>
-
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 #include "pkgs/Registry.h"
 #include "templates/TemplateEngine.h"
 
@@ -18,13 +17,10 @@ enum class ListType : uint8_t
   SHOW_P_TEMPLATES,
 };
 
-class List : public ProjectCommand
+class List : public Command
 {
 public:
-  List(
-    bool force, const std::filesystem::path &p_root, bool deps, bool templates, bool p_templates,
-    bool remote, bool simple
-  );
+  List(const CommandContext &ctx, bool deps, bool templates, bool p_templates, bool remote, bool simple);
 
   void operator()() override;
 

@@ -6,6 +6,7 @@
 #include "clang_utils.h"
 #include "commands/Command.h"
 #include "config/Language.h"
+#include "Context.h"
 #include "templates/TemplateEngine.h"
 
 namespace zc
@@ -15,7 +16,7 @@ class Create : public Command
 {
 public:
   Create(
-    bool force, bool edit, const std::vector<std::string> &files,
+    const CommandContext &ctx, bool edit, const std::vector<std::string> &files,
     const std::vector<std::string> &input_files
   );
 

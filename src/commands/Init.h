@@ -1,10 +1,12 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 
-#include "../pkgs/PkgType.h"
-#include "../templates/TemplateEngine.h"
-#include "Command.h"
+#include "commands/Command.h"
+#include "Context.h"
+#include "pkgs/PkgType.h"
+#include "templates/TemplateEngine.h"
 
 namespace zc
 {
@@ -13,9 +15,9 @@ class Init : public Command
 {
 public:
   Init(
-    bool force, const std::filesystem::path &p_root, bool git, bool edit, std::string author,
-    std::string target, std::string p_template, std::string name, bool is_bin,
-    bool is_lib, bool is_header, bool is_compose, const std::vector<std::string> &languages
+    const CommandContext &ctx, std::filesystem::path p_root, bool git, bool edit, std::string author,
+    std::string target, std::string p_template, std::string name, bool is_bin, bool is_lib, bool is_header,
+    bool is_compose, const std::vector<std::string> &languages
   );
 
   void operator()() override;

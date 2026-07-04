@@ -4,6 +4,7 @@
 
 #include "commands/Command.h"
 #include "config/GConf.h"
+#include "Context.h"
 
 namespace zc
 {
@@ -11,7 +12,7 @@ namespace zc
 class Config : public Command
 {
 public:
-  Config(bool force, std::string key, std::string value);
+  Config(const CommandContext &ctx, std::string key, std::string value);
 
   void operator()() override;
 

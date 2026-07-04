@@ -1,6 +1,7 @@
 #include "Setup.h"
 
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 #include "helpers.h"
 #include "project/Project.h"
 
@@ -9,8 +10,8 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Setup::Setup(const bool force, const std::filesystem::path &p_root, const bool release, const bool debug)
-  : ProjectCommand(force, p_root)
+Setup::Setup(const CommandContext &ctx, const bool release, const bool debug)
+  : Command(ctx)
 {
   mode_ = parse_mode<BuildMode>(
     {

@@ -3,7 +3,7 @@
 namespace zc
 {
 
-Logout::Logout(const bool force) : Command(force) {}
+Logout::Logout(const CommandContext &ctx) : Command(ctx, false) {}
 
 void Logout::operator()()
 {

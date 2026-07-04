@@ -35,6 +35,7 @@ enum ExitCode : std::uint8_t
   ZCE_VERSION_ALREADY_EXISTS = 43,
   ZCE_HASH_MISMATCH          = 44,
   ZCE_RECURSIVE_DEPENDENCY   = 45,
+  ZCE_BROKEN_DEPENDENCY      = 46,
   // Project build/execution exceptions
   ZCE_COMPILATION_ERROR = 50,
   ZCE_RUNTIME_ERROR     = 51,

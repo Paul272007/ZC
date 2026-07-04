@@ -8,7 +8,7 @@ namespace zc
 class Logout : public Command
 {
 public:
-  explicit Logout(bool force);
+  explicit Logout(const CommandContext &ctx);
   void operator()() override;
 };
 

@@ -12,11 +12,12 @@ add_executable(zc_test
   test_project_utils.cpp
   test_clang_utils.cpp
   test_exceptions.cpp
+  test_main.cpp
 )
 
 target_link_libraries(zc_test PRIVATE
   zc_core
-  gtest_main
+  gtest
 )
 
 include(GoogleTest)

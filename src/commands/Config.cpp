@@ -8,9 +8,10 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Config::Config(bool force, std::string key, std::string value)
-  : Command(force), key_(std::move(key)), value_(std::move(value))
+Config::Config(const CommandContext &ctx, std::string key, std::string value)
+  : Command(ctx, false), key_(std::move(key)), value_(std::move(value))
 {
+  // TODO: modify project config using this command
 }
 
 void Config::operator()()

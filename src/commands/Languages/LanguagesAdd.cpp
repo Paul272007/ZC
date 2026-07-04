@@ -1,15 +1,11 @@
 #include "LanguagesAdd.h"
 
+#include "Context.h"
+
 namespace zc
 {
 
-LanguagesAdd::LanguagesAdd(
-  const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &languages,
-  const bool global
-)
-  : Languages(force, p_root, languages, global)
-{
-}
+LanguagesAdd::LanguagesAdd(const LanguagesContext &ctx) : Languages(ctx) {}
 
 void LanguagesAdd::operator()()
 {

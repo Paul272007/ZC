@@ -1,10 +1,7 @@
 #pragma once
 
-#include <filesystem>
-#include <string>
-#include <vector>
-
 #include "commands/Languages/Languages.h"
+#include "Context.h"
 
 namespace zc
 {
@@ -12,9 +9,7 @@ namespace zc
 class LanguagesShow : public Languages
 {
 public:
-  LanguagesShow(
-    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &languages, bool global
-  );
+  LanguagesShow(const LanguagesContext &ctx);
 
   void operator()() override;
 };

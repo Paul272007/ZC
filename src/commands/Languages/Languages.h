@@ -1,23 +1,17 @@
 #pragma once
 
-#include <filesystem>
-#include <string>
-#include <vector>
-
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 
 namespace zc
 {
 
-class Languages : public ProjectCommand
+class Languages : public Command
 {
 protected:
-  Languages(
-    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &languages, bool global
-  )
-    : ProjectCommand(force, p_root, !global), global_(global)
+  Languages(const LanguagesContext &ctx) : Command(ctx.c_ctx, !ctx.global), global_(ctx.global)
   {
-    for (const auto &str_l : languages)
+    for (const auto &str_l : ctx.languages)
       if (const Language l = language_from_str(str_l); l == UNKNOWN_LANGUAGE)
         throw ZCException(ZCE_UNSUPPORTED_LANGUAGE, "Unknown language: " + str_l);
       else

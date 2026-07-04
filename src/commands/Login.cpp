@@ -3,7 +3,7 @@
 namespace zc
 {
 
-Login::Login(const bool force) : Command(force) {}
+Login::Login(const CommandContext &ctx) : Command(ctx, false) {}
 
 void Login::operator()()
 {

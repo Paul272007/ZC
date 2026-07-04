@@ -4,22 +4,24 @@
 #include <string>
 #include <vector>
 
-#include "commands/ProjectCommand.h"
+#include "commands/BuildCommand.h"
+#include "commands/Command.h"
 #include "CompileMode.h"
 #include "config/Dependency.h"
+#include "Context.h"
 #include "pkgs/Registry.h"
 #include "ui/ShellCommand.h"
 
 namespace zc
 {
 
-class Run : public ProjectCommand
+class Run : public Command, public BuildCommand
 {
 public:
   Run(
-    bool force, const std::vector<std::string> &files, const std::vector<std::string> &args,
-    const std::filesystem::path &p_root, bool preprocess, bool compile, bool assemble, bool plus, bool keep,
-    bool add_std, bool static_link, bool no_flags, bool release
+    const CommandContext &c_ctx, const BuildContext &b_ctx, const std::vector<std::string> &files,
+    const std::vector<std::string> &args, bool preprocess, bool compile, bool assemble, bool plus,
+    bool keep, bool add_std, bool static_link, bool no_flags, bool release
   );
 
   void operator()() override;

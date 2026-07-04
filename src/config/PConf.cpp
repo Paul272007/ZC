@@ -28,7 +28,7 @@ PConf::~PConf()
 void PConf::add_dependency(const Dependency &d)
 {
   if (dependencies.contains(d.name))
-    throw ZCException(ZCE_ALREADY_INSTALLED, "Dependency " + d.name + " already added");
+    throw ZCException(ZCE_ALREADY_INSTALLED, "Dependency '" + d.name + "' already added");
   dependencies.insert_or_assign(d.name, d);
   modified_ = true;
 }

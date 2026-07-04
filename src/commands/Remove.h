@@ -1,19 +1,17 @@
 #pragma once
 
-#include "ProjectCommand.h"
+#include "commands/InstallCommand.h"
+#include "Context.h"
 
 namespace zc
 {
 
-class Remove : public ProjectCommand
+class Remove : public InstallCommand
 {
 public:
-  Remove(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
+  Remove(CommandContext &c_ctx, InstallContext &i_ctx);
 
   void operator()() override;
-
-private:
-  const std::vector<std::string> targets_;
 };
 
 } // namespace zc

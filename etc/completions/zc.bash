@@ -60,28 +60,28 @@ _zc_completion() {
         local opts=""
         case "$command" in
             run)       opts="-h --help -a --args -f --force -q --quiet -k --keep -p --plus -s --static -E --preprocess -S --assemble -c --compile -n --no-flags -r --release --std" ;;
-            create)    opts="-h --help -i --input -f --force -q --quiet -e --edit" ;;
-            init)      opts="-h --help -P --project-path -a --author -t --target -p --project-template -n --name -l --languages -q --quiet -f --force -g --git -e --edit -B --bin -L --lib -H --header -C --compose" ;;
-            setup)     opts="-h --help -P --project-path -q --quiet -r --release -d --debug" ;;
-            build)     opts="-h --help -P --project-path -R --run -q --quiet -c --clean -r --release -d --debug" ;;
-            add)       opts="-h --help -P --project-path -q --quiet -s --static" ;;
-            remove)    opts="-h --help -P --project-path -q --quiet" ;;
-            use)       opts="-h --help -P --project-path -q --quiet -g --global" ;;
-            publish)   opts="-h --help -P --project-path -q --quiet" ;;
-            clean)     opts="-h --help -P --project-path -q --quiet" ;;
-            list)      opts="-h --help -q --quiet -d --dependencies -t --templates -p --project-templates -r --remote -s --simple" ;;
-            install)   opts="-h --help -P --project-path -p --path -q --quiet -f --force -s --sync -S --save-path --std" ;;
-            uninstall) opts="-h --help -q --quiet" ;;
-            update)    opts="-h --help -P --project-path -p --path -q --quiet -f --force -s --sync -d --dont-use -S --save-path" ;;
-            login)     opts="-h --help -q --quiet -f --force" ;;
-            logout)    opts="-h --help -q --quiet" ;;
-            config)    opts="-h --help -q --quiet -f --force" ;;
+            create)       opts="-h --help -i --input -f --force -q --quiet -e --edit" ;;
+            init)       opts="-h --help -P --project-path -a --author -t --target -p --project-template -n --name -l --languages -q --quiet -f --force -g --git -e --edit -B --bin -L --lib -H --header -C --compose" ;;
+            setup)       opts="-h --help -P --project-path -q --quiet -r --release -d --debug -f --force" ;;
+            build)       opts="-h --help -P --project-path -R --run -q --quiet -c --clean -r --release -d --debug -f --force" ;;
+            add)       opts="-h --help -P --project-path -q --quiet -s --static -f --force" ;;
+            remove)       opts="-h --help -P --project-path -q --quiet -f --force" ;;
+            use)       opts="-h --help -P --project-path -q --quiet -g --global -f --force" ;;
+            publish)       opts="-h --help -P --project-path -q --quiet -f --force" ;;
+            clean)       opts="-h --help -P --project-path -q --quiet -f --force" ;;
+            list)       opts="-h --help -q --quiet -d --dependencies -t --templates -p --project-templates -r --remote -s --simple -f --force" ;;
+            install)       opts="-h --help -P --project-path -p --path -q --quiet -f --force -j --jobs -s --sync -S --save-path --std" ;;
+            uninstall)       opts="-h --help -q --quiet -f --force" ;;
+            update)       opts="-h --help -P --project-path -p --path -q --quiet -f --force -j --jobs -s --sync -d --dont-use -S --save-path" ;;
+            login)       opts="-h --help -q --quiet -f --force" ;;
+            logout)       opts="-h --help -q --quiet -f --force" ;;
+            config)       opts="-h --help -q --quiet -f --force" ;;
             languages)
                 if [[ -z "$subcommand" ]]; then
                     COMPREPLY=( $(compgen -W "$languages_commands -h --help" -- "$cur") )
                     return
                 else
-                    opts="-h --help -g --global"
+                    opts="-h --help -f --force -g --global"
                 fi
                 ;;
         esac

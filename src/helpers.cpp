@@ -198,7 +198,7 @@ std::vector<Target> parse_targets(const std::vector<std::string> &targets)
     if (const size_t at_pos = target.find('@'); at_pos != std::string::npos)
       pairs.emplace_back(target.substr(0, at_pos), target.substr(at_pos + 1));
     else
-      pairs.emplace_back(target, Version{ 0, 0, 0 });
+      pairs.emplace_back(target, Version::empty());
   return pairs;
 }
 

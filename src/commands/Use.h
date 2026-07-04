@@ -1,21 +1,19 @@
 #pragma once
 
-#include <filesystem>
 #include <string>
 #include <vector>
 
-#include "commands/ProjectCommand.h"
+#include "commands/Command.h"
+#include "Context.h"
 #include "pkgs/LocalTarget.h"
 
 namespace zc
 {
 
-class Use : public ProjectCommand
+class Use : public Command // TODO: inherit from InstallCommand
 {
 public:
-  Use(
-    bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets, bool global
-  );
+  Use(const CommandContext &ctx, const std::vector<std::string> &targets, bool global);
 
   void operator()() override;
 

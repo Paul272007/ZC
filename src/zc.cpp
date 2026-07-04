@@ -38,6 +38,7 @@
 #include "commands/Uninstall.h"
 #include "commands/Update.h"
 #include "commands/Use.h"
+#include "Context.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "ui/Interface.h"
@@ -62,8 +63,12 @@ int main(const int argc, char *argv[])
   unique_ptr<Command> command(nullptr);
 
   // --- Command line arguments and flags as variables
+  LanguagesContext l_ctx;
+  CommandContext   c_ctx;
+  BuildContext     b_ctx;
+  InstallContext   i_ctx;
+
   bool quiet = false;
-  bool force = false;
   // Run
   bool preprocess  = false;
   bool compile     = false;
@@ -73,11 +78,14 @@ int main(const int argc, char *argv[])
   bool std         = false;
   bool static_link = false;
   bool no_flags    = false;
+  // Create
+  vector<string> input_files;
   // Build
   bool clean_before = false;
   bool debug        = false;
   bool release      = false;
-  int  jobs         = 1;
+
+  vector<string> run_args;
   // Init
   bool git        = false;
   bool edit       = false;
@@ -85,32 +93,28 @@ int main(const int argc, char *argv[])
   bool is_lib     = false;
   bool is_header  = false;
   bool is_compose = false;
-  // List
-  bool show_deps        = false;
-  bool show_templates   = false;
-  bool show_p_templates = false;
-  bool simple_display   = false;
-  bool show_remote      = false;
-  // Update
-  bool sync      = false;
-  bool dont_use  = false;
-  bool save_path = false;
-  // Use / Languages
-  bool global = false;
 
   string author;
   string target;
   string p_template;
   string name;
-  string path;
-  string p_root;
-
+  // List
+  bool show_deps        = false;
+  bool show_templates   = false;
+  bool show_p_templates = false;
+  bool show_remote      = false;
+  bool simple_display   = false;
+  // Update
+  bool dont_use  = false;
+  bool save_path = false;
+  // Add / Remove
+  vector<string> targets;
+  // Use / Languages
+  bool global = false;
+  // Config
   string key;
   string value;
-
-  vector<string> run_args;
-  vector<string> targets;
-  vector<string> input_files;
+  // Init / Languages
   vector<string> langs;
 
   // clang-format off
@@ -149,10 +153,11 @@ int main(const int argc, char *argv[])
 
   run->add_option("files", targets, "Files to compile and run");
   run->add_option("--args,-a", run_args, "Arguments to be passed to the program when executed");
-  run->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  run->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  auto *run_jobs = run->add_option("--jobs,-j", b_ctx.input_jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
 
   run->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  run->add_flag("--force,-f", force, "Force compiling even if target already exists");
+  run->add_flag("--force,-f", c_ctx.force, "Force compiling even if target already exists");
   run->add_flag("--preprocess,-E", preprocess, "Preprocess only");
   run->add_flag("--compile,-c", compile, "Compile and assemble, but do not link");
   run->add_flag("--assemble,-S", assemble, "Compile, but do not assemble or link");
@@ -163,21 +168,24 @@ int main(const int argc, char *argv[])
   run->add_flag("--no-flags,-n", no_flags, "Do not add flags from configuration file");
   run->add_flag("--release,-r", release, "Compile in release mode");
 
-  run->callback([&] { command = make_unique<Run>(force, targets, run_args, p_root, preprocess, compile, assemble, plus, keep, std, static_link, no_flags, release); });
+  run->callback([&] {
+    b_ctx.jobs_given = static_cast<bool>(*run_jobs);
+    command = make_unique<Run>(c_ctx, b_ctx, targets, run_args, preprocess, compile, assemble, plus, keep, std, static_link, no_flags, release);
+  });
 
   // Create
 
   create->add_option("files", targets, "Files to create")->required();
   create->add_option("--input,-i", input_files, "Files to use as input for the new files");
 
-  create->add_flag("--force,-f", force, "Force creating file even if it already exists");
+  create->add_flag("--force,-f", c_ctx.force, "Force creating file even if it already exists");
   create->add_flag("--edit,-e", edit, "Open files in editor once created");
 
-  create->callback([&] {command = make_unique<Create>(force, edit, targets, input_files);});
+  create->callback([&] {command = make_unique<Create>(c_ctx, edit, targets, input_files);});
 
   // Init
 
-  init->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  init->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
   init->add_option("--author,-a", author, "Package author");
   init->add_option("--target,-t", target, "Package target");
   init->add_option("--project-template,-p", p_template, "Project template to use");
@@ -185,7 +193,7 @@ int main(const int argc, char *argv[])
   init->add_option("--languages,-l", langs, "Languages of the project");
 
   init->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  init->add_flag("--force,-f", force, "Force initialization even if a project already exists");
+  init->add_flag("--force,-f", c_ctx.force, "Force initialization even if a project already exists");
   init->add_flag("--git,-g", git, "Initialize empty git repository at project root");
   init->add_flag("--edit,-e", edit, "Open project in editor once initialized");
   init->add_flag("--bin,-B", is_bin, "Make package of type BIN");
@@ -193,149 +201,165 @@ int main(const int argc, char *argv[])
   init->add_flag("--header,-H", is_header, "Make package of type HEADER");
   init->add_flag("--compose,-C", is_compose, "Make package of type COMPOSE");
 
-  init->callback([&] { command = make_unique<Init>(force, p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, langs); });
+  init->callback([&] { command = make_unique<Init>(c_ctx, c_ctx.p_root, git, edit, author, target, p_template, name, is_bin, is_lib, is_header, is_compose, langs); });
 
   // Setup
-  // TODO: add --force,-f flag
 
-  setup->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  setup->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
 
   setup->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  setup->add_flag("--force,-f", c_ctx.force, "Force execution");
   setup->add_flag("--release,-r", release, "Create config for release mode");
   setup->add_flag("--debug,-d", debug, "Create config for debug mode");
 
-  setup->callback([&] { command = make_unique<Setup>(force, p_root, release, debug); });
+  setup->callback([&] { command = make_unique<Setup>(c_ctx, release, debug); });
 
   // Build
-  // TODO: add --force,-f flag
 
-  build->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  auto *opt_jobs = build->add_option("--jobs,-j", jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
+  build->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  auto *build_jobs = build->add_option("--jobs,-j", b_ctx.input_jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
   auto *opt_args = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
 
   build->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  build->add_flag("--force,-f", c_ctx.force, "Force execution");
   build->add_flag("--clean,-c", clean_before, "Clean before building");
   build->add_flag("--release,-r", release, "Build in release mode");
   build->add_flag("--debug,-d", debug, "Build in debug mode");
 
   build->callback([&] {
-    command = make_unique<Build>(force, p_root, clean_before, release, debug, static_cast<bool>((*opt_args)), run_args, static_cast<bool>((*opt_jobs)), jobs);
+    b_ctx.jobs_given = static_cast<bool>(*build_jobs);
+    command = make_unique<Build>(c_ctx, b_ctx, clean_before, release, debug, static_cast<bool>((*opt_args)), run_args);
   });
 
   // Add
-  // TODO: add --force,-f flag
 
-  add->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  add->add_option("targets", targets, "The dependencies to be added")->required();
+  add->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  add->add_option("--path,-p", i_ctx.path, "Identify dependency to add by giving the path its project"); // TODO: implement
+  add->add_option("targets", i_ctx.targets, "The dependencies to be added")->required();
 
   add->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  add->add_flag("--force,-f", c_ctx.force, "Force execution");
   add->add_flag("--static,-s", static_link, "Add dependency as static library instead of shared library");
 
-  add->callback([&] { command = make_unique<Add>(force, p_root, targets, static_link); });
+  add->callback([&] { command = make_unique<Add>(c_ctx, i_ctx, static_link); });
 
   // Remove
-  // TODO: add --force,-f flag
 
-  remove->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  remove->add_option("targets", targets, "The dependencies to be removed")->required();
+  remove->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  remove->add_option("--path,-p", i_ctx.path, "Identify dependency to remove by giving the path its project"); // TODO: implement
+  remove->add_option("targets", i_ctx.targets, "The dependencies to be removed")->required();
 
   remove->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  remove->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  remove->callback([&] { command = make_unique<Remove>(force, p_root, targets); });
+  remove->callback([&] { command = make_unique<Remove>(c_ctx, i_ctx); });
 
   // Use
-  // TODO: add --force,-f flag
 
-  use->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  use->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
   use->add_option("targets", targets, "The dependencies and their version to use")->required();
 
   use->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  use->add_flag("--force,-f", c_ctx.force, "Force execution");
   use->add_flag("--global,-g", global, "Change default version of a package");
 
-  use->callback([&] { command = make_unique<Use>(force, p_root, targets, global); });
+  use->callback([&] { command = make_unique<Use>(c_ctx, targets, global); });
 
   // Publish
-  // TODO: add --force,-f flag
 
-  publish->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  publish->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
 
   publish->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  publish->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  publish->callback([&] { command = make_unique<Publish>(force, p_root); });
+  publish->callback([&] { command = make_unique<Publish>(c_ctx); });
 
   // Clean
-  // TODO: add --force,-f flag
 
-  clean->add_option("--project-path,-P", p_root, "Directory to use as project root");
+  clean->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
 
   clean->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  clean->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  clean->callback([&] { command = make_unique<Clean>(force, p_root); });
+  clean->callback([&] { command = make_unique<Clean>(c_ctx); });
 
   // List
-  // TODO: add --force,-f flag
-  list->add_option("--project-path,-P", p_root, "Directory to use as project root");
+
+  list->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
 
   list->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  list->add_flag("--force,-f", c_ctx.force, "Force execution");
   list->add_flag("--dependencies,-d", show_deps, "Show project dependencies");
   list->add_flag("--templates,-t", show_templates, "Show available templates instead of packages");
   list->add_flag("--project-templates,-p", show_p_templates, "Show available project templates instead of packages");
   list->add_flag("--remote,-r", show_remote, "Show remote packages instead of local ones");
   list->add_flag("--simple,-s", simple_display, "Use a simpler display");
 
-  list->callback([&] { command = make_unique<List>(force, p_root, show_deps, show_templates, show_p_templates, show_remote, simple_display); });
+  list->callback([&] { command = make_unique<List>(c_ctx, show_deps, show_templates, show_p_templates, show_remote, simple_display); });
 
   // Install
 
-  install->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  install->add_option("--path,-p", path, "Install from local project instead of remote");
-  install->add_option("targets", targets, "Targets to install");
+  install->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  install->add_option("--path,-p", i_ctx.path, "Install from local project instead of remote");
+  install->add_option("targets", i_ctx.targets, "Targets to install");
 
   install->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  install->add_flag("--force,-f", force, "Force reinstalling packages");
+  install->add_flag("--force,-f", c_ctx.force, "Force reinstalling packages");
   install->add_flag("--std", std, "Add dependency to a standard library instead of ZC library");
-  install->add_flag("--sync,-s", sync, "Also add installed packages to project dependencies");
+  install->add_flag("--sync,-s", i_ctx.sync, "Also add installed packages to project dependencies");
   install->add_flag("--save-path,-S", save_path, "Save the path of the local project in the registry");
 
-  install->callback([&] { command = make_unique<Install>(force, p_root, path, targets, std, sync, save_path); });
+  auto *install_jobs = install->add_option("--jobs,-j", b_ctx.input_jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
+
+  install->callback([&] {
+    b_ctx.jobs_given = static_cast<bool>(*install_jobs);
+    command = make_unique<Install>(c_ctx, b_ctx, i_ctx, std, save_path);
+  });
 
   // Uninstall
-  // TODO: add --force,-f flag
 
-  uninstall->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  uninstall->add_option("targets", targets, "Targets to uninstall");
+  uninstall->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  uninstall->add_option("--path,-p", i_ctx.path, "Uninstall by giving path to project root");
+  uninstall->add_option("targets", i_ctx.targets, "Targets to uninstall");
 
   uninstall->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  uninstall->add_flag("--force,-f", c_ctx.force, "Force execution");
+  uninstall->add_flag("--sync,-s", i_ctx.sync, "Also remove installed packages from project dependencies");
 
-  uninstall->callback([&] { command = make_unique<Uninstall>(force, p_root, targets); });
+  uninstall->callback([&] { command = make_unique<Uninstall>(c_ctx, i_ctx); });
 
   // Update
 
-  update->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  update->add_option("--path,-p", path, "Update local package from its root path");
-  update->add_option("targets", targets, "Targets to update");
+  update->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  update->add_option("--path,-p", i_ctx.path, "Update local package from its root path");
+  update->add_option("targets", i_ctx.targets, "Targets to update");
 
   update->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  update->add_flag("--force,-f", force, "Force reinstalling a specific version");
-  update->add_flag("--sync,-s", sync, "Sync project dependencies after updating packages");
+  update->add_flag("--force,-f", c_ctx.force, "Force reinstalling a specific version");
+  update->add_flag("--sync,-s", i_ctx.sync, "Sync project dependencies after updating packages");
   update->add_flag("--dont-use,-d", dont_use, "Do not set newly installed version as default version for updated package");
   update->add_flag("--save-path,-S", save_path, "Save the path of the local project in the registry");
 
-  update->callback([&] { command = make_unique<Update>(force, p_root, path, targets, sync, dont_use, save_path); });
+  auto *update_jobs = update->add_option("--jobs,-j", b_ctx.input_jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
+
+  update->callback([&] {
+    b_ctx.jobs_given = static_cast<bool>(*update_jobs);
+    command = make_unique<Update>(c_ctx, b_ctx, i_ctx, dont_use, save_path);
+  });
 
   // Login
 
   login->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  login->add_flag("--force,-f", force, "Force login even if an account is already logged in");
+  login->add_flag("--force,-f", c_ctx.force, "Force login even if an account is already logged in");
 
-  login->callback([&] { command = make_unique<Login>(force); });
+  login->callback([&] { command = make_unique<Login>(c_ctx); });
 
   // Logout
-  // TODO: add --force,-f flag
 
   logout->add_flag("--quiet,-q", quiet, "Do not show any messages");
+  logout->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  logout->callback([&] { command = make_unique<Logout>(force); });
+  logout->callback([&] { command = make_unique<Logout>(c_ctx); });
 
   // Config
 
@@ -343,49 +367,61 @@ int main(const int argc, char *argv[])
   config->add_option("value", value, "Value to give to the key (default: restore to default option)");
 
   config->add_flag("--quiet,-q", quiet, "Do not show any messages");
-  config->add_flag("--force,-f", force, "When creating a new config, override already existing configuration");
+  config->add_flag("--force,-f", c_ctx.force, "When creating a new config, override already existing configuration");
 
-  config->callback([&] { command = make_unique<Config>(force, key, value); });
+  config->callback([&] { command = make_unique<Config>(c_ctx, key, value); });
 
   // Languages Add
-  // TODO: add --force,-f flag
 
-  languages_add->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  languages_add->add_option("languages", langs, "Languages to add")->required();
+  languages_add->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  languages_add->add_option("languages", l_ctx.languages, "Languages to add")->required();
 
-  languages_add->add_flag("--global,-g", global, "Modify global configuration");
+  languages_add->add_flag("--global,-g", l_ctx.global, "Modify global configuration");
+  languages_add->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  languages_add->callback([&] { command = make_unique<LanguagesAdd>(force, p_root, langs, global); });
+  languages_add->callback([&] {
+    l_ctx.c_ctx = c_ctx;
+    command = make_unique<LanguagesAdd>(l_ctx);
+  });
 
   // Languages Edit
-  // TODO: add --force,-f flag
 
-  languages_edit->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  languages_edit->add_option("languages", langs, "Languages to edit");
+  languages_edit->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  languages_edit->add_option("languages", l_ctx.languages, "Languages to edit");
 
-  languages_edit->add_flag("--global,-g", global, "Modify global configuration");
+  languages_edit->add_flag("--global,-g", l_ctx.global, "Modify global configuration");
+  languages_edit->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  languages_edit->callback([&] { command = make_unique<LanguagesEdit>(force, p_root, langs, global); });
+  languages_edit->callback([&] {
+    l_ctx.c_ctx = c_ctx;
+    command = make_unique<LanguagesEdit>(l_ctx);
+  });
 
   // Languages Remove
-  // TODO: add --force,-f flag
 
-  languages_remove->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  languages_remove->add_option("languages", langs, "Languages to remove")->required();
+  languages_remove->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  languages_remove->add_option("languages", l_ctx.languages, "Languages to remove")->required();
 
-  languages_remove->add_flag("--global,-g", global, "Modify global configuration");
+  languages_remove->add_flag("--global,-g", l_ctx.global, "Modify global configuration");
+  languages_remove->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  languages_remove->callback([&] { command = make_unique<LanguagesRemove>(force, p_root, langs, global); });
+  languages_remove->callback([&] {
+    l_ctx.c_ctx = c_ctx;
+    command = make_unique<LanguagesRemove>(l_ctx);
+  });
 
   // Languages Show
-  // TODO: add --force,-f flag
 
-  languages_show->add_option("--project-path,-P", p_root, "Directory to use as project root");
-  languages_show->add_option("languages", langs, "Languages to show");
+  languages_show->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  languages_show->add_option("languages", l_ctx.languages, "Languages to show");
 
-  languages_show->add_flag("--global,-g", global, "Show global configuration");
+  languages_show->add_flag("--global,-g", l_ctx.global, "Show global configuration");
+  languages_show->add_flag("--force,-f", c_ctx.force, "Force execution");
 
-  languages_show->callback([&] { command = make_unique<LanguagesShow>(force, p_root, langs, global); });
+  languages_show->callback([&] {
+    l_ctx.c_ctx = c_ctx;
+    command = make_unique<LanguagesShow>(l_ctx);
+  });
 
   // clang-format on
 

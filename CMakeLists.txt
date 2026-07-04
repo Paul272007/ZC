@@ -126,7 +126,7 @@ add_library(zc_core STATIC
         src/commands/Login.h
         src/commands/Logout.cpp
         src/commands/Logout.h
-        src/commands/ProjectCommand.h
+        src/commands/BuildCommand.h
         src/commands/Publish.cpp
         src/commands/Publish.h
         src/commands/Remove.cpp

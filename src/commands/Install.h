@@ -1,40 +1,28 @@
 #pragma once
 
-#include <filesystem>
-#include <string>
-#include <vector>
-
-#include "commands/ProjectCommand.h"
-#include "pkgs/Registry.h"
-#include "pkgs/RemoteTarget.h"
+#include "commands/BuildCommand.h"
+#include "commands/InstallCommand.h"
+#include "Context.h"
 
 namespace zc
 {
 
-class Install : public ProjectCommand
+class Install : public BuildCommand, public InstallCommand
 {
 public:
   Install(
-    bool force, const std::filesystem::path &p_root, std::filesystem::path path,
-    const std::vector<std::string> &targets, bool is_std, bool sync, bool save_path
+    CommandContext &c_ctx, const BuildContext &b_ctx, InstallContext &i_ctx, bool is_std, bool save_path
   );
 
   void operator()() override;
 
 private:
-  Registry &reg_ = Registry::get();
-
-  const std::filesystem::path path_;
-  std::vector<RemoteTarget>   targets_;
-
   const bool std_;
-  const bool sync_;
   const bool save_path_;
 
   void install_from_path();
   void install_dependencies();
   void install_targets();
-  void sync_project();
 };
 
 } // namespace zc

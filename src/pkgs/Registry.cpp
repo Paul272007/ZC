@@ -1,7 +1,8 @@
 #include "Registry.h"
 
-#include <algorithm>
 #include <filesystem>
+#include <ranges>
+#include <string>
 #include <vector>
 
 #include "config/PConf.h"
@@ -9,6 +10,7 @@
 #include "excepts/ZCException.h"
 #include "helpers.h"
 #include "Network.h"
+#include "pkgs/Pkg.h"
 #include "PkgType.h"
 #include "project/Project.h"
 #include "RemoteTarget.h"
@@ -32,35 +34,6 @@ const Pkg &Registry::get_pkg(const std::string &name)
   if (it == pkgs_.end())
     throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + name + "' was not found");
   return it->second;
-}
-
-Dependency Registry::get_dependency(const LocalTarget &t)
-{
-  auto it = pkgs_.find(t.name);
-
-  if (it == pkgs_.end())
-    throw ZCException(ZCE_PKG_NOT_FOUND, "Package '" + t.name + "' was not found");
-  if (it->second.type == PkgType::BIN)
-    throw ZCException(ZCE_TYPE_ERROR, "Cannot add dependency of type BIN");
-
-  const std::vector<Version> &versions{ it->second.versions };
-
-  Version version_to_use{ t.version };
-
-  if (version_to_use.is_empty() || version_to_use.is_default())
-    version_to_use = it->second.default_version;
-  else if (version_to_use.is_latest())
-    version_to_use = *ranges::max_element(versions);
-  else if (const auto version_it = ranges::find(versions, t.version); version_it == versions.end())
-    throw ZCException(
-      ZCE_PKG_NOT_FOUND, "Package '" + t.name + "' at version " + t.version.string() + " was not found"
-    );
-
-  return {
-    .name    = it->second.name,
-    .origin  = it->second.origin,
-    .version = version_to_use,
-  };
 }
 
 void Registry::install_std(const std::string &name, const bool force)
@@ -89,13 +62,13 @@ void Registry::install_std(const std::string &name, const bool force)
       .target          = target,
       .origin          = "std",
       .type            = PkgType::LIB,
-      .default_version = { 0, 0, 0 },
-      .versions        = { 0, 0, 0 },
+      .default_version = Version::empty(),
+      .versions        = { { Version::empty(), {} } },
     }
   );
 }
 
-void Registry::install_from_server(const RemoteTarget &target, const bool force)
+void Registry::install_from_server(const RemoteTarget &target, const bool force, const size_t jobs)
 {
   if (!force && is_installed(target.name))
   {
@@ -103,30 +76,38 @@ void Registry::install_from_server(const RemoteTarget &target, const bool force)
     return;
   }
   Project p(download_and_extract(target));
-  finish_install(p, "main");
+  finish_install(p, "main", jobs);
 }
 
-Project
-Registry::install_from_path(const std::filesystem::path &path, const bool force, const bool save_path)
+Project Registry::install_from_path(
+  const std::filesystem::path &path, const bool force, const bool save_path, const size_t jobs
+)
 {
-  Project p(path);
+  Project p(get_project_root(path));
   if (!force && is_installed(p.pconf.name))
-    return update_from_path(path, force, true);
+    return update_from_path(path, force, true, save_path, jobs);
 
-  finish_install(p, "local");
+  finish_install(p, "local", jobs);
   if (save_path)
     set_path(p.pconf.name, p.root_dir);
   return p;
 }
 
-void Registry::finish_install(Project &p, const std::string &origin)
+void Registry::finish_install(Project &p, const std::string &origin, const size_t jobs)
 {
   ui().debug("Building package...");
   verify_headers_structure(p);
-  p.install_dependencies();
-  p.build(BuildMode::release, true);
+  p.install_dependencies(false);
+  p.build(BuildMode::release, true, jobs);
 
   ui().debug("Indexing package...");
+
+  // Get dependencies :
+  std::map<std::string, Version> deps;
+  for (const auto &[dep_name, dep] : p.pconf.dependencies)
+    if (!dep.static_link)
+      deps[dep_name] = dep.version;
+
   Pkg pkg{
     .path            = "",
     .name            = p.pconf.name,
@@ -134,7 +115,7 @@ void Registry::finish_install(Project &p, const std::string &origin)
     .origin          = origin,
     .type            = p.pconf.type,
     .default_version = p.pconf.version,
-    .versions        = { p.pconf.version },
+    .versions        = { { p.pconf.version, deps } },
   };
   add_pkg_to_index(pkg);
   switch (p.pconf.type)
@@ -158,7 +139,9 @@ void Registry::finish_install(Project &p, const std::string &origin)
   ui().success("Package successfully installed!");
 }
 
-void Registry::update_from_server(const RemoteTarget &target, const bool force, const bool use)
+void Registry::update_from_server(
+  const RemoteTarget &target, const bool force, const bool use, const size_t jobs
+)
 {
   if (get_pkg(target.name).origin != "main") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update local package with distant package");
@@ -169,14 +152,15 @@ void Registry::update_from_server(const RemoteTarget &target, const bool force, 
     return;
   }
   Project p(download_and_extract(target));
-  finish_update(p, use);
+  finish_update(p, use, jobs);
 }
 
 Project Registry::update_from_path(
-  const std::filesystem::path &path, const bool force, const bool use, const bool save_path
+  const std::filesystem::path &path, const bool force, const bool use, const bool save_path,
+  const size_t jobs
 )
 {
-  Project p(path);
+  Project p(get_project_root(path));
   if (get_pkg(p.pconf.name).origin != "local") // throws an error if package is not installed
     throw ZCException(ZCE_ORIGIN_MISMATCH, "Cannot update distant package with local package");
 
@@ -185,21 +169,28 @@ Project Registry::update_from_path(
     ui().info("Skipped package " + p.pconf.name + ": already up-to-date at v" + p.pconf.version.string());
     return p;
   }
-  finish_update(p, use);
+  finish_update(p, use, jobs);
   if (save_path)
     set_path(p.pconf.name, p.root_dir);
   return p;
 }
 
-void Registry::finish_update(Project &p, const bool use)
+void Registry::finish_update(Project &p, const bool use, const size_t jobs)
 {
   ui().debug("Building package...");
   verify_headers_structure(p);
-  p.install_dependencies();
-  p.build(BuildMode::release, true);
+  p.install_dependencies(false);
+  p.build(BuildMode::release, true, jobs);
 
   ui().debug("Indexing package...");
-  add_version_to_pkg(p.pconf.name, p.pconf.version);
+
+  // Get dependencies :
+  std::map<std::string, Version> deps;
+  for (const auto &[dep_name, dep] : p.pconf.dependencies)
+    if (!dep.static_link)
+      deps[dep_name] = dep.version;
+
+  add_version_to_pkg(p.pconf.name, p.pconf.version, deps);
 
   switch (p.pconf.type)
   {
@@ -223,8 +214,24 @@ void Registry::finish_update(Project &p, const bool use)
   ui().success("Package '" + p.pconf.name + "' updated successfully");
 }
 
-void Registry::uninstall(const std::string &pkg)
+void Registry::uninstall_from_path(const std::filesystem::path &path, bool force)
 {
+  Project p(get_project_root(path));
+  uninstall(LocalTarget::get_target({ p.pconf.name, p.pconf.version }), force);
+}
+
+void Registry::uninstall(const std::string &pkg, const bool force)
+{
+  auto dependents = dependents_of(pkg);
+  if (!dependents.empty())
+  {
+    ui().warning("The package '" + pkg + "' is required by these packages :");
+    for (const auto &[dep_name, dep_version] : dependents)
+      ui().warning("  - " + dep_name + "@" + dep_version.string());
+
+    if (!force)
+      throw ZCException(ZCE_BROKEN_DEPENDENCY, "Cannot break dependency.");
+  }
   const Pkg p = remove_pkg_from_index(pkg); // throws error if not found
 
   switch (p.type)
@@ -248,23 +255,31 @@ void Registry::uninstall(const std::string &pkg)
   default:
     break;
   }
-  // Remove entire directory
   if (const auto pkg_path = cache_dir_ / p.name; fs::exists(pkg_path))
-    fs::remove_all(pkg_path);
+    fs::remove_all(pkg_path); // Remove entire package directory
 }
 
-void Registry::uninstall(const LocalTarget &t)
+void Registry::uninstall(const LocalTarget &t, const bool force)
 {
-  auto it = get_pkg_it(t.name);
-  Pkg &p  = it->second;
-
+  auto  it       = get_pkg_it(t.name);
+  auto &p        = it->second;
   auto &versions = p.versions;
-  auto  v_it     = ranges::find(versions, t.version);
+  auto  v_it     = versions.find(t.version);
 
   if (versions.size() == 1)
   {
-    uninstall(t.name);
+    uninstall(t.name, true);
     return;
+  }
+  auto dependents = dependents_of(t.name, t.version);
+  if (!dependents.empty())
+  {
+    ui().warning("The package '" + t.string() + "' is required by these packages :");
+    for (const auto &[dep_name, dep_version] : dependents)
+      ui().warning("  - " + dep_name + "@" + dep_version.string());
+
+    if (!force)
+      throw ZCException(ZCE_BROKEN_DEPENDENCY, "Cannot break dependency.");
   }
 
   versions.erase(v_it);
@@ -275,7 +290,7 @@ void Registry::uninstall(const LocalTarget &t)
 
   if (p.default_version == t.version)
   {
-    p.default_version = *ranges::max_element(versions);
+    p.default_version = versions.rbegin()->first;
     update_symlinks(p);
     ui().info("Default version of '" + t.name + "' automatically updated to " + p.default_version.string());
   }
@@ -284,7 +299,7 @@ void Registry::uninstall(const LocalTarget &t)
 Version Registry::get_latest(const std::string &name)
 {
   const Pkg &pkg = get_pkg(name);
-  return *ranges::max_element(pkg.versions);
+  return pkg.versions.rbegin()->first;
 }
 
 bool Registry::is_installed(const std::string &name, const Version &v)
@@ -293,8 +308,7 @@ bool Registry::is_installed(const std::string &name, const Version &v)
   if (it == pkgs_.end())
     return false;
 
-  const std::vector<Version> &versions = it->second.versions;
-  return ranges::find(versions, v) != versions.end();
+  return it->second.versions.contains(v);
 }
 
 bool Registry::is_installed(const string &name) const
@@ -389,21 +403,21 @@ void Registry::add_pkg_to_index(const Pkg &pkg)
   modified_ = true;
 }
 
-void Registry::add_version_to_pkg(const std::string &name, const Version &version)
+void Registry::add_version_to_pkg(
+  const std::string &name, const Version &version, const std::map<std::string, Version> &deps
+)
 {
   const auto pkg = get_pkg_it(name); // throws error if not found
-  if (auto &versions = pkg->second.versions; ranges::find(versions, version) == versions.end())
-    versions.push_back(version);
+  if (auto &versions = pkg->second.versions; !versions.contains(version))
+    versions.insert_or_assign(version, deps);
   modified_ = true;
 }
 
 void Registry::set_default_version(const std::string &name, const Version &version)
 {
   auto it = get_pkg_it(name);
-  if (auto &versions = it->second.versions; ranges::find(versions, version) == versions.end())
-    throw ZCException(
-      ZCE_PKG_NOT_FOUND, "Version " + version.string() + " is not installed for package " + name
-    );
+  if (!it->second.versions.contains(version))
+    throw ZCException(ZCE_PKG_NOT_FOUND, "Version " + version.string() + " not found for package " + name);
 
   it->second.default_version = version;
   modified_                  = true;
@@ -552,6 +566,32 @@ std::filesystem::path Registry::download_and_extract(const RemoteTarget &target)
       break;
     }
   return project_root;
+}
+
+std::vector<std::pair<std::string, Version>>
+Registry::dependents_of(const std::string &target_pkg_name) const
+{
+  std::vector<std::pair<std::string, Version>> dependents;
+  for (const auto &[pkg_name, pkg] : pkgs_)
+    for (const auto &[version, deps] : pkg.versions)
+      if (deps.contains(target_pkg_name))
+        dependents.emplace_back(pkg_name, version);
+  return dependents;
+}
+
+std::vector<std::pair<std::string, Version>>
+Registry::dependents_of(const std::string &target_pkg_name, const Version &target_version) const
+{
+  std::vector<std::pair<std::string, Version>> dependents;
+  for (const auto &[pkg_name, pkg] : pkgs_)
+    for (const auto &[version, deps] : pkg.versions)
+    {
+      auto it = deps.find(target_pkg_name);
+      if (it != deps.end() && (it->second == target_version || it->second.is_latest() ||
+                               it->second.is_empty() || it->second.is_default()))
+        dependents.emplace_back(pkg_name, version);
+    }
+  return dependents;
 }
 
 void Registry::verify_archive_hash(const std::filesystem::path &archive, const string &expected)

@@ -1,26 +1,22 @@
 #pragma once
 
-#include <filesystem>
-#include <string>
-#include <vector>
-
-#include "pkgs/Registry.h"
-#include "ProjectCommand.h"
+#include "commands/InstallCommand.h"
+#include "Context.h"
 
 namespace zc
 {
 
-class Uninstall : public ProjectCommand
+class Uninstall : public InstallCommand
 {
 public:
-  Uninstall(bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets);
+  Uninstall(CommandContext &c_ctx, InstallContext &i_ctx);
 
   void operator()() override;
 
 private:
-  Registry &reg_ = Registry::get();
-
-  std::vector<LocalTarget> targets_;
+  void uninstall_from_path();
+  void uninstall_dependencies();
+  void uninstall_targets();
 };
 
 } // namespace zc

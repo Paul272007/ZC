@@ -1,6 +1,7 @@
 #include "Remove.h"
 
-#include "commands/ProjectCommand.h"
+#include "commands/InstallCommand.h"
+#include "Context.h"
 #include "helpers.h"
 #include "project/Project.h"
 
@@ -9,17 +10,12 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Remove::Remove(
-  const bool force, const std::filesystem::path &p_root, const std::vector<std::string> &targets
-)
-  : ProjectCommand(force, p_root), targets_(targets)
-{
-}
+Remove::Remove(CommandContext &c_ctx, InstallContext &i_ctx) : InstallCommand(c_ctx, i_ctx) {}
 
 void Remove::operator()()
 {
   for (CAA target : targets_)
-    p().remove_dependency(target);
+    p().remove_dependency(target.first); // TODO: implement version checking and all
 }
 
 } // namespace zc

@@ -2,7 +2,6 @@
 
 #include <nlohmann/json.hpp>
 #include <string>
-#include <vector>
 
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
@@ -20,18 +19,6 @@ struct RemoteTarget
   const std::string url;
   const std::string sha256;
   const Version     version; // default = empty version
-
-  static std::vector<RemoteTarget> parse(const std::vector<std::string> &targets)
-  {
-    std::vector<Target>       pairs = parse_targets(targets);
-    std::vector<RemoteTarget> results;
-
-    results.reserve(pairs.size());
-    for (CAA pair : pairs)
-      results.push_back(get_target(pair));
-
-    return results;
-  }
 
   static RemoteTarget get_target(const Target &t)
   {

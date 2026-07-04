@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "clang_utils.h"
-#include "commands/ProjectCommand.h"
+#include "commands/BuildCommand.h"
 #include "CompileMode.h"
 #include "config/Language.h"
 #include "config/LanguageConf.h"
+#include "Context.h"
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
@@ -22,12 +23,13 @@ namespace zc
 {
 
 Run::Run(
-  const bool force, const vector<string> &files, const vector<string> &args,
-  const std::filesystem::path &p_root, const bool preprocess, const bool compile, const bool assemble,
+  const CommandContext &c_ctx, const BuildContext &b_ctx, const vector<string> &files,
+  const vector<string> &args, const bool preprocess, const bool compile, const bool assemble,
   const bool plus, const bool keep, const bool add_std, const bool static_link, const bool no_flags,
   const bool release
 )
-  : ProjectCommand(force, p_root, files.empty()),
+  : Command(c_ctx, files.empty()),
+    BuildCommand(b_ctx),
     files_(str_to_path(files)),
     args_(args),
     add_flags_(!no_flags),
@@ -55,7 +57,7 @@ void Run::operator()()
   {
     const fs::path exec_path{ p().build_dir / p().pconf.target };
     if (!fs::exists(exec_path))
-      p().build(); // TODO: add -j flag
+      p().build(BuildMode::automatic, false, jobs_);
 
     p().execute(args_);
     return;
