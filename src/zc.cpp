@@ -217,6 +217,7 @@ int main(const int argc, char *argv[])
   // Build
 
   build->add_option("--project-path,-P", c_ctx.p_root, "Directory to use as project root");
+  build->add_option("target", target, "Target to build (all by default)");
   auto *build_jobs = build->add_option("--jobs,-j", b_ctx.input_jobs, "Number of concurrent jobs for compilation")->expected(0, 1);
   auto *opt_args = build->add_option("--run,-R", run_args, "Run binary after compiling and optionally add parameters")->expected(0, -1);
 
@@ -228,7 +229,7 @@ int main(const int argc, char *argv[])
 
   build->callback([&] {
     b_ctx.jobs_given = static_cast<bool>(*build_jobs);
-    command = make_unique<Build>(c_ctx, b_ctx, clean_before, release, debug, static_cast<bool>((*opt_args)), run_args);
+    command = make_unique<Build>(c_ctx, b_ctx, target, clean_before, release, debug, static_cast<bool>((*opt_args)), run_args);
   });
 
   // Add

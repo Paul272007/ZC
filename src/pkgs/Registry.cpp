@@ -131,6 +131,46 @@ void Registry::finish_install(Project &p, const std::string &origin, const size_
     copy_headers(p);
     break;
   case PkgType::COMPOSE:
+  {
+    for (const auto &comp : p.pconf.components)
+    {
+      Project sub(p.root_dir / comp);
+
+      std::map<std::string, Version> comp_deps;
+      for (const auto &[dep_name, dep] : sub.pconf.dependencies)
+        if (!dep.static_link)
+          comp_deps[dep_name] = dep.version;
+      for (const auto &req : sub.pconf.required_components)
+        comp_deps[p.pconf.name + "/" + req] = p.pconf.version;
+
+      Pkg sub_pkg{
+        .path            = "",
+        .name            = p.pconf.name + "/" + comp,
+        .target          = sub.pconf.target,
+        .origin          = origin,
+        .type            = sub.pconf.type,
+        .default_version = p.pconf.version,
+        .versions        = { { p.pconf.version, comp_deps } },
+      };
+
+      add_pkg_to_index(sub_pkg);
+
+      if (sub_pkg.type == PkgType::BIN)
+        copy_bin(sub, &sub_pkg);
+      else if (sub_pkg.type == PkgType::LIB)
+      {
+        copy_headers(sub, &sub_pkg);
+        copy_libs(sub, &sub_pkg);
+      }
+      else if (sub_pkg.type == PkgType::HEADER)
+      {
+        copy_headers(sub, &sub_pkg);
+      }
+
+      update_symlinks(sub_pkg);
+    }
+    break;
+  }
   default:
     ui().debug("Not implemented yet.");
     break;
@@ -448,12 +488,15 @@ Pkg Registry::remove_pkg_from_index(const std::string &name)
   return extracted_pkg;
 }
 
-void Registry::copy_bin(const Project &p) const
+void Registry::copy_bin(const Project &p, const Pkg *dest_pkg) const
 {
   ui().info("Installing binary...");
 
+  const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
+  const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
+
   const auto source   = p.build_dir / p.pconf.target;
-  const auto dest_dir = cache_dir_ / p.pconf.name / p.pconf.version.string() / BIN_DIR;
+  const auto dest_dir = cache_dir_ / dest_name / dest_version.string() / BIN_DIR;
   const auto dest     = dest_dir / p.pconf.target;
 
   if (!fs::exists(source))
@@ -466,12 +509,15 @@ void Registry::copy_bin(const Project &p) const
   );
 }
 
-void Registry::copy_headers(const Project &p) const
+void Registry::copy_headers(const Project &p, const Pkg *dest_pkg) const
 {
   ui().info("Installing header(s)...");
 
+  const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
+  const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
+
   const auto source_dir = p.root_dir / INCLUDE_DIR / p.pconf.name;
-  const auto dest_dir   = cache_dir_ / p.pconf.name / p.pconf.version.string() / INCLUDE_DIR / p.pconf.name;
+  const auto dest_dir   = cache_dir_ / dest_name / dest_version.string() / INCLUDE_DIR / dest_name;
 
   if (!fs::exists(source_dir))
     throw ZCException(
@@ -482,12 +528,15 @@ void Registry::copy_headers(const Project &p) const
   fs::copy(source_dir, dest_dir, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
 }
 
-void Registry::copy_libs(const Project &p) const
+void Registry::copy_libs(const Project &p, const Pkg *dest_pkg) const
 {
   ui().info("Installing libraries...");
 
+  const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
+  const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
+
   const auto source_dir = p.root_dir / BUILD_DIR;
-  const auto dest_dir   = cache_dir_ / p.pconf.name / p.pconf.version.string() / LIB_DIR;
+  const auto dest_dir   = cache_dir_ / dest_name / dest_version.string() / LIB_DIR;
 
   if (!fs::exists(source_dir))
     throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());

@@ -11,6 +11,7 @@
 #include "excepts/ExitCode.h"
 #include "excepts/ZCException.h"
 #include "helpers.h"
+#include "pkgs/PkgType.h"
 #include "ui/Interface.h"
 #include "ui/ui_utils.h"
 
@@ -59,31 +60,40 @@ PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::g
 void PConf::load()
 {
   const json root = read_json(file_);
-  get_key(root, "name", name);
-  get_key(root, "author", author, author);
-  get_key(root, "target", target, name);
-  get_key(root, "src_dirs", src_dirs, src_dirs);
-  get_key(root, "include_dirs", include_dirs, include_dirs);
+
   get_key(root, "type", type);
-  get_key(root, "version", version);
-  get_key(root, "macros", macros, macros);
-
-  if (version.is_empty())
-    throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
-
   if (type == PkgType::UNDEF)
     throw ZCException(ZCE_CONTENT_ERROR, "Package type cannot be undefined");
 
+  get_key(root, "name", name);
   check_name(name);
-  if (target != name)
-    check_name(target);
 
-  // Get languages configuration
-  if (root.contains("languages") && root["languages"].is_object())
+  get_key(root, "version", version);
+  if (version.is_empty()) // FIX: do not crash if package is a subpackage
+    throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
+
+  get_key(root, "author", author, author);
+  get_key(root, "macros", macros, macros);
+  get_key(root, "requires", required_components, required_components);
+
+  if (type == PkgType::COMPOSE)
+    get_key(root, "components", components);
+  else
+    get_key(root, "include_dirs", include_dirs, include_dirs);
+
+  if (type != PkgType::COMPOSE && type != PkgType::HEADER)
   {
-    languages.clear();
-    for (const auto &[key, value] : root["languages"].items())
-      languages.insert_or_assign(language_from_str(key), value.get<LanguageConf>());
+    get_key(root, "target", target, name);
+    get_key(root, "src_dirs", src_dirs, src_dirs);
+    if (target != name)
+      check_name(target);
+
+    if (root.contains("languages") && root["languages"].is_object())
+    {
+      languages.clear();
+      for (const auto &[key, value] : root["languages"].items())
+        languages.insert_or_assign(language_from_str(key), value.get<LanguageConf>());
+    }
   }
 
   // Get dependencies
@@ -113,8 +123,13 @@ void PConf::write()
     root["name"] = name;
   if (!root.empty())
     root["author"] = author;
-  if (!target.empty())
+
+  if (type != PkgType::HEADER && !target.empty())
     root["target"] = target;
+  if (type == PkgType::COMPOSE)
+    root["components"] = components;
+  if (!required_components.empty())
+    root["requires"] = required_components;
 
   json lang_json = json::object();
   for (CAA[lang, conf] : languages)

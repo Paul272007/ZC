@@ -63,18 +63,24 @@ void Init::operator()()
 
   PConf pconf(p_root_ / ZC_FILE);
 
-  pconf.name   = name_.empty() ? if_.input("Package name", fs::current_path().filename().string()) : name_;
-  pconf.target = target_.empty() ? if_.input("Package target", name_) : target_;
+  pconf.type = type_ == PkgType::UNDEF ? choose_pkg_type() : type_;
+  pconf.name = name_.empty() ? if_.input("Package name", fs::current_path().filename().string()) : name_;
+  check_name(pconf.name);
   pconf.author = author_.empty() ? if_.input("Package author", gc_.username) : author_;
-  pconf.type   = type_ == PkgType::UNDEF ? choose_pkg_type() : type_;
 
-  if (languages_.empty())
-    pconf.edit_languages();
-  else
+  if (pconf.type != PkgType::COMPOSE && pconf.type != PkgType::HEADER)
   {
-    pconf.languages.clear();
-    for (const auto l : languages_)
-      pconf.add_language(l);
+    pconf.target = target_.empty() ? if_.input("Package target", pconf.name) : target_;
+    if (pconf.target != pconf.name)
+      check_name(pconf.target);
+    if (languages_.empty())
+      pconf.edit_languages();
+    else
+    {
+      pconf.languages.clear();
+      for (const auto l : languages_)
+        pconf.add_language(l);
+    }
   }
 
   if (p_template_.empty())

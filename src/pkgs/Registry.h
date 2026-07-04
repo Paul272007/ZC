@@ -84,9 +84,9 @@ private:
   void finish_install(Project &p, const std::string &origin, size_t jobs = 1);
   void finish_update(Project &p, bool use, size_t jobs = 1);
 
-  void copy_bin(const Project &p) const;
-  void copy_libs(const Project &p) const;
-  void copy_headers(const Project &p) const;
+  void copy_bin(const Project &p, const Pkg *dest_pkg = nullptr) const;
+  void copy_headers(const Project &p, const Pkg *dest_pkg = nullptr) const;
+  void copy_libs(const Project &p, const Pkg *dest_pkg = nullptr) const;
   void update_symlinks(const Pkg &p) const;
 
   [[nodiscard]] std::vector<std::pair<std::string, Version>>

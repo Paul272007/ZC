@@ -68,7 +68,10 @@ public:
   ~Project()                          = default;
 
   void generate_build_config(BuildMode current_mode = BuildMode::debug, bool is_install = false);
-  void build(BuildMode current_mode = BuildMode::automatic, bool is_install = false, size_t jobs = 1);
+  void build(
+    BuildMode current_mode = BuildMode::automatic, bool is_install = false, size_t jobs = 1,
+    const std::string &target = "all"
+  );
   void clean(bool cache = false) const;
   void publish();
   void execute(const std::vector<std::string> &args) const;
@@ -96,9 +99,9 @@ private:
 
   void Makefile_bin(std::ostringstream &mk) const;
   void Makefile_lib(std::ostringstream &mk) const;
+  void Makefile_compose(std::ostringstream &mk) const;
   void Makefile_variables(std::ostringstream &mk) const;
   void Makefile_rules(std::ostringstream &mk) const;
-  static void Makefile_compose(std::ostringstream &mk);
   static void Makefile_comment(std::ostringstream &mk);
 
   [[nodiscard]] BuildMode get_mode(BuildMode current_mode) const;

@@ -55,7 +55,7 @@ void Project::get_nb_to_compile(int &to_compile, int &to_link, ShellCommand base
   );
 }
 
-void Project::build(BuildMode current_mode, const bool is_install, const size_t jobs)
+void Project::build(BuildMode current_mode, const bool is_install, const size_t jobs, const string &target)
 {
   if (pconf.type == PkgType::HEADER)
     return;
@@ -72,7 +72,7 @@ void Project::build(BuildMode current_mode, const bool is_install, const size_t 
       "-j" + to_string(jobs),
       "-C",
       build_dir.string(),
-      "all",
+      target,
     },
   };
 
@@ -145,6 +145,16 @@ void Project::build(BuildMode current_mode, const bool is_install, const size_t 
 
 void Project::clean(bool cache) const
 {
+  if (pconf.type == PkgType::COMPOSE)
+  {
+    for (const auto &comp : pconf.components)
+    {
+      Project sub(root_dir / comp);
+      sub.clean(cache);
+    }
+    return;
+  }
+
   if (fs::exists(build_dir) && fs::is_directory(build_dir))
     if (fs::remove_all(build_dir) > 0)
       ui().info("Cleaned " + pretty_path(build_dir));
@@ -441,6 +451,18 @@ void Project::generate_build_config(BuildMode current_mode, bool is_install)
   if (pconf.type == PkgType::HEADER)
     return;
 
+  if (pconf.type == PkgType::COMPOSE)
+  {
+    for (const auto &comp : pconf.components)
+    {
+      Project sub(root_dir / comp);
+      sub.generate_build_config(current_mode, is_install);
+    }
+    std::filesystem::create_directories(build_dir);
+    generate_Makefile();
+    return;
+  }
+
   sources_     = get_sources();
   current_mode = get_mode(current_mode);
 
@@ -511,10 +533,27 @@ void Project::Makefile_lib(std::ostringstream &mk) const
   mk << "\t@" << get_linker() << " -shared -o $@ $^ $(LIB_DIRS) $(LIBS)\n\n";
 }
 
-void Project::Makefile_compose(std::ostringstream &mk)
+void Project::Makefile_compose(std::ostringstream &mk) const
 {
-  mk << "all:\n";
-  mk << "\t@echo \"Compose project type is not yet fully implemented\"\n\n";
+  mk << ".PHONY:";
+  for (const auto &comp : pconf.components)
+    mk << " " << comp;
+  mk << "\n\n";
+
+  mk << "all:";
+  for (const auto &comp : pconf.components)
+    mk << " " << comp;
+  mk << "\n\n";
+
+  for (const auto &comp : pconf.components)
+  {
+    mk << comp << ":";
+    PConf comp_conf(root_dir / comp / ZC_FILE);
+    for (const auto &req : comp_conf.required_components)
+      mk << " " << req;
+    mk << "\n";
+    mk << "\t@$(MAKE) --no-print-directory -C ../" << comp << "/" << BUILD_DIR << " all\n\n";
+  }
 }
 
 void Project::generate_compile_commands() const
@@ -588,8 +627,10 @@ void Project::Makefile_variables(ostringstream &mk) const
 {
   for (const auto &v : variables_)
     mk << v.make_declaration();
-  for (const auto &l : pconf.languages | views::keys)
-    mk << "-include $(" << language_to_str(l) << "_DEPS)\n\n";
+
+  if (pconf.type != PkgType::COMPOSE)
+    for (const auto &l : pconf.languages | views::keys)
+      mk << "-include $(" << language_to_str(l) << "_DEPS)\n\n";
 }
 
 void Project::Makefile_rules(std::ostringstream &mk) const
@@ -602,6 +643,9 @@ void Project::Makefile_rules(std::ostringstream &mk) const
   mk << "\t@echo \"  clean    - Clean the project\"\n";
   mk << "\t@echo \"  install  - Install the project\"\n";
   mk << "\t@echo \"  help     - Show this help message\"\n\n";
+
+  if (pconf.type == PkgType::COMPOSE)
+    return;
 
   for (const auto &l : pconf.languages | views::keys)
   {
@@ -770,6 +814,23 @@ void Project::init_variables(bool release)
       libdirs.add("-Wl,-rpath," + lib_dir.string());
     }
   }
+
+  // Required sibling components (Workspace)
+  for (const auto &req : pconf.required_components)
+  {
+    PConf req_conf(root_dir / ".." / req / ZC_FILE);
+    for (const auto &inc : req_conf.include_dirs)
+      incdirs.add("-I../../" + req + "/" + inc);
+
+    if (req_conf.type == PkgType::LIB)
+    {
+      const std::string req_lib = "../../" + req + "/" + BUILD_DIR;
+      libdirs.add("-L" + req_lib);
+      libs.add("-l" + req_conf.target);
+      libdirs.add_no_esc("-Wl,-rpath,'$$ORIGIN/" + req_lib + "'");
+    }
+  }
+
   variables_.insert(macros);
   variables_.insert(incdirs);
   variables_.insert(libdirs);
