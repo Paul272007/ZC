@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 
 #include "commands/Command.h"
 #include "Context.h"
@@ -26,8 +27,8 @@ protected:
   const std::filesystem::path path_;
   const std::vector<Target>   targets_;
 
-  explicit InstallCommand(CommandContext &c_ctx, InstallContext &i_ctx)
-    : Command(c_ctx, (i_ctx.targets.empty() && i_ctx.path.empty()) || i_ctx.sync),
+  explicit InstallCommand(CommandContext &c_ctx, InstallContext &i_ctx, std::optional<bool> require_project = std::nullopt)
+    : Command(c_ctx, require_project.value_or((i_ctx.targets.empty() && i_ctx.path.empty()) || i_ctx.sync)),
       sync_(i_ctx.sync),
       path_(std::move(i_ctx.path)),
       targets_(parse_targets(i_ctx.targets))

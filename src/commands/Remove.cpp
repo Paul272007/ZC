@@ -10,7 +10,7 @@ ZC_DEV_CONFIG
 namespace zc
 {
 
-Remove::Remove(CommandContext &c_ctx, InstallContext &i_ctx) : InstallCommand(c_ctx, i_ctx) {}
+Remove::Remove(CommandContext &c_ctx, InstallContext &i_ctx) : InstallCommand(c_ctx, i_ctx, true) {}
 
 void Remove::operator()()
 {

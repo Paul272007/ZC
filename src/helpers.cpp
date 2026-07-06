@@ -257,19 +257,6 @@ std::string esc(const std::string &arg)
   return "'" + escaped + "'";
 }
 
-std::string exec_command(const std::string &cmd)
-{
-  std::string result;
-  FILE       *pipe = popen(cmd.c_str(), "r");
-  if (pipe == nullptr)
-    throw ZCException(ZCE_INTERNAL_ERROR, "popen() failed for command: " + cmd);
-  char buffer[128];
-  while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-    result += buffer;
-  pclose(pipe);
-  return result;
-}
-
 void check_name(const std::string &name)
 {
   if (name.at(0) == '-')

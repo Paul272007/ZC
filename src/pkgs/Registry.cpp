@@ -277,18 +277,18 @@ void Registry::uninstall(const std::string &pkg, const bool force)
   switch (p.type)
   {
   case PkgType::BIN:
-    if (const auto target = bin_links_dir_ / p.target; fs::exists(target))
+    if (const auto target = bin_links_dir_ / p.target; fs::exists(target) || fs::is_symlink(target))
       fs::remove(target);
     break;
   case PkgType::HEADER:
-    if (const auto target = include_links_dir_ / p.target; fs::exists(target))
-      fs::remove(target);
+    if (const auto target = include_links_dir_ / p.name; fs::exists(target) || fs::is_symlink(target))
+      fs::remove_all(target);
     break;
   case PkgType::LIB:
-    if (const auto target = lib_links_dir_ / p.target; fs::exists(target))
-      fs::remove(target);
-    if (const auto target = include_links_dir_ / p.target; fs::exists(target))
-      fs::remove(target);
+    if (const auto target = lib_links_dir_ / p.name; fs::exists(target) || fs::is_symlink(target))
+      fs::remove_all(target);
+    if (const auto target = include_links_dir_ / p.name; fs::exists(target) || fs::is_symlink(target))
+      fs::remove_all(target);
     break;
   case PkgType::COMPOSE:
   case PkgType::UNDEF:

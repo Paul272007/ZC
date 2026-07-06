@@ -13,7 +13,7 @@ namespace zc
 {
 
 Add::Add(CommandContext &c_ctx, InstallContext &i_ctx, bool is_static)
-  : InstallCommand(c_ctx, i_ctx), static_(is_static)
+  : InstallCommand(c_ctx, i_ctx, true), static_(is_static)
 {
 }
 

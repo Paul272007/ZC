@@ -767,7 +767,8 @@ void Project::init_variables(bool release)
   macros.add_macro("ZC_MAJOR", to_string(pconf.version.major()));
   macros.add_macro("ZC_MINOR", to_string(pconf.version.minor()));
   macros.add_macro("ZC_PATCH", to_string(pconf.version.patch()));
-  macros.add_macro("ZC_VERSION", "\"" + pconf.version.string() + "\"");
+  macros.add_macro("ZC_VERSION", stringify(pconf.version.string()));
+  macros.add_macro("ZC_ROOT_DIR", stringify(root_dir.string()));
 
   for (const auto &[name, value] : pconf.macros)
     macros.add_macro(name, value);
@@ -782,6 +783,13 @@ void Project::init_variables(bool release)
   {
     if (origin == "std")
     {
+      // If external package has a target specified, use it
+      if (const string &t = reg_.get_pkg(name).target; !t.empty())
+      {
+        libdirs.add("-l" + t); // FIX: that way we cannot add include dirs and so
+        continue;
+      }
+      // Else ask pkg-config
       for (const auto flags = split(get_pkg_config_flags(name, true), ' '); const auto &f : flags)
       {
         if (f.starts_with("-I"))

@@ -139,6 +139,11 @@ std::string upper(const std::string &text);
 std::string lower(const std::string &text);
 std::string esc(const std::string &arg);
 
+inline std::string stringify(const std::string &text)
+{
+  return "\"" + text + "\"";
+}
+
 // Vector utilities
 std::vector<std::filesystem::path> str_to_path(const std::vector<std::string> &vec);
 std::vector<std::string> split(const std::string &str, char delimiter = ' ');
