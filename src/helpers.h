@@ -79,6 +79,7 @@
 #define PROJECT_CACHE_DIR ".cache"
 
 #define ZC_FILE           "zc.json"
+#define COMPONENT_FILE    "component.json"
 #define MAKEFILE          "Makefile"
 #define BUILD_MODE_FILE   ".zc_build_mode"
 

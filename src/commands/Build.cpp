@@ -40,6 +40,28 @@ void Build::operator()()
   if (clean_)
     p().clean();
 
+  // Deduce target if we are inside a component
+  if (target_ == "all" && p().pconf.type == PkgType::COMPOSE)
+  {
+    std::error_code ec;
+    fs::path        current = fs::current_path(ec);
+    fs::path        root    = p().root_dir;
+
+    // Check if current path is inside root_dir
+    auto rel = fs::relative(current, root, ec);
+    if (!ec && !rel.empty() && rel != ".")
+    {
+      // Extract the first directory name which is the component name
+      std::string comp_name = *rel.begin();
+      if (p().pconf.components.end() !=
+          std::find(p().pconf.components.begin(), p().pconf.components.end(), comp_name))
+      {
+        target_ = comp_name;
+        if_.debug("Auto-detected component target: " + target_);
+      }
+    }
+  }
+
   p().build(mode_, false, jobs_, target_);
 
   if (p().pconf.type == PkgType::BIN && gc_.move_bin_to_current_path)

@@ -28,7 +28,6 @@ public:
   std::vector<std::string> src_dirs     = { SRC_DIR };
   std::vector<std::string> include_dirs = { SRC_DIR };
   std::vector<std::string> components;
-  std::vector<std::string> required_components;
 
   std::map<std::string, std::string> macros;
   std::map<std::string, Dependency>  dependencies;

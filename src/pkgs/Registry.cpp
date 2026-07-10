@@ -12,6 +12,7 @@
 #include "Network.h"
 #include "pkgs/Pkg.h"
 #include "PkgType.h"
+#include "project/Component.h"
 #include "project/Project.h"
 #include "RemoteTarget.h"
 #include "ui/Interface.h"
@@ -43,7 +44,7 @@ void Registry::install_std(const std::string &name, const bool force)
     ui().info("Skipped package " + name + ": already installed.");
     return;
   }
-  std::string target = name;
+  std::string target; // empty targets for unknown standard packages (use pkg-config to get flags)
 
   if (name == "math")
     target = "m";
@@ -56,15 +57,13 @@ void Registry::install_std(const std::string &name, const bool force)
     ui().success("System package found: " + name);
 
   add_pkg_to_index(
-    {
-      .path            = "",
+    { .path            = "",
       .name            = name,
       .target          = target,
       .origin          = "std",
       .type            = PkgType::LIB,
       .default_version = Version::empty(),
-      .versions        = { { Version::empty(), {} } },
-    }
+      .versions        = { { Version::empty(), {} } } }
   );
 }
 
@@ -134,37 +133,38 @@ void Registry::finish_install(Project &p, const std::string &origin, const size_
   {
     for (const auto &comp : p.pconf.components)
     {
-      Project sub(p.root_dir / comp);
+      Component sub(p.root_dir / comp);
 
       std::map<std::string, Version> comp_deps;
-      for (const auto &[dep_name, dep] : sub.pconf.dependencies)
+      for (const auto &[dep_name, dep] : sub.cconf.dependencies)
         if (!dep.static_link)
           comp_deps[dep_name] = dep.version;
-      for (const auto &req : sub.pconf.required_components)
+      for (const auto &req : sub.cconf.required)
         comp_deps[p.pconf.name + "/" + req] = p.pconf.version;
 
       Pkg sub_pkg{
         .path            = "",
         .name            = p.pconf.name + "/" + comp,
-        .target          = sub.pconf.target,
+        .target          = sub.cconf.target,
         .origin          = origin,
-        .type            = sub.pconf.type,
+        .type            = sub.cconf.type,
         .default_version = p.pconf.version,
         .versions        = { { p.pconf.version, comp_deps } },
       };
 
       add_pkg_to_index(sub_pkg);
 
+      // TODO: adapt copy_bin/copy_headers/copy_libs to work with Component
       if (sub_pkg.type == PkgType::BIN)
-        copy_bin(sub, &sub_pkg);
+        copy_bin(p, &sub_pkg);
       else if (sub_pkg.type == PkgType::LIB)
       {
-        copy_headers(sub, &sub_pkg);
-        copy_libs(sub, &sub_pkg);
+        copy_headers(p, &sub_pkg);
+        copy_libs(p, &sub_pkg);
       }
       else if (sub_pkg.type == PkgType::HEADER)
       {
-        copy_headers(sub, &sub_pkg);
+        copy_headers(p, &sub_pkg);
       }
 
       update_symlinks(sub_pkg);

@@ -23,7 +23,7 @@ public:
 
 private:
   const std::vector<std::string> run_args_;
-  const std::string              target_;
+  std::string              target_;
   const bool                     run_;
   const bool                     clean_;
   BuildMode                      mode_;

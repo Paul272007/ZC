@@ -26,6 +26,14 @@ PConf::~PConf()
     PConf::write();
 }
 
+PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::get().languages)
+{
+  if (fs::exists(file_))
+    PConf::load();
+  else // this means no configuration exists so it needs to be written
+    modified_ = true;
+}
+
 void PConf::add_dependency(const Dependency &d)
 {
   if (dependencies.contains(d.name))
@@ -49,14 +57,6 @@ void PConf::remove_dependency(const std::string &dep_name)
   modified_ = true;
 }
 
-PConf::PConf(const std::filesystem::path &file) : Conf(file), languages(GConf::get().languages)
-{
-  if (fs::exists(file_))
-    PConf::load();
-  else // this means no configuration exists so it needs to be written
-    modified_ = true;
-}
-
 void PConf::load()
 {
   const json root = read_json(file_);
@@ -69,17 +69,16 @@ void PConf::load()
   check_name(name);
 
   get_key(root, "version", version);
-  if (version.is_empty()) // FIX: do not crash if package is a subpackage
+  if (version.is_empty())
     throw ZCException(ZCE_CONTENT_ERROR, "Version cannot be empty");
 
   get_key(root, "author", author, author);
   get_key(root, "macros", macros, macros);
-  get_key(root, "requires", required_components, required_components);
 
   if (type == PkgType::COMPOSE)
     get_key(root, "components", components);
   else
-    get_key(root, "include_dirs", include_dirs, include_dirs);
+    get_key(root, "include_dirs", include_dirs, { type == PkgType::BIN ? SRC_DIR : INCLUDE_DIR });
 
   if (type != PkgType::COMPOSE && type != PkgType::HEADER)
   {
@@ -116,31 +115,38 @@ void PConf::write()
   root["type"]         = type;
   root["macros"]       = macros;
   root["version"]      = version;
-  root["src_dirs"]     = src_dirs;
   root["include_dirs"] = include_dirs;
 
   if (!name.empty())
     root["name"] = name;
-  if (!root.empty())
+  if (!author.empty())
     root["author"] = author;
 
-  if (type != PkgType::HEADER && !target.empty())
-    root["target"] = target;
+  if (type != PkgType::HEADER)
+  {
+    json lang_json = json::object();
+    for (CAA[lang, conf] : languages)
+      lang_json[language_to_str(lang)] = conf;
+
+    root["languages"] = lang_json;
+    if (type != PkgType::COMPOSE)
+    {
+      root["src_dirs"] = src_dirs;
+      if (!target.empty())
+        root["target"] = target;
+    }
+  }
   if (type == PkgType::COMPOSE)
+  {
     root["components"] = components;
-  if (!required_components.empty())
-    root["requires"] = required_components;
-
-  json lang_json = json::object();
-  for (CAA[lang, conf] : languages)
-    lang_json[language_to_str(lang)] = conf;
-  root["languages"] = lang_json;
-
-  json deps_json = json::object();
-  for (CAA[dep_name, conf] : dependencies)
-    deps_json[dep_name] = conf;
-  root["dependencies"] = deps_json;
-
+  }
+  else
+  {
+    json deps_json = json::object();
+    for (CAA[dep_name, conf] : dependencies)
+      deps_json[dep_name] = conf;
+    root["dependencies"] = deps_json;
+  }
   write_json(root, file_);
 }
 

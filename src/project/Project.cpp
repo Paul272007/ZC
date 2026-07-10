@@ -6,8 +6,10 @@
 #include <format>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <ranges>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include "config/Dependency.h"
 #include "config/GConf.h"
@@ -37,6 +39,8 @@ Project::Project(const std::filesystem::path &root)
     cache_dir_(root / PROJECT_CACHE_DIR),
     makefile_(build_dir / MAKEFILE)
 {
+  if (pconf.type == PkgType::COMPOSE)
+    load_components();
 }
 
 void Project::get_nb_to_compile(int &to_compile, int &to_link, ShellCommand base_make_cmd)
@@ -147,12 +151,13 @@ void Project::clean(bool cache) const
 {
   if (pconf.type == PkgType::COMPOSE)
   {
-    for (const auto &comp : pconf.components)
+    for (const auto &[name, comp] : components_)
     {
-      Project sub(root_dir / comp);
-      sub.clean(cache);
+      if (comp.cconf.type == PkgType::HEADER) continue;
+      if (fs::exists(comp.build_dir) && fs::is_directory(comp.build_dir))
+        if (fs::remove_all(comp.build_dir) > 0)
+          ui().info("Cleaned " + pretty_path(comp.build_dir));
     }
-    return;
   }
 
   if (fs::exists(build_dir) && fs::is_directory(build_dir))
@@ -323,6 +328,7 @@ void Project::publish()
   }
 }
 
+// TODO: for compose packages, execute binary targets
 void Project::execute(const std::vector<std::string> &args) const
 {
   if (pconf.type != PkgType::BIN)
@@ -451,22 +457,35 @@ void Project::generate_build_config(BuildMode current_mode, bool is_install)
   if (pconf.type == PkgType::HEADER)
     return;
 
+  current_mode       = get_mode(current_mode);
+  const bool release = (current_mode == BuildMode::release);
+
   if (pconf.type == PkgType::COMPOSE)
   {
-    for (const auto &comp : pconf.components)
+    // 1. Resolve transitive dependencies for all components
+    for (auto &[comp_name, comp] : components_)
     {
-      Project sub(root_dir / comp);
-      sub.generate_build_config(current_mode, is_install);
+      std::unordered_set<std::string> visited;
+      comp.resolve_dependencies(components_, visited);
     }
-    std::filesystem::create_directories(build_dir);
-    generate_Makefile();
+
+    // 2. Generate build config for each non-HEADER component (each gets its own build/)
+    for (auto &[comp_name, comp] : components_)
+      if (comp.cconf.type != PkgType::HEADER)
+        comp.generate_build_config(pconf.languages, pconf.version, root_dir, release, is_install);
+
+    // 3. Generate master Makefile at root build/
+    fs::create_directories(build_dir);
+    std::ostringstream mk;
+    Makefile_comment(mk);
+    Makefile_compose(mk);
+    write_file(makefile_, mk.str());
     return;
   }
 
-  sources_     = get_sources();
-  current_mode = get_mode(current_mode);
+  sources_ = get_sources();
 
-  init_variables(current_mode == BuildMode::release);
+  init_variables(release);
   if (!is_install)
     generate_compile_commands();
   generate_Makefile();
@@ -535,24 +554,31 @@ void Project::Makefile_lib(std::ostringstream &mk) const
 
 void Project::Makefile_compose(std::ostringstream &mk) const
 {
+  // Only buildable (non-HEADER) components appear as make targets
+  auto buildable = [&](const std::string &name) {
+    auto it = components_.find(name);
+    return it != components_.end() && it->second.cconf.type != PkgType::HEADER;
+  };
+
   mk << ".PHONY:";
-  for (const auto &comp : pconf.components)
-    mk << " " << comp;
+  for (const auto &comp : components_ | views::keys)
+    if (buildable(comp)) mk << " " << comp;
   mk << "\n\n";
 
   mk << "all:";
-  for (const auto &comp : pconf.components)
-    mk << " " << comp;
+  for (const auto &comp : components_ | views::keys)
+    if (buildable(comp)) mk << " " << comp;
   mk << "\n\n";
 
-  for (const auto &comp : pconf.components)
+  for (const auto &[name, comp] : components_)
   {
-    mk << comp << ":";
-    PConf comp_conf(root_dir / comp / ZC_FILE);
-    for (const auto &req : comp_conf.required_components)
-      mk << " " << req;
+    if (!buildable(name)) continue;
+
+    mk << name << ":";
+    for (const auto &dep : comp.cconf.required)
+      if (buildable(dep)) mk << " " << dep; // only non-HEADER deps are make targets
     mk << "\n";
-    mk << "\t@$(MAKE) --no-print-directory -C ../" << comp << "/" << BUILD_DIR << " all\n\n";
+    mk << "\t@$(MAKE) --no-print-directory -C ../" << name << "/" << BUILD_DIR << " all\n\n";
   }
 }
 
@@ -635,7 +661,7 @@ void Project::Makefile_variables(ostringstream &mk) const
 
 void Project::Makefile_rules(std::ostringstream &mk) const
 {
-  mk << "clean:\n\tzc clean\n\n"; // FIX : will crash on Windows (cannot delete build/ where make operates)
+  mk << "clean:\n\tzc clean\n\n"; // FIX: will crash on Windows (cannot delete build/ where make operates)
   mk << "install:\n\tzc install --path ..\n\n";
   mk << "help:\n";
   mk << "\t@echo \"Available targets:\"\n";
@@ -675,14 +701,17 @@ std::map<Language, std::vector<std::string>> Project::get_sources() const
   // First check if include directories exist
   for (const auto &inc : pconf.include_dirs)
     if (const fs::path full_inc_dir = root_dir / inc; !fs::exists(full_inc_dir))
-      throw ZCException(ZCE_NOT_FOUND, "Include dir does not exist: " + full_inc_dir.string());
+      ui().warning("Include dir not found: " + full_inc_dir.string());
 
   bool found_any = false;
   for (const auto &src_dir : pconf.src_dirs)
   {
     const fs::path full_src_dir = root_dir / src_dir;
     if (!fs::exists(full_src_dir))
-      throw ZCException(ZCE_NOT_FOUND, "Source dir " + full_src_dir.string() + " not found.");
+    {
+      ui().warning("Source dir not found: " + full_src_dir.string());
+      continue;
+    }
 
     for (const auto &entry : fs::recursive_directory_iterator(full_src_dir))
     {
@@ -711,25 +740,23 @@ std::string Project::get_linker() const
   return "$(C_COMPILER)";
 }
 
-void Project::init_variables(bool release)
+void Project::init_languages(bool release)
 {
-  for (const auto &l : pconf.languages)
+  for (const auto &[lang, conf] : pconf.languages)
   {
-    if (!sources_.contains(l.first))
-      throw ZCException(
-        ZCE_NO_SOURCE_FILES,
-        "Language " + language_to_str(l.first) + " is given but no source files of this language were found"
-      );
-
+    string name = language_to_str(lang);
+    if (!sources_.contains(lang))
+    {
+      ui().warning("Language " + name + " is given but no source files of this language were found");
+      continue;
+    }
     // Languages configuration and flags
-    string name = language_to_str(l.first);
-
     MakeVariable compiler{ name + "_COMPILER" };
-    compiler.add(l.second.compiler);
+    compiler.add(conf.compiler);
     variables_.insert(compiler);
 
     MakeVariable flags{ name + "_FLAGS" };
-    flags.add("-std=" + l.second.std);
+    flags.add("-std=" + conf.std);
     flags.add("-MMD");
     flags.add("-MP");
     flags.add("-fdiagnostics-color=always");
@@ -739,12 +766,12 @@ void Project::init_variables(bool release)
       flags.add("-O3");
     else
       flags.add("-g");
-    for (const auto &flag : l.second.flags)
+    for (const auto &flag : conf.flags)
       flags.add(flag);
     variables_.insert(flags);
 
     MakeVariable objs{ name + "_OBJS" };
-    for (const auto &file : sources_.at(l.first))
+    for (const auto &file : sources_.at(lang))
       objs.add_no_esc(file + ".o");
     variables_.insert(objs);
 
@@ -752,6 +779,11 @@ void Project::init_variables(bool release)
     deps.add_make_var(name + "_OBJS:.o=.d");
     variables_.insert(deps);
   }
+}
+
+void Project::init_variables(bool release)
+{
+  init_languages(release);
 
   const fs::path cache_dir = zc_root() / ZC_CACHE_DIR;
 
@@ -823,22 +855,6 @@ void Project::init_variables(bool release)
     }
   }
 
-  // Required sibling components (Workspace)
-  for (const auto &req : pconf.required_components)
-  {
-    PConf req_conf(root_dir / ".." / req / ZC_FILE);
-    for (const auto &inc : req_conf.include_dirs)
-      incdirs.add("-I../../" + req + "/" + inc);
-
-    if (req_conf.type == PkgType::LIB)
-    {
-      const std::string req_lib = "../../" + req + "/" + BUILD_DIR;
-      libdirs.add("-L" + req_lib);
-      libs.add("-l" + req_conf.target);
-      libdirs.add_no_esc("-Wl,-rpath,'$$ORIGIN/" + req_lib + "'");
-    }
-  }
-
   variables_.insert(macros);
   variables_.insert(incdirs);
   variables_.insert(libdirs);
@@ -866,6 +882,13 @@ BuildMode Project::get_mode(BuildMode current_mode) const
   fs::create_directories(build_dir); // so we can write into the build_mode_file and it doesn't crash
   write_file(build_mode_file, build_mode_to_str(current_mode)); // save current mode
   return current_mode;
+}
+
+void Project::load_components()
+{
+  components_.clear();
+  for (const auto &component : pconf.components)
+    components_.try_emplace(component, root_dir / component);
 }
 
 } // namespace zc

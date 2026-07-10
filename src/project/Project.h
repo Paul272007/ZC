@@ -1,55 +1,24 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 #include <filesystem>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "config/GConf.h"
-#include "config/Language.h"
 #include "config/PConf.h"
-#include "excepts/ExitCode.h"
-#include "excepts/ZCException.h"
-#include "helpers.h"
-#include "pkgs/LocalTarget.h"
 #include "pkgs/Registry.h"
+#include "project/BuildMode.h"
+#include "project/Component.h"
 #include "project/MakeVariable.h"
-#include "ui/ShellCommand.h"
 
 namespace zc
 {
 
-enum class BuildMode : std::uint8_t
-{
-  automatic,
-  release,
-  debug,
-};
-
-inline std::string build_mode_to_str(BuildMode mode)
-{
-  switch (mode)
-  {
-  case BuildMode::release:
-    return "release";
-  case BuildMode::debug:
-    return "debug";
-  default:
-    return "";
-  }
-}
-
-inline BuildMode build_mode_from_str(const std::string &str)
-{
-  const auto upper_str = upper(str);
-  if (upper_str == "RELEASE")
-    return BuildMode::release;
-  if (upper_str == "DEBUG")
-    return BuildMode::debug;
-  throw ZCException(ZCE_CONTENT_ERROR, "Invalid build mode declaration.");
-}
+class ShellCommand;
+struct LocalTarget;
+enum Language : std::uint8_t;
 
 class Project
 {
@@ -92,23 +61,35 @@ private:
   const std::filesystem::path makefile_;
 
   std::set<MakeVariable, MakeVariableCmp>      variables_; // Each make variable with its name and value
-  std::map<Language, std::vector<std::string>> sources_; // for each language we have a list of source files
+  std::map<Language, std::vector<std::string>> sources_; // For each language we have a list of source files
+  std::map<std::string, Component>             components_; // Components of a COMPOSE package
 
   void generate_compile_commands() const;
   void generate_Makefile() const;
 
+  /// @brief Write part of the Makefile relative to the BIN type
   void Makefile_bin(std::ostringstream &mk) const;
+  /// @brief Write part of the Makefile relative to the LIB type
   void Makefile_lib(std::ostringstream &mk) const;
+  /// @brief Write part of the Makefile relative to the COMPOSE type
   void Makefile_compose(std::ostringstream &mk) const;
+  /// @brief Write variables_ into Makefile
   void Makefile_variables(std::ostringstream &mk) const;
+  /// @brief Write rules to build selected languages
   void Makefile_rules(std::ostringstream &mk) const;
+  /// @brief write ZC comment + Make boilerplate into Makefile
   static void Makefile_comment(std::ostringstream &mk);
 
   [[nodiscard]] BuildMode get_mode(BuildMode current_mode) const;
   [[nodiscard]] std::string get_linker() const;
   [[nodiscard]] std::map<Language, std::vector<std::string>> get_sources() const;
 
+  void load_components();
+
+  /// @brief Initialize configuration for the Makefile
   void init_variables(bool release);
+  /// @brief Initialize languages configuration
+  void init_languages(bool release);
 
   static void get_nb_to_compile(int &to_compile, int &to_link, ShellCommand base_make_cmd);
 };

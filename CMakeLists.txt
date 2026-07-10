@@ -64,6 +64,8 @@ add_compile_options(
 add_library(zc_core STATIC
         src/config/Conf.h
         src/config/Dependency.h
+        src/config/CConf.cpp
+        src/config/CConf.h
         src/config/GConf.cpp
         src/config/GConf.h
         src/config/PConf.cpp
@@ -81,6 +83,8 @@ add_library(zc_core STATIC
         src/pkgs/Registry.cpp
         src/pkgs/Registry.h
 
+        src/project/Component.cpp
+        src/project/Component.h
         src/project/Project.cpp
         src/project/Project.h
         src/project/MakeVariable.cpp

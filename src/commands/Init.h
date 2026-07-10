@@ -5,11 +5,11 @@
 
 #include "commands/Command.h"
 #include "Context.h"
-#include "pkgs/PkgType.h"
-#include "templates/TemplateEngine.h"
 
 namespace zc
 {
+
+enum class PkgType : uint8_t;
 
 class Init : public Command
 {
@@ -23,8 +23,6 @@ public:
   void operator()() override;
 
 private:
-  const TemplateEngine &te_ = TemplateEngine::get();
-
   const std::filesystem::path p_root_;
   std::vector<Language>       languages_;
 

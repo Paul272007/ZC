@@ -85,7 +85,7 @@ void Init::operator()()
 
   if (p_template_.empty())
     p_template_ = choose_p_template();
-  te_.init_with_p_template(p_root_, p_template_, force_);
+  te().init_with_p_template(p_root_, p_template_, force_);
 
   if (pconf.type == PkgType::BIN)
     pconf.include_dirs = { SRC_DIR };
