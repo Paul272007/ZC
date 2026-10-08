@@ -26,6 +26,12 @@ struct LanguagesContext
   std::vector<std::string> languages;
 };
 
+struct ComponentsContext
+{
+  CommandContext           c_ctx;
+  std::vector<std::string> components;
+};
+
 struct InstallContext
 {
   bool                     sync = false;

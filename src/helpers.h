@@ -104,6 +104,16 @@ class Registry;
 
 using Target = std::pair<std::string, Version>;
 
+using i8  = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
+
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+
 zc::Interface &ui();
 zc::Network &net();
 zc::TemplateEngine &te();
@@ -121,13 +131,13 @@ std::string read_file(const std::filesystem::path &file);
 void write_file(const std::filesystem::path &file, const std::string &content);
 nlohmann::json read_json(const std::filesystem::path &file_path);
 void write_json(const nlohmann::json &json, const std::filesystem::path &file_path);
+void remove(const std::filesystem::path &p);
 
 // Misc
 void check_name(const std::string &name);
 void extract(const std::filesystem::path &archive, const std::filesystem::path &dest);
 bool has_pkg_config();
 std::string get_pkg_config_flags(const std::string &pkg_name, bool cflags);
-std::string exec_command(const std::string &cmd);
 std::string sha256(const std::filesystem::path &path);
 std::string base64_encode(const std::string &in);
 size_t get_jobs_count(int input_jobs);

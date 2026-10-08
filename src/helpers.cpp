@@ -327,6 +327,14 @@ void write_json(const nlohmann::json &json, const std::filesystem::path &file_pa
   output.close();
 }
 
+void remove(const std::filesystem::path &p)
+{
+  if (fs::is_directory(p))
+    fs::remove_all(p);
+  else if (fs::exists(p) || fs::is_symlink(p))
+    fs::remove(p);
+}
+
 vector<fs::path> str_to_path(const vector<string> &vec)
 {
   vector<fs::path> v;

@@ -171,27 +171,31 @@ ShellCommand Run::get_build_command() const
 
 void Run::add_deps_to_cmd(ShellCommand &cmd) const
 {
-  for (const auto &lib : get_dependencies())
+  for (const auto &[name, origin, static_link, version] : get_dependencies())
   {
-    const string target = rg_.get_pkg(lib.name).target;
-    if (lib.origin == "std")
+    // const string target = rg_.get_pkg(name).target;
+    if (origin == "std")
     {
-      const string flags = get_pkg_config_flags(lib.name, true);
+      if (const string &t = rg().get_pkg(name).target; !t.empty())
+      {
+        cmd << "-l" + t; // FIX: that way we cannot add include dirs and so
+        continue;
+      }
+      // Else ask pkg-config
+      const string flags = get_pkg_config_flags(name, true);
       if (!flags.empty())
         cmd << flags;
       else
-        cmd << "-l" + target;
+        cmd << "-l" + name; // fallback : add library name as target
+      continue;
     }
-    else
+    fs::path lib_dir = zc_root() / LIB_DIR / name;
+    if (fs::exists(lib_dir))
     {
-      fs::path lib_dir = zc_root() / LIB_DIR / lib.name;
-      if (fs::exists(lib_dir))
-      {
-        cmd << "-L" + lib_dir.string();
-        cmd << "-Wl,-rpath," + lib_dir.string();
-      }
-      cmd << "-l" + target;
+      cmd << "-L" + lib_dir.string();
+      cmd << "-Wl,-rpath," + lib_dir.string();
     }
+    cmd << "-l" + name;
   }
 }
 

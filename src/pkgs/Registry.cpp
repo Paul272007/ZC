@@ -154,17 +154,16 @@ void Registry::finish_install(Project &p, const std::string &origin, const size_
 
       add_pkg_to_index(sub_pkg);
 
-      // TODO: adapt copy_bin/copy_headers/copy_libs to work with Component
       if (sub_pkg.type == PkgType::BIN)
-        copy_bin(p, &sub_pkg);
+        copy_bin(p, &sub_pkg, &sub.root_dir);
       else if (sub_pkg.type == PkgType::LIB)
       {
-        copy_headers(p, &sub_pkg);
-        copy_libs(p, &sub_pkg);
+        copy_headers(p, &sub_pkg, &sub.root_dir);
+        copy_libs(p, &sub_pkg, &sub.root_dir);
       }
       else if (sub_pkg.type == PkgType::HEADER)
       {
-        copy_headers(p, &sub_pkg);
+        copy_headers(p, &sub_pkg, &sub.root_dir);
       }
 
       update_symlinks(sub_pkg);
@@ -488,16 +487,20 @@ Pkg Registry::remove_pkg_from_index(const std::string &name)
   return extracted_pkg;
 }
 
-void Registry::copy_bin(const Project &p, const Pkg *dest_pkg) const
+void Registry::copy_bin(
+  const Project &p, const Pkg *dest_pkg, const std::filesystem::path *comp_root
+) const
 {
   ui().info("Installing binary...");
 
   const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
   const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
+  const std::string target       = dest_pkg ? dest_pkg->target : p.pconf.target;
 
-  const auto source   = p.build_dir / p.pconf.target;
-  const auto dest_dir = cache_dir_ / dest_name / dest_version.string() / BIN_DIR;
-  const auto dest     = dest_dir / p.pconf.target;
+  const auto &source_root = comp_root ? *comp_root : p.root_dir;
+  const auto  source      = source_root / BUILD_DIR / target;
+  const auto  dest_dir    = cache_dir_ / dest_name / dest_version.string() / BIN_DIR;
+  const auto  dest        = dest_dir / target;
 
   if (!fs::exists(source))
     throw ZCException(ZCE_NOT_FOUND, "The compiled binary was not found : " + source.string());
@@ -509,14 +512,23 @@ void Registry::copy_bin(const Project &p, const Pkg *dest_pkg) const
   );
 }
 
-void Registry::copy_headers(const Project &p, const Pkg *dest_pkg) const
+void Registry::copy_headers(
+  const Project &p, const Pkg *dest_pkg, const std::filesystem::path *comp_root
+) const
 {
   ui().info("Installing header(s)...");
 
   const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
   const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
 
-  const auto source_dir = p.root_dir / INCLUDE_DIR / p.pconf.name;
+  // For a top-level package "pkg"    : source = <project_root>/include/pkg/
+  // For a component  "pkg/comp"      : source = <comp_root>/include/comp/
+  const auto &      source_root  = comp_root ? *comp_root : p.root_dir;
+  const std::string include_name = dest_pkg
+    ? dest_name.substr(dest_name.find('/') + 1) // "zc/backend" → "backend"
+    : p.pconf.name;
+
+  const auto source_dir = source_root / INCLUDE_DIR / include_name;
   const auto dest_dir   = cache_dir_ / dest_name / dest_version.string() / INCLUDE_DIR / dest_name;
 
   if (!fs::exists(source_dir))
@@ -528,26 +540,31 @@ void Registry::copy_headers(const Project &p, const Pkg *dest_pkg) const
   fs::copy(source_dir, dest_dir, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
 }
 
-void Registry::copy_libs(const Project &p, const Pkg *dest_pkg) const
+void Registry::copy_libs(
+  const Project &p, const Pkg *dest_pkg, const std::filesystem::path *comp_root
+) const
 {
   ui().info("Installing libraries...");
 
   const std::string dest_name    = dest_pkg ? dest_pkg->name : p.pconf.name;
   const Version     dest_version = dest_pkg ? dest_pkg->default_version : p.pconf.version;
+  const std::string target       = dest_pkg ? dest_pkg->target : p.pconf.target;
 
-  const auto source_dir = p.root_dir / BUILD_DIR;
-  const auto dest_dir   = cache_dir_ / dest_name / dest_version.string() / LIB_DIR;
+  // For a component, build artifacts are in the component's own build dir.
+  const auto &source_root = comp_root ? *comp_root : p.root_dir;
+  const auto  source_dir  = source_root / BUILD_DIR;
+  const auto  dest_dir    = cache_dir_ / dest_name / dest_version.string() / LIB_DIR;
 
   if (!fs::exists(source_dir))
     throw ZCException(ZCE_NOT_FOUND, "The package build directory was not found : " + source_dir.string());
 
   fs::create_directories(dest_dir);
   fs::copy_file(
-    source_dir / STATIC_LIB_NAME(p.pconf.target), dest_dir / STATIC_LIB_NAME(p.pconf.target),
+    source_dir / STATIC_LIB_NAME(target), dest_dir / STATIC_LIB_NAME(target),
     fs::copy_options::overwrite_existing
   );
   fs::copy_file(
-    source_dir / SHARED_LIB_NAME(p.pconf.target), dest_dir / SHARED_LIB_NAME(p.pconf.target),
+    source_dir / SHARED_LIB_NAME(target), dest_dir / SHARED_LIB_NAME(target),
     fs::copy_options::overwrite_existing
   );
 }
@@ -561,7 +578,7 @@ void Registry::update_symlinks(const Pkg &p) const
   {
     const auto dest = pkg_cache / BIN_DIR / p.target;
     const auto link = bin_links_dir_ / p.target;
-    fs::create_directories(bin_links_dir_);
+    fs::create_directories(link.parent_path());
     if (fs::exists(link) || fs::is_symlink(link))
       fs::remove(link);
     fs::create_symlink(dest, link);
@@ -570,7 +587,7 @@ void Registry::update_symlinks(const Pkg &p) const
   {
     const auto dest_include = pkg_cache / INCLUDE_DIR / p.name;
     const auto link_include = include_links_dir_ / p.name;
-    fs::create_directories(include_links_dir_);
+    fs::create_directories(link_include.parent_path());
     if (fs::exists(link_include) || fs::is_symlink(link_include))
       fs::remove_all(link_include);
     fs::create_directory_symlink(dest_include, link_include);
@@ -579,7 +596,7 @@ void Registry::update_symlinks(const Pkg &p) const
     {
       const auto dest_lib = pkg_cache / LIB_DIR;
       const auto link_lib = lib_links_dir_ / p.name;
-      fs::create_directories(lib_links_dir_);
+      fs::create_directories(link_lib.parent_path());
       if (fs::exists(link_lib) || fs::is_symlink(link_lib))
         fs::remove_all(link_lib);
       fs::create_directory_symlink(dest_lib, link_lib);
@@ -661,11 +678,31 @@ void Registry::verify_archive_hash(const std::filesystem::path &archive, const s
 void Registry::verify_headers_structure(const Project &p)
 {
   if (p.pconf.type == PkgType::LIB || p.pconf.type == PkgType::HEADER)
+  {
     if (!fs::exists(p.root_dir / INCLUDE_DIR / p.pconf.name))
       throw ZCException(
         ZCE_BAD_STRUCTURE,
         "Public headers must be inside 'include/" + p.pconf.name + "/' to avoid collisions."
       );
+  }
+  else if (p.pconf.type == PkgType::COMPOSE)
+  {
+    // For each component that exposes headers, verify that <comp>/include/<comp>/ exists.
+    for (const auto &comp : p.pconf.components)
+    {
+      Component sub(p.root_dir / comp);
+      if (sub.cconf.type == PkgType::LIB || sub.cconf.type == PkgType::HEADER)
+      {
+        const auto expected = sub.root_dir / INCLUDE_DIR / comp;
+        if (!fs::exists(expected))
+          throw ZCException(
+            ZCE_BAD_STRUCTURE,
+            "Component '" + comp + "' headers must be inside '" + comp + "/include/" + comp +
+              "/' to avoid collisions."
+          );
+      }
+    }
+  }
 }
 
 } // namespace zc

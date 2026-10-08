@@ -55,7 +55,7 @@ public:
 
     const int result    = pclose(cmd_pipe);
     int       exit_code = result;
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
     if (WIFEXITED(result))
       exit_code = WEXITSTATUS(result);
 #endif
