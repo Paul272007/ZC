@@ -1,0 +1,38 @@
+CompileFlags:
+  Remove:
+    - -freflection # Remove from config in compile_commands.json
+  Add:
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+    - -Wshadow
+    - -Wformat=2
+    - -Wnull-dereference
+    - -Wconversion
+    - -Wsign-conversion
+    - -Wdouble-promotion
+    - -Wuninitialized
+    - -Wunused-label
+    - -Wnon-virtual-dtor
+    - -Wold-style-cast
+    - -Woverloaded-virtual
+    - -Wno-comment
+
+---
+
+If:
+  PathMatch: .*\.c$
+CompileFlags:
+  Add: [-std=c23]
+
+---
+
+If:
+  PathMatch: .*\.(cpp|cc|cxx|hpp|h)$
+CompileFlags:
+  Add: [-std=c++26]
+
+---
+
+Diagnostics:
+  UnusedIncludes: Strict
