@@ -33,7 +33,8 @@ Checks: >
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-avoid-c-arrays,
   -modernize-avoid-c-arrays,
-  -cppcoreguidelines-avoid-goto
+  -cppcoreguidelines-avoid-goto,
+  -portability-avoid-pragma-once
 
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*'

@@ -72,8 +72,5 @@ Testing/
 .cache/
 
 # Code editors
-.idea/workspace.xml
-.idea/shelf/
-.idea/*.iml
-
-.vscode/c_cpp_properties.json
+.idea/
+.vscode/

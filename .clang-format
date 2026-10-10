@@ -68,7 +68,7 @@ AlignOperands: AlignAfterOperator                 # Horizontally align operands 
 AlignTrailingComments:
   Kind:            Always                         # Always align consecutive trailing comments
   OverEmptyLines:  1                              # Align after no more than 1 empty line
-  AlignPPAndNotPP: true                           # Align even after switching from preprocessor directives to normal code
+# AlignPPAndNotPP: true                           # Requires Clang >= 19 (unsupported by CLion bundled clang-format)
 AllowAllArgumentsOnNextLine: true                 # Allow putting all arguments only on the next line if they don't fit it the first
 AllowAllParametersOfDeclarationOnNextLine: true   # More or less the same
 AllowBreakBeforeNoexceptSpecifier: Never          # No line break before a noexcept specifier.

@@ -30,7 +30,8 @@ CompileFlags:
 If:
   PathMatch: .*\.(cpp|cc|cxx|hpp|h)$
 CompileFlags:
-  Add: [-std=c++26]
+  Add:
+    - -std=c++26
 
 ---
 

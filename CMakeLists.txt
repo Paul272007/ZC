@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 4.0)
 project(ZC VERSION 0.1 LANGUAGES C CXX)
 
 # Options
@@ -66,9 +66,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-freflection)
 endif()
 
-# add_subdirectory(framework) # Framework to build CLIs in C++
-# add_subdirectory(zengine)   # Template engine - depends on framework
-# add_subdirectory(backend)   # ZC backend      - depends on framework and zengi
+add_subdirectory(framework) # Framework to build CLIs in C++, used by ZC
+# add_subdirectory(engine)    # Template engine - depends on framework
+# add_subdirectory(backend)   # ZC backend      - depends on zengine
 # add_subdirectory(frontend)  # ZC frontend     - depends on framework and backe
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
