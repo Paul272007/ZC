@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "framework/util/concepts.hpp"
+#include "framework/util/errors.hpp"
 #include "framework/util/types.hpp"
 
 namespace zc
@@ -19,13 +20,14 @@ class Exception : public std::exception
 
 public:
   template<Enum EnumType>
-  explicit Exception(EnumType value) : code_(static_cast<i32>(value)), message_("Error")
+  explicit Exception(EnumType value)
+    : code_(exit_code_base(value) + static_cast<i32>(value)), message_("Error")
   {
   }
 
   template<Enum EnumType, typename... Args>
   explicit Exception(EnumType value, std::format_string<Args...> fmt = "", Args &&...args)
-    : code_(static_cast<i32>(value)),
+    : code_(exit_code_base(value) + static_cast<i32>(value)),
       message_("Error: " + std::format(fmt, std::forward<Args>(args)...) + ".")
   {
   }

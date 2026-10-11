@@ -3,6 +3,7 @@ add_library(zc-framework STATIC
   framework/util/errors.hpp
   framework/util/helpers.hpp
   framework/util/string.hpp
+  framework/util/terminal.hpp
   framework/util/types.hpp
 
   framework/Exception.hpp

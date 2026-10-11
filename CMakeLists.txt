@@ -40,6 +40,14 @@ add_compile_definitions(ZC_MINOR=1)
 add_compile_definitions(ZC_PATCH=0)
 add_compile_definitions(ZC_VERSION="0.1.0")
 
+if (WIN32)
+  add_compile_definitions(ZC_WINDOWS)
+elseif (APPLE)
+  add_compile_definitions(ZC_MACOS) # iOS too
+elseif (UNIX)
+  add_compile_definitions(ZC_LINUX) # BSD too
+endif()
+
 add_compile_options(
   -Wall
   -Wextra

@@ -5,20 +5,47 @@
 namespace zc
 {
 
-enum class FSError : u8 {
-  FileNotFound = 10,
-  DirNotFound  = 11,
-  NotAFile     = 12,
-  NotADir      = 13,
-  ReadingError = 14,
-  WritingError = 15,
-  ParsingError = 16,
+enum class CliError : u8 {
+  MissingSubCommand,
+  MissingFlag,
+  UnknownSubCommand,
+  UnknownFlag,
+  MissingValue,
+  MissingPositionalArg,
+  IncompatibleFlags,
+  Interrupted,
+  InvalidValue,
 };
 
-enum class FormatError : u8 {
-  InvalidVersion = 20,
-  InvalidEnum    = 21,
-  InvalidStr     = 22,
+constexpr u8 exit_code_base(CliError /**/) noexcept
+{
+  return 10;
+}
+
+enum class FSError : u8 {
+  FileNotFound,
+  DirNotFound,
+  NotAFile,
+  NotADir,
+  ReadingError,
+  WritingError,
+  ParsingError,
 };
+
+constexpr u8 exit_code_base(FSError /**/) noexcept
+{
+  return 20;
+}
+
+enum class FormatError : u8 {
+  InvalidVersion,
+  InvalidEnum,
+  InvalidStr,
+};
+
+constexpr u8 exit_code_base(FormatError /**/) noexcept
+{
+  return 30;
+}
 
 } // namespace zc
