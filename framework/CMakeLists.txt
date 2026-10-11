@@ -8,6 +8,7 @@ add_library(zc-framework STATIC
 
   framework/Exception.hpp
   framework/fs.hpp
+  framework/signals.hpp
   framework/Version.hpp
 
   src/fs.cpp

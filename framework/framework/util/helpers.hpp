@@ -53,7 +53,7 @@ void merge(const std::vector<T> &src, std::vector<T> &dest)
 }
 
 template<typename Src, typename Dest>
-void cast_vector(const std::vector<Src> &src)
+std::vector<Dest> cast_vector(const std::vector<Src> &src)
 {
   std::vector<Dest> dest;
   dest.reserve(src.size());
