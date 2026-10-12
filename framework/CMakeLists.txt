@@ -13,6 +13,7 @@ add_library(zc-framework STATIC
 
   framework/Exception.hpp
   framework/fs.hpp
+  framework/shell.hpp
   framework/signals.hpp
   framework/Timer.hpp
   framework/Version.hpp

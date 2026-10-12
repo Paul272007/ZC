@@ -9,9 +9,7 @@
 namespace zc
 {
 
-std::string quote(const std::string &str);
-
-std::string join(const std::vector<std::string> &v, const std::string &separator);
+std::string join(const std::vector<std::string> &v, std::string_view separator);
 
 std::string upper(const std::string &text);
 
@@ -20,6 +18,12 @@ std::string lower(const std::string &text);
 std::string esc(const std::string &arg);
 
 std::vector<std::string> split(const std::string &str, char delimiter);
+
+template<Formattable T>
+std::string quote(const T &str)
+{
+  return std::format("\"{}\"", str);
+}
 
 constexpr bool iequals(std::string_view a, std::string_view b)
 {

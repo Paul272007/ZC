@@ -1,0 +1,124 @@
+#pragma once
+#include "util/concepts.hpp"
+#include "util/string.hpp"
+#include "util/types.hpp"
+
+namespace zc
+{
+
+#ifdef ZC_WINDOWS
+inline constexpr std::string_view hide_all = " > NUL 2>&1";
+// TODO: add other variables for windows
+#else
+inline constexpr std::string_view hide_all         = "&>/dev/null";
+inline constexpr std::string_view hide_stdout      = "1>/dev/null";
+inline constexpr std::string_view hide_stderr      = "2>/dev/null";
+inline constexpr std::string_view stderr_to_stdout = "2>&1";
+inline constexpr std::string_view stdout_to_stderr = "1>&2";
+#endif
+
+enum class ShellOutput : u8 {
+  ShowAll,
+  HideAll,
+  HideStdout,
+  HideStderr,
+  StderrToStdout,
+  StdoutToStderr,
+};
+
+[[nodiscard]] constexpr std::string_view suffix(const ShellOutput output)
+{
+  switch (output) {
+  case ShellOutput::HideAll:
+    return hide_all;
+  case ShellOutput::HideStderr:
+    return hide_stderr;
+  case ShellOutput::HideStdout:
+    return hide_stdout;
+  case ShellOutput::StderrToStdout:
+    return stderr_to_stdout;
+  case ShellOutput::StdoutToStderr:
+    return stdout_to_stderr;
+  case ShellOutput::ShowAll:
+  default:
+    return "";
+  }
+}
+
+class ShellCmd
+{
+  const ShellOutput        output_;
+  std::vector<std::string> tokens_;
+
+public:
+  template<Formattable T>
+  ShellCmd(const std::initializer_list<T> &tokens, const ShellOutput output) : output_(output)
+  {
+    for (const auto &token : tokens)
+      *this << token;
+  }
+
+  template<Formattable T>
+  ShellCmd &operator<<(T val)
+  {
+    tokens_.push_back(std::format("{}", val));
+    return *this;
+  }
+
+  [[nodiscard]] std::string string() const { return join(tokens_, " ") + " " + suffix(output_); }
+
+  int operator()() const { return std::system(string().c_str()); }
+
+  [[nodiscard]] std::FILE *pipe() const
+  {
+    const std::string cmd = string();
+
+    FILE *pipe = popen(cmd.c_str(), "r");
+    if (!pipe)
+      throw Exception(OSError::PipeError, "Failed to open pipe for command: ", cmd);
+    return pipe;
+  }
+
+  [[nodiscard]] int forEachLine(const u64 buffer_size, auto callback)
+  {
+    FILE             *cmd_pipe = pipe();
+    std::vector<char> buffer(buffer_size);
+
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), cmd_pipe)) {
+      std::string line{ buffer.data() };
+      callback(line);
+    }
+    int exit_code = pclose(cmd_pipe);
+#ifndef ZC_WINDOWS
+    if (WIFEXITED(exit_code))
+      return WEXITSTATUS(exit_code);
+
+    if (WIFSIGNALED(exit_code))
+      return 128 + WTERMSIG(exit_code);
+#endif
+    return exit_code;
+  }
+};
+
+template<Formattable T>
+int exec(const std::initializer_list<T> &tokens, const ShellOutput output = ShellOutput::ShowAll)
+{
+  return ShellCmd(tokens, output)();
+}
+
+template<Formattable T>
+std::FILE *pipe(const std::initializer_list<T> &tokens, const ShellOutput output = ShellOutput::ShowAll)
+{
+  return ShellCmd(tokens, output).pipe();
+}
+
+template<Formattable T>
+int forEachLine(
+  const std::initializer_list<T> &tokens, const u64 buffer_size, auto callback,
+  const ShellOutput output = ShellOutput::ShowAll
+)
+{
+  return ShellCmd(tokens, output).forEachLine(buffer_size, callback);
+}
+
+} // namespace zc

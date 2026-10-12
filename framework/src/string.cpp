@@ -5,12 +5,7 @@
 namespace zc
 {
 
-std::string quote(const std::string &str)
-{
-  return "\"" + str + "\"";
-}
-
-std::string join(const std::vector<std::string> &v, const std::string &separator)
+std::string join(const std::vector<std::string> &v, const std::string_view separator)
 {
   std::stringstream s;
   for (size_t i = 0; i < v.size(); i++) {
