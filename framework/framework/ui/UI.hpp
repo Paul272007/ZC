@@ -334,6 +334,24 @@ public:
   }
 
   template<typename... Args>
+  void println_underlined(std::format_string<Args...> fmt, Args &&...args) const
+  {
+    if (!quiet()) {
+      std::string str = std::format(fmt, std::forward<Args>(args)...);
+      println("{}{}{}", ul, str, reset);
+    }
+  }
+
+  template<typename... Args>
+  void println_bold(std::format_string<Args...> fmt, Args &&...args) const
+  {
+    if (!quiet()) {
+      std::string str = std::format(fmt, std::forward<Args>(args)...);
+      println("{}{}{}", bold, str, reset);
+    }
+  }
+
+  template<typename... Args>
   void info(std::format_string<Args...> fmt, Args &&...args) const
   {
     if (!quiet()) {

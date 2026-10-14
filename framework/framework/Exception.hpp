@@ -13,6 +13,10 @@
 namespace zc
 {
 
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS)
+  #define ZC_EXCEPTIONS_ENABLED
+#endif
+
 class Exception : public std::exception
 {
   i32         code_;
@@ -36,6 +40,17 @@ public:
 
   [[nodiscard]] const char *what() const noexcept override { return message_.c_str(); }
 };
+
+template<typename E>
+[[noreturn]] void throw_or_terminate(E &&ex)
+{
+#ifdef ZC_EXCEPTIONS_ENABLED
+  throw std::forward<E>(ex);
+#else
+  (void)std::fputs(ex.what(), stderr);
+  std::terminate();
+#endif
+}
 
 } // namespace zc
 

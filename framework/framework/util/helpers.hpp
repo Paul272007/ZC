@@ -19,14 +19,24 @@ constexpr bool equals_any(const T &value, const Args... args)
   return ((value == args) || ...);
 }
 
+inline bool is_flag(const std::string_view arg)
+{
+  return arg.starts_with('-');
+}
+
+inline bool to_bool(const std::string_view i_bool)
+{
+  return equals_any(i_bool, "1", "true", "yes", "on");
+}
+
 template<Enum EnumType, typename... Args>
 EnumType parse_mode(
-  std::initializer_list<std::pair<EnumType, bool>> flags, EnumType dflt, std::format_string<Args...> fmt,
-  Args &&...args
+  std::initializer_list<std::pair<EnumType, bool>> flags, EnumType default_val,
+  std::format_string<Args...> fmt, Args &&...args
 )
 {
   u16      count  = 0;
-  EnumType result = dflt;
+  EnumType result = default_val;
 
   for (const auto &pair : flags) {
     if (pair.second) {
