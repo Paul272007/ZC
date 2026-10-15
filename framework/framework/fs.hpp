@@ -1,17 +1,24 @@
 #pragma once
 
+#include <expected>
+
 #include "framework/util/types.hpp"
 
-namespace zc::fs
+namespace zc
 {
 
-std::string read(const stdfs::path &file);
+class Exception;
 
-void write(const stdfs::path &file, const std::string &content);
+namespace fs
+{
 
-json read_json(const stdfs::path &file);
+std::expected<std::string, Exception> read(const stdfs::path &file);
 
-void write_json(const stdfs::path &file, const json &content);
+std::expected<void, Exception> write(const stdfs::path &file, const std::string &content);
+
+std::expected<json, Exception> read_json(const stdfs::path &file);
+
+std::expected<void, Exception> write_json(const stdfs::path &file, const json &content);
 
 void remove(const stdfs::path &path);
 
@@ -19,7 +26,9 @@ bool dir_exists(const stdfs::path &path);
 
 bool file_exists(const stdfs::path &path);
 
-} // namespace zc::fs
+} // namespace fs
+
+} // namespace zc
 
 template<>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string_view> {

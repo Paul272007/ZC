@@ -3,7 +3,7 @@
 #include "util/string.hpp"
 #include "util/types.hpp"
 
-namespace zc
+namespace zc::sh
 {
 
 #ifdef ZC_WINDOWS
@@ -17,7 +17,7 @@ inline constexpr std::string_view stderr_to_stdout = "2>&1";
 inline constexpr std::string_view stdout_to_stderr = "1>&2";
 #endif
 
-enum class ShellOutput : u8 {
+enum class Output : u8 {
   ShowAll,
   HideAll,
   HideStdout,
@@ -26,40 +26,40 @@ enum class ShellOutput : u8 {
   StdoutToStderr,
 };
 
-[[nodiscard]] constexpr std::string_view suffix(const ShellOutput output)
+[[nodiscard]] constexpr std::string_view suffix(const Output output)
 {
   switch (output) {
-  case ShellOutput::HideAll:
+  case Output::HideAll:
     return hide_all;
-  case ShellOutput::HideStderr:
+  case Output::HideStderr:
     return hide_stderr;
-  case ShellOutput::HideStdout:
+  case Output::HideStdout:
     return hide_stdout;
-  case ShellOutput::StderrToStdout:
+  case Output::StderrToStdout:
     return stderr_to_stdout;
-  case ShellOutput::StdoutToStderr:
+  case Output::StdoutToStderr:
     return stdout_to_stderr;
-  case ShellOutput::ShowAll:
+  case Output::ShowAll:
   default:
     return "";
   }
 }
 
-class ShellCmd
+class Cmd
 {
-  const ShellOutput        output_;
+  const Output             output_;
   std::vector<std::string> tokens_;
 
 public:
   template<Formattable T>
-  ShellCmd(const std::initializer_list<T> &tokens, const ShellOutput output) : output_(output)
+  Cmd(const std::initializer_list<T> &tokens, const Output output) : output_(output)
   {
     for (const auto &token : tokens)
       *this << token;
   }
 
   template<Formattable T>
-  ShellCmd &operator<<(T val)
+  Cmd &operator<<(T val)
   {
     tokens_.push_back(std::format("{}", val));
     return *this;
@@ -101,24 +101,24 @@ public:
 };
 
 template<Formattable T>
-int exec(const std::initializer_list<T> &tokens, const ShellOutput output = ShellOutput::ShowAll)
+int exec(const std::initializer_list<T> &tokens, const Output output = Output::ShowAll)
 {
-  return ShellCmd(tokens, output)();
+  return Cmd(tokens, output)();
 }
 
 template<Formattable T>
-std::FILE *pipe(const std::initializer_list<T> &tokens, const ShellOutput output = ShellOutput::ShowAll)
+std::FILE *pipe(const std::initializer_list<T> &tokens, const Output output = Output::ShowAll)
 {
-  return ShellCmd(tokens, output).pipe();
+  return Cmd(tokens, output).pipe();
 }
 
 template<Formattable T>
 int forEachLine(
   const std::initializer_list<T> &tokens, const u64 buffer_size, auto callback,
-  const ShellOutput output = ShellOutput::ShowAll
+  const Output output = Output::ShowAll
 )
 {
-  return ShellCmd(tokens, output).forEachLine(buffer_size, callback);
+  return Cmd(tokens, output).forEachLine(buffer_size, callback);
 }
 
-} // namespace zc
+} // namespace zc::sh

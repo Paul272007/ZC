@@ -48,11 +48,11 @@ public:
     }
 
     if (!parts.empty())
-      major_ = parts[0];
+      major_ = parts.at(0);
     if (parts.size() >= 2)
-      minor_ = parts[1];
+      minor_ = parts.at(1);
     if (parts.size() >= 3)
-      patch_ = parts[2];
+      patch_ = parts.at(2);
   }
 
   constexpr Version(const i32 major = 0, const i32 minor = 0, const i32 patch = 0) noexcept

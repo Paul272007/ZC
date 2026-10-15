@@ -45,7 +45,7 @@ EnumType parse_mode(
     }
   }
   if (count > 1)
-    throw Exception(CliError::IncompatibleFlags, fmt, std::forward<Args>(args)...);
+    throw_or_terminate(Exception(CliError::IncompatibleFlags, fmt, std::forward<Args>(args)...));
   return result;
 }
 
