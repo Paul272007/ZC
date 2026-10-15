@@ -46,7 +46,7 @@ class UI
   std::FILE *out_  = stdout;
   std::FILE *err_  = stderr;
 
-  UI() noexcept = default;
+  UI() : strategy_(std::make_unique<DefaultUIStrategy>(*this)) {}
 
   [[nodiscard]] bool quiet() const noexcept { return mode_ == UIMode::Quiet; }
 
@@ -471,6 +471,8 @@ public:
       println("{}", strategy_->radio(options.at(i), i == cursor));
   }
 };
+
+inline UI UI::instance_;
 
 inline const UI &ui{ UI::get() };
 

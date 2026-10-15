@@ -18,15 +18,18 @@ inline void set_raw_mode(const bool enable)
 {
 #ifndef ZC_WINDOWS
   static termios oldt;
-  static termios newt;
-  if (enable) {
-    tcgetattr(STDIN_FILENO, &oldt); // Save the current state of the terminal
-    newt = oldt;
-    // Deactivate canonic mode (=waiting for <Enter> key) and the echo.
-    newt.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt); // Apply new parameters
-  } else {
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restore initial state
+  static bool    is_raw = false;
+
+  if (enable && !is_raw) {
+    if (tcgetattr(STDIN_FILENO, &oldt) == 0) {
+      termios newt  = oldt;
+      newt.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO);
+      if (tcsetattr(STDIN_FILENO, TCSANOW, &newt) == 0)
+        is_raw = true;
+    }
+  } else if (!enable && is_raw) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    is_raw = false;
   }
 #endif
 }

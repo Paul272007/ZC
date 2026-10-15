@@ -10,7 +10,7 @@ namespace zc::cli
 template<Command Cmd>
 struct AppBuilder {
   Cmd              cmd;
-  std::string_view version_;
+  std::string_view version_{};
 
   [[nodiscard]] AppBuilder version(const std::string_view v) &&
   {
