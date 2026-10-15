@@ -99,7 +99,8 @@ inline void to_json(json &j, const Version &v)
 
 template<>
 struct std::formatter<zc::Version> : std::formatter<std::string_view> {
-  auto format(const zc::Version &v, std::format_context &ctx) const
+  template<typename FormatContext>
+  auto format(const zc::Version &v, FormatContext &ctx) const
   {
     return std::formatter<std::string_view>::format(v.string(), ctx);
   }
