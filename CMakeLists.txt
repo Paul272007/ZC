@@ -76,9 +76,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 add_subdirectory(framework) # Framework to build CLIs in C++, used by ZC
-# add_subdirectory(engine)    # Template engine - depends on framework
+add_subdirectory(engine)    # Template engine - depends on framework
 # add_subdirectory(backend)   # ZC backend      - depends on zengine
-# add_subdirectory(frontend)  # ZC frontend     - depends on framework and backe
+# add_subdirectory(frontend)  # ZC frontend     - depends on framework and backend
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   enable_testing()
