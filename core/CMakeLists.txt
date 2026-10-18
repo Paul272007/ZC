@@ -1,0 +1,56 @@
+add_library(zc-core STATIC
+  core/global-config/GlobalConfig.hpp
+
+  core/project/target/ProjectTarget.hpp
+  core/project/target/ProjectTargetDependency.hpp
+
+  core/project/BuildMode.hpp
+  core/project/Language.hpp
+  core/project/LanguageConf.hpp
+  core/project/Link.hpp
+  core/project/Project.hpp
+
+  core/registry/target/RegistryTarget.hpp
+  core/registry/target/RegistryTargetDependency.hpp
+  core/registry/target/RegistryTargetType.hpp
+
+  core/registry/package_index.hpp
+  core/registry/RegistryPkg.hpp
+  core/registry/RegistryProject.hpp
+  core/registry/Registry.hpp
+  core/registry/RemotePkg.hpp
+
+  core/util/archive.hpp
+  core/util/crypto.hpp
+  core/util/directories.hpp
+  core/util/GithubClient.hpp
+  core/util/helpers.hpp
+  core/util/json_helpers.hpp
+  core/util/platform.hpp
+  core/util/ZCError.hpp
+
+  core/Conf.hpp
+
+  src/global-config/GlobalConfig.cpp
+
+  src/project/Project.cpp
+
+  src/registry/package_index.cpp
+  src/registry/Registry.cpp
+
+  src/util/archive.cpp
+  src/util/crypto.cpp
+  src/util/directories.cpp
+  src/util/helpers.cpp
+  src/util/json_helpers.cpp
+)
+target_include_directories(zc-core PUBLIC .)
+target_link_libraries(zc-core PUBLIC
+  zc-engine
+  zc-framework
+  libclang
+  nlohmann_json::nlohmann_json
+  CURL::libcurl
+  LibArchive::LibArchive
+  OpenSSL::Crypto
+)

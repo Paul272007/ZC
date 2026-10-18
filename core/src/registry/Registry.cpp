@@ -1,0 +1,432 @@
+#include "core/registry/Registry.hpp"
+
+#include "core/project/Project.hpp"
+#include "core/registry/package_index.hpp"
+#include "core/util/directories.hpp"
+#include "framework/Exception.hpp"
+#include "framework/fs.hpp"
+#include "framework/ui/UI.hpp"
+#include "framework/util/string.hpp"
+
+namespace zc::core
+{
+
+Registry::Registry() : Conf(zc_root() / zc_registry_file)
+{
+  if (!fs::file_exists(file_)) {
+    // or juste create it ?
+    throw_or_terminate(Exception(FSError::FileNotFound, "Registry file not found: {}", file_));
+  }
+  Registry::load();
+}
+
+RegistryPkg *Registry::addToIndex(RegistryPkg pkg)
+{
+  auto [it, inserted] = pkgs_.insert_or_assign(pkg.name, std::move(pkg));
+  modified_           = true;
+  return &it->second;
+}
+
+std::expected<RegistryPkg, Exception> Registry::removeFromIndex(const std::string_view name)
+{
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const auto &it = it_res.value();
+
+  RegistryPkg extracted_pkg = std::move(it->second);
+  pkgs_.erase(it);
+  modified_ = true;
+  return extracted_pkg;
+}
+
+std::expected<RegistryProject, Exception> Registry::removeFromIndex(std::string_view name, Version version)
+{
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  auto &versions = it_res.value()->second.versions;
+
+  for (u32 i = 0; i < versions.size(); i++) {
+    auto &snapshot = versions[i];
+    if (snapshot.version == version) {
+      RegistryProject extracted_snapshot = std::move(snapshot);
+      versions.erase(versions.begin() + i);
+      modified_ = true;
+      return extracted_snapshot;
+    }
+  }
+  return std::unexpected(
+    Exception(ZCError::VersionNotFound, "Version '{}' of package '{}' not found", version, name)
+  );
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::addVersion(const PkgMap::iterator &pkg, RegistryProject snapshot)
+{
+  pkg->second.versions.push_back(std::move(snapshot));
+  modified_ = true;
+  return &pkg->second;
+}
+
+std::expected<PkgMap::iterator, Exception> Registry::getPkgIt(const std::string_view name)
+{
+  auto it = pkgs_.find(name);
+  if (it == pkgs_.end())
+    return std::unexpected(Exception(ZCError::PkgNotFound, "Package '{}' not found", name));
+  return it;
+}
+
+void Registry::clean()
+{
+  if (fs::dir_exists(tmp_dir()))
+    stdfs::remove_all(tmp_dir());
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::finishInstallation(Project &p, const std::string &origin, const u32 jobs)
+{
+  const auto deps_install_res = p.installDependencies();
+  if (!deps_install_res)
+    return std::unexpected(deps_install_res.error());
+
+  const auto build_res = p.installBuild(jobs);
+  if (!build_res)
+    return std::unexpected(build_res.error());
+
+  const auto targets_install_res = p.installTargets();
+  if (!targets_install_res)
+    return std::unexpected(targets_install_res.error());
+
+  std::vector<std::unique_ptr<RegistryTarget>> targets;
+  targets.reserve(p.targets().size());
+  for (const auto &target : p.targets())
+    targets.emplace_back(target->toRegistryTarget());
+
+  RegistryPkg pkg{
+    .path            = "",
+    .name            = p.name(),
+    .origin          = origin,
+    .default_version = p.version(),
+    .versions        = {},
+  };
+  pkg.versions.push_back(
+    RegistryProject{
+      .description = p.description(),
+      .author      = p.author(),
+      .version     = p.version(),
+      .targets     = std::move(targets),
+    }
+  );
+  return addToIndex(std::move(pkg));
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::finishUpdate(Project &project, const PkgMap::iterator &pkg, const u32 jobs)
+{
+  const auto deps_install_res = project.installDependencies();
+  if (!deps_install_res)
+    return std::unexpected(deps_install_res.error());
+
+  const auto build_res = project.installBuild(jobs);
+  if (!build_res)
+    return std::unexpected(build_res.error());
+
+  const auto targets_install_res = project.installTargets();
+  if (!targets_install_res)
+    return std::unexpected(targets_install_res.error());
+
+  std::vector<std::unique_ptr<RegistryTarget>> targets;
+  targets.reserve(project.targets().size());
+  for (const auto &target : project.targets())
+    targets.push_back(target->toRegistryTarget());
+
+  RegistryProject rp{
+    .description = project.description(),
+    .author      = project.author(),
+    .version     = project.version(),
+    .targets     = std::move(targets),
+  };
+  return addVersion(pkg, std::move(rp));
+}
+
+std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_view name)
+{
+  std::map<std::string, Version, std::less<>> result;
+
+  for (const auto &[pkg_name, pkg_decl] : pkgs_)
+    for (const auto &snapshot : pkg_decl.versions)
+      for (const auto &target : snapshot.targets)
+        for (const auto &dep : target->external_deps)
+          if (dep.package == name)
+            result.insert_or_assign(pkg_name, snapshot.version);
+
+  return result;
+}
+
+std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_view name, Version version)
+{
+  std::map<std::string, Version, std::less<>> result;
+
+  for (const auto &[pkg_name, pkg_decl] : pkgs_)
+    for (const auto &snapshot : pkg_decl.versions)
+      for (const auto &target : snapshot.targets)
+        for (const auto &dep : target->external_deps)
+          if (dep.package == name && dep.version == version)
+            result.insert_or_assign(pkg_name, snapshot.version);
+
+  return result;
+}
+
+void Registry::load()
+{
+  if (const auto expected_root = fs::read_json(file_); expected_root) {
+    if (const json &root = *expected_root; jsonContainsObject(root, "packages")) {
+      pkgs_.clear();
+      for (const auto &[key, value] : root["packages"].items()) {
+        auto pkg = value.get<RegistryPkg>();
+        pkg.name = key;
+        pkgs_.insert_or_assign(key, std::move(pkg));
+      }
+    }
+  }
+}
+
+void Registry::write()
+{
+  json root;
+  json pkgs_json = json::object();
+  for (const auto &[name, conf] : pkgs_)
+    pkgs_json[name] = conf;
+  root["packages"] = pkgs_json;
+  if (!fs::write_json(file_, root)) {
+    // TODO: return std::unexpected ?
+  } else {
+    modified_ = false;
+  }
+}
+
+Registry::~Registry()
+{
+  try {
+    clean();
+    if (modified_)
+      Registry::write();
+  } catch (const std::exception &e) {
+    ui.debug("{}", e.what());
+  }
+}
+
+Registry &Registry::get()
+{
+  static Registry instance;
+  return instance;
+}
+
+const RegistryPkg *Registry::getPkg(const std::string_view name) const
+{
+  const auto it = pkgs_.find(name);
+  return it == pkgs_.end() ? nullptr : &it->second;
+}
+
+std::expected<void, Exception> Registry::setPath(const std::string_view name, const stdfs::path &path)
+{
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const auto it = it_res.value();
+
+  it->second.path = path;
+  modified_       = true;
+  return {};
+}
+
+std::expected<void, Exception>
+Registry::setDefaultVersion(const std::string_view name, const Version version)
+{
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const auto it = it_res.value();
+
+  it->second.default_version = version;
+  modified_                  = true;
+  return {};
+}
+
+bool Registry::isInstalled(const std::string_view name) const
+{
+  return pkgs_.contains(name);
+}
+
+bool Registry::isInstalled(const std::string_view name, const Version version) const
+{
+  const auto it = pkgs_.find(name);
+  if (it == pkgs_.end())
+    return false;
+
+  return std::ranges::any_of(it->second.versions, [version](const RegistryProject &rp) {
+    return rp.version == version;
+  });
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::installStd(std::string name, std::vector<std::unique_ptr<RegistryTarget>> targets)
+{
+  RegistryPkg pkg{
+    .path            = "",
+    .name            = std::move(name),
+    .origin          = "std",
+    .default_version = {}, // empty version
+    .versions        = {},
+  };
+  pkg.versions.push_back(
+    RegistryProject{
+      .description = "",
+      .author      = "",
+      .version     = {},
+      .targets     = std::move(targets),
+    }
+  );
+  return addToIndex(std::move(pkg));
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::installFromServer(const std::string_view name, const Version version, const u32 jobs)
+{
+  auto remote_pkg = index::resolve(name, version);
+  if (!remote_pkg)
+    return std::unexpected(remote_pkg.error());
+
+  auto project_dir = index::fetchAndExtract(*remote_pkg);
+  if (!project_dir)
+    return std::unexpected(project_dir.error());
+
+  Project p(*project_dir);
+  return finishInstallation(p, "main", jobs);
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::updateFromServer(std::string_view name, Version version, u32 jobs)
+{
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const auto &it = it_res.value();
+
+  if (it->second.origin != "main")
+    return std::unexpected(Exception(
+      ZCError::OriginMismatch, "Cannot update package of origin '{}' from server",
+      it_res.value()->second.origin
+    ));
+
+  auto remote_pkg = index::resolve(name, version);
+  if (!remote_pkg)
+    return std::unexpected(remote_pkg.error());
+
+  auto project_dir = index::fetchAndExtract(*remote_pkg);
+  if (!project_dir)
+    return std::unexpected(project_dir.error());
+
+  Project p(*project_dir);
+  return finishUpdate(p, it, jobs);
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::installFromPath(Project p, const u32 jobs, const bool save_path)
+{
+  const auto install_res = finishInstallation(p, "local", jobs);
+  if (!install_res)
+    return std::unexpected(install_res.error());
+
+  if (save_path)
+    install_res.value()->path = p.root();
+
+  return install_res.value();
+}
+
+std::expected<RegistryPkg *, Exception>
+Registry::updateFromPath(Project &p, const u32 jobs, const bool save_path)
+{
+  const auto it_res = getPkgIt(p.name());
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const auto &it = it_res.value();
+
+  const auto update_res = finishUpdate(p, it, jobs);
+  if (!update_res)
+    return std::unexpected(update_res.error());
+  auto *pkg = update_res.value();
+
+  if (save_path)
+    pkg->path = p.root();
+
+  return pkg;
+}
+
+std::expected<RegistryProject, Exception> Registry::uninstallFromPath(const Project &p, const bool force)
+{
+  return uninstall(p.name(), p.version(), force);
+}
+
+std::expected<RegistryPkg, Exception> Registry::uninstall(const std::string_view name, const bool force)
+{
+  if (!force) {
+    const auto dependents = dependentsOf(name);
+    if (!dependents.empty()) {
+      std::vector<std::string> dependents_vec;
+      dependents_vec.reserve(dependents.size());
+      for (const auto &[dep_name, dep_ver] : dependents)
+        dependents_vec.push_back(std::format("{}@{}", dep_name, dep_ver));
+      return std::unexpected(Exception(
+        ZCError::BrokenDependency, "these packages depend on {}: {}", name, join(dependents_vec, ", ")
+      ));
+    }
+  }
+  auto pkg_res = removeFromIndex(name);
+  if (!pkg_res)
+    return std::unexpected(pkg_res.error());
+  auto pkg = std::move(*pkg_res);
+
+  for (auto &snapshot : pkg.versions) {
+    const auto uninstall_res = snapshot.uninstallTargets();
+    if (!uninstall_res)
+      return std::unexpected(uninstall_res.error()); // or just continue to remove all ?
+  }
+
+  const stdfs::path pkg_path = cache_dir() / name;
+  if (fs::dir_exists(pkg_path))
+    stdfs::remove_all(pkg_path);
+
+  return pkg;
+}
+
+std::expected<RegistryProject, Exception>
+Registry::uninstall(const std::string_view name, const Version version, const bool force)
+{
+  if (!force) {
+    const auto dependents = dependentsOf(name, version);
+    if (!dependents.empty()) {
+      std::vector<std::string> dependents_vec;
+      dependents_vec.reserve(dependents.size());
+      for (const auto &[dep_name, dep_ver] : dependents)
+        dependents_vec.push_back(std::format("{}@{}", dep_name, dep_ver));
+      return std::unexpected(Exception(
+        ZCError::BrokenDependency, "these packages depend on {}@{}: {}", name, version,
+        join(dependents_vec, ", ")
+      ));
+    }
+  }
+  auto snapshot_res = removeFromIndex(name, version);
+  if (!snapshot_res)
+    return std::unexpected(snapshot_res.error());
+  auto &snapshot = snapshot_res.value();
+
+  const auto uninstall_res = snapshot.uninstallTargets();
+  if (!uninstall_res)
+    return std::unexpected(uninstall_res.error());
+
+  return std::move(snapshot);
+}
+
+} // namespace zc::core

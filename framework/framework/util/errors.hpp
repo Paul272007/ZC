@@ -51,6 +51,8 @@ constexpr u8 exit_code_base(FormatError /**/) noexcept
 
 enum class OSError : u8 {
   PipeError,
+  CurlError,
+  NetworkError,
 };
 
 constexpr u8 exit_code_base(OSError /**/) noexcept

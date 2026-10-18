@@ -67,7 +67,6 @@ add_compile_options(
   -Wnon-virtual-dtor
   -Wold-style-cast
   -Woverloaded-virtual
-
 )
 
 # Enable reflection for g++ with -std=c++26
@@ -77,8 +76,8 @@ endif()
 
 add_subdirectory(framework) # Framework to build CLIs in C++, used by ZC
 add_subdirectory(engine)    # Template engine - depends on framework
-# add_subdirectory(backend)   # ZC backend      - depends on zengine
-# add_subdirectory(frontend)  # ZC frontend     - depends on framework and backend
+add_subdirectory(core)      # ZC backend      - depends on zengine
+# add_subdirectory(app)       # ZC CLI frontend - depends on framework and backend
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   enable_testing()

@@ -21,12 +21,14 @@ add_library(zc-framework STATIC
 
   framework/Exception.hpp
   framework/fs.hpp
+  framework/network.hpp
   framework/shell.hpp
   framework/signals.hpp
   framework/Timer.hpp
   framework/Version.hpp
 
   src/fs.cpp
+  src/network.cpp
   src/string.cpp
 )
 target_include_directories(zc-framework PUBLIC .)

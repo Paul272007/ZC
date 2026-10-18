@@ -30,10 +30,6 @@ public:
       (*this) = latest();
       return;
     }
-    if (text == "default") {
-      (*this) = defaultv();
-      return;
-    }
 
     std::stringstream ss(text);
     std::vector<i32>  parts;
@@ -70,13 +66,9 @@ public:
 
   [[nodiscard]] static Version latest() { return { -1, -1, -1 }; }
 
-  [[nodiscard]] static Version defaultv() { return { -2, -2, -2 }; }
+  [[nodiscard]] bool isEmpty() const { return *this == empty(); }
 
-  [[nodiscard]] bool is_empty() const { return *this == empty(); }
-
-  [[nodiscard]] bool is_latest() const { return *this == latest(); }
-
-  [[nodiscard]] bool is_default() const { return *this == defaultv(); }
+  [[nodiscard]] bool isLatest() const { return *this == latest(); }
 
   [[nodiscard]] i32 major() const { return major_; }
 

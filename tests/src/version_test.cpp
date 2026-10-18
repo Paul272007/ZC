@@ -11,7 +11,7 @@ TEST(VersionTest, DefaultAndExplicitConstruction)
   EXPECT_EQ(v1.major(), 0);
   EXPECT_EQ(v1.minor(), 0);
   EXPECT_EQ(v1.patch(), 0);
-  EXPECT_TRUE(v1.is_empty());
+  EXPECT_TRUE(v1.isEmpty());
 
   Version v2(1, 2, 3);
   EXPECT_EQ(v2.major(), 1);
@@ -28,13 +28,10 @@ TEST(VersionTest, StringParsing)
   EXPECT_EQ(v1.patch(), 3);
 
   Version v2("latest");
-  EXPECT_TRUE(v2.is_latest());
-
-  Version v3("default");
-  EXPECT_TRUE(v3.is_default());
+  EXPECT_TRUE(v2.isLatest());
 
   Version v4("");
-  EXPECT_TRUE(v4.is_empty());
+  EXPECT_TRUE(v4.isEmpty());
 
   EXPECT_THROW(Version("invalid.version.str"), Exception);
 }
