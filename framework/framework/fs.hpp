@@ -32,7 +32,7 @@ bool file_exists(const stdfs::path &path);
 
 template<>
 struct std::formatter<std::filesystem::path> : std::formatter<std::string_view> {
-  static auto format(const std::filesystem::path &path, std::format_context &ctx)
+  auto format(const std::filesystem::path &path, auto &ctx) const
   {
     return std::format_to(ctx.out(), "'{}'", path.string());
   }

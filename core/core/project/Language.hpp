@@ -23,4 +23,23 @@ inline void from_json(const json &p, Language &l)
   l = from_str<Language>(p).value_or(Language::Unknown);
 }
 
+inline Language language_from_str(const std::string_view str)
+{
+  if (str == "c")
+    return Language::C;
+  if (equals_any(str, "cpp", "cc", "cxx", "c++"))
+    return Language::CXX;
+  return Language::Unknown;
+}
+
+inline Language language_of(const stdfs::path &file)
+{
+  auto ext = file.extension().string();
+  if (ext.empty())
+    return Language::Unknown;
+
+  ext.erase(0, 1); // remove '.'
+  return language_from_str(ext);
+}
+
 } // namespace zc::core

@@ -32,7 +32,7 @@ std::expected<json, Exception> read_json(const stdfs::path &file)
 {
   json parsed_json;
 
-  if (!stdfs::exists(file))
+  if (!file_exists(file))
     return std::unexpected(Exception(FSError::FileNotFound, "JSON file {} not found", file));
 
   std::ifstream input(file);

@@ -15,7 +15,7 @@ struct RegistryTarget {
   std::string name;
 
   /// @brief Target include dirs (only public ones are kept)
-  std::vector<stdfs::path> inc_dirs;
+  std::vector<std::string> inc_dirs;
 
   /// @brief Target macros (only public ones are kept)
   std::map<std::string, std::string> macros;
@@ -26,6 +26,7 @@ struct RegistryTarget {
   /// @brief External dependencies (targets from other packages)
   std::vector<RegistryTargetDependency> external_deps;
 
+  RegistryTarget()                                  = default;
   RegistryTarget(RegistryTarget &&)                 = default;
   RegistryTarget(const RegistryTarget &)            = default;
   RegistryTarget &operator=(RegistryTarget &&)      = default;

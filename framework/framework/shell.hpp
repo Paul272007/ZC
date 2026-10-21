@@ -67,7 +67,18 @@ public:
 
   [[nodiscard]] std::string string() const { return join(tokens_, " ") + " " + suffix(output_); }
 
-  int operator()() const { return std::system(string().c_str()); }
+  int operator()() const
+  {
+    int exit_code = std::system(string().c_str());
+#ifndef ZC_WINDOWS
+    if (WIFEXITED(exit_code))
+      return WEXITSTATUS(exit_code);
+
+    if (WIFSIGNALED(exit_code))
+      return 128 + WTERMSIG(exit_code);
+#endif
+    return exit_code;
+  }
 
   [[nodiscard]] std::FILE *pipe() const
   {

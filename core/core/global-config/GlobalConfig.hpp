@@ -15,7 +15,7 @@ class GlobalConfig final : public Conf
   std::string c_compiler_;
   std::string cxx_compiler_;
 
-  explicit GlobalConfig() : Conf(zc_root() / zc_config_file) {}
+  explicit GlobalConfig() : Conf(zc_dir() / zc_config_file) {}
 
 protected:
   void load() override;

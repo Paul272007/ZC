@@ -11,7 +11,7 @@
 namespace zc::core
 {
 
-Registry::Registry() : Conf(zc_root() / zc_registry_file)
+Registry::Registry() : Conf(zc_dir() / zc_registry_file)
 {
   if (!fs::file_exists(file_)) {
     // or juste create it ?

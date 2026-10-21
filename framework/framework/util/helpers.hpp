@@ -84,16 +84,94 @@ consteval auto make_static_array(F fn)
 
 #ifdef __clang__
 
-template<Enum E>
-constexpr std::expected<std::string_view, Exception> to_str([[maybe_unused]] E value)
+namespace detail
 {
-  return "";
+
+template<typename E, E V>
+constexpr std::string_view enum_name_value()
+{
+  std::string_view s  = __PRETTY_FUNCTION__;
+  const auto       eq = s.rfind("V = ");
+  if (eq == std::string_view::npos)
+    return "";
+  s.remove_prefix(eq + 4);
+  const auto end = s.find(']');
+  if (end != std::string_view::npos)
+    s.remove_suffix(s.size() - end);
+  if (s.empty() || s.front() == '(')
+    return "";
+  const auto colons = s.rfind("::");
+  if (colons != std::string_view::npos)
+    s.remove_prefix(colons + 2);
+  return s;
+}
+
+template<Enum E, std::size_t... Is>
+constexpr std::string_view enum_to_string_impl(E value, std::index_sequence<Is...>)
+{
+  std::string_view result = "";
+  ([&] {
+    if (value == static_cast<E>(Is)) {
+      result = enum_name_value<E, static_cast<E>(Is)>();
+      return true;
+    }
+    return false;
+  }() ||
+   ...);
+  return result;
+}
+
+template<Enum E, std::size_t... Is>
+constexpr std::optional<E> enum_from_string_impl(std::string_view name, std::index_sequence<Is...>)
+{
+  std::optional<E> result;
+  ([&] {
+    constexpr auto val_name = enum_name_value<E, static_cast<E>(Is)>();
+    if (!val_name.empty() && val_name.size() == name.size()) {
+      bool eq = true;
+      for (std::size_t i = 0; i < val_name.size(); ++i) {
+        char c1 = val_name[i];
+        char c2 = name[i];
+        if (c1 >= 'A' && c1 <= 'Z')
+          c1 = static_cast<char>(c1 + 32);
+        if (c2 >= 'A' && c2 <= 'Z')
+          c2 = static_cast<char>(c2 + 32);
+        if (c1 != c2) {
+          eq = false;
+          break;
+        }
+      }
+      if (eq) {
+        result = static_cast<E>(Is);
+        return true;
+      }
+    }
+    return false;
+  }() ||
+   ...);
+  return result;
+}
+
+} // namespace detail
+
+template<Enum E>
+constexpr std::expected<std::string_view, Exception> to_str(E value)
+{
+  std::string_view s = detail::enum_to_string_impl(value, std::make_index_sequence<64>{});
+  if (s.empty())
+    return std::unexpected(
+      Exception(FormatError::InvalidEnum, "Unknown enum value: {}", std::to_underlying(value))
+    );
+  return s;
 }
 
 template<Enum E>
-constexpr std::expected<E, Exception> from_str([[maybe_unused]] const std::string &value)
+constexpr std::expected<E, Exception> from_str(const std::string &value)
 {
-  return static_cast<E>(0);
+  auto opt = detail::enum_from_string_impl<E>(value, std::make_index_sequence<64>{});
+  if (!opt)
+    return std::unexpected(Exception(FormatError::InvalidStr, "Unknown enum value: {}", value));
+  return *opt;
 }
 
 #else

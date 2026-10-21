@@ -20,9 +20,11 @@ add_executable(zc-tests
   src/ui_test.cpp
   src/cli_test.cpp
   src/engine_test.cpp
+  src/project_test.cpp
 )
 
 target_link_libraries(zc-tests PRIVATE
+  zc-core
   zc-framework
   zc-engine
   GTest::gtest_main

@@ -10,6 +10,7 @@ enum class ZCError : u8 {
   NotInAProject,
   NoSources,
   TargetNotFound,
+  BuildFailed,
   // Registry errors
   PkgNotFound,
   VersionNotFound,
@@ -24,7 +25,7 @@ enum class ZCError : u8 {
   // CircularDependency,
   // InvalidDependency,
   // Config errors
-  NamingError,
+  InvalidValue,
   TypeError,
   MissingKey,
   // External errors

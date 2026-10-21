@@ -38,7 +38,6 @@ struct ProjectTargetDependency {
 inline void to_json(json &j, const ProjectTargetDependency &d)
 {
   j = json{
-    { "package", d.package },
     { "version", d.version },
     { "targets", d.targets },
   };
@@ -46,7 +45,6 @@ inline void to_json(json &j, const ProjectTargetDependency &d)
 
 inline void from_json(const json &j, ProjectTargetDependency &d)
 {
-  get_key(j, "package", d.package);
   get_key(j, "version", d.version);
   get_key(j, "targets", d.targets);
 }

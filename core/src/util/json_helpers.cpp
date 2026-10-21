@@ -8,4 +8,9 @@ bool jsonContainsObject(const json &j, std::string_view key)
   return j.contains(key) && j.at(key).is_object();
 }
 
+bool jsonContainsArray(const json &j, std::string_view key)
+{
+  return j.contains(key) && j.at(key).is_array();
+}
+
 } // namespace zc::core

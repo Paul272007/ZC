@@ -17,6 +17,7 @@ namespace zc::core
 //};
 
 bool jsonContainsObject(const json &j, std::string_view key);
+bool jsonContainsArray(const json &j, std::string_view key);
 
 template<typename T>
 void get_key(const json &json_conf, const std::string &key, T &variable)

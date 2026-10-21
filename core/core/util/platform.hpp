@@ -12,15 +12,6 @@ inline constexpr auto user_home_env = "USERPROFILE";
 inline constexpr auto user_home_env = "HOME";
 #endif
 
-inline std::string bin_fmt(const char *name)
-{
-#ifdef ZC_WINDOWS
-  return std::format("{}.exe", name);
-#else
-  return { name };
-#endif
-}
-
 inline std::string static_lib_fmt(const char *name)
 {
 #if defined(_WIN32) || defined(_WIN64)

@@ -2,18 +2,15 @@
 
 #include "core/Conf.hpp"
 #include "core/project/BuildMode.hpp"
+#include "core/project/LanguageConf.hpp"
 #include "core/project/target/ProjectTarget.hpp"
 #include "framework/Version.hpp"
-#include "Language.hpp"
-#include "LanguageConf.hpp"
-#include "target/ProjectTargetDependency.hpp"
 
 namespace zc::core
 {
 
 class Project final : public Conf
 {
-  // Stays const because it is used to initialize static variable in buildDir()
   const stdfs::path root_;
 
   std::string name_;
@@ -25,20 +22,38 @@ class Project final : public Conf
   std::map<Language, LanguageConf>            languages_;
   std::vector<std::unique_ptr<ProjectTarget>> targets_;
 
-  [[nodiscard]] const stdfs::path &buildDir() const;
-
   /// @brief Check if the project's structure is correct
   /// @return Whether the project structure is valid or not
   [[nodiscard]] bool isStructureValid() const;
+
+  [[nodiscard]] BuildMode currentBuildMode() const;
+
+  [[nodiscard]] std::expected<void, Exception> generateBuildFile(BuildMode mode);
+  [[nodiscard]] std::expected<void, Exception> generateCompileCommands(BuildMode mode);
 
 protected:
   void load() override;
   void write() override;
 
 public:
+  // Because of the parent pointers in the targets
+  Project(const Project &)            = delete;
+  Project(Project &&)                 = delete;
+  Project &operator=(const Project &) = delete;
+  Project &operator=(Project &&)      = delete;
+  ~Project() override                 = default;
+
   explicit Project(stdfs::path root = stdfs::current_path());
 
   // ——— Getters ———
+
+  [[nodiscard]] stdfs::path buildDir() const { return root_ / zc_build_dir; }
+
+  [[nodiscard]] stdfs::path cacheDir() const { return root_ / zc_project_cache_dir; }
+
+  [[nodiscard]] stdfs::path ninjaFile() const { return buildDir() / zc_ninja_file; }
+
+  [[nodiscard]] stdfs::path buildModeFile() const { return buildDir() / zc_build_mode_file; }
 
   [[nodiscard]] const stdfs::path &root() const noexcept { return root_; }
 
@@ -63,7 +78,15 @@ public:
 
   std::expected<void, Exception> updateDependencies();
 
+  // ——— Public utilities ———
+
+  void clean() const;
+
   // ——— Build ———
+
+  std::expected<void, Exception> generateBuildConfig(BuildMode mode);
+
+  std::expected<void, Exception> generateBuildConfigInstall(BuildMode mode);
 
   std::expected<void, Exception>
   buildTarget(std::string_view target, BuildMode mode = BuildMode::Auto, u32 jobs = 1);
