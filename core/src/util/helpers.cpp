@@ -40,4 +40,11 @@ u32 default_jobs_count()
   return c == 0 ? 1 : c;
 }
 
+Language linker(const SourceMap &sources)
+{
+  if (sources.contains(Language::CXX) && !sources.at(Language::CXX).empty())
+    return Language::CXX;
+  return Language::C;
+}
+
 } // namespace zc::core

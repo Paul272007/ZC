@@ -49,7 +49,7 @@ class Registry final : public Conf
   finishInstallation(Project &p, const std::string &origin, u32 jobs);
 
   std::expected<RegistryPkg *, Exception>
-  finishUpdate(Project &project, const PkgMap::iterator &pkg, u32 jobs);
+  finishUpdate(Project &project, const PkgMap::iterator &pkg, u32 jobs, bool set_as_default = true);
 
   [[nodiscard]] std::map<std::string, Version, std::less<>> dependentsOf(std::string_view name);
 
@@ -94,21 +94,19 @@ public:
   installFromServer(std::string_view name, Version version, u32 jobs);
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  updateFromServer(std::string_view name, Version version, u32 jobs);
+  updateFromServer(std::string_view name, Version version, u32 jobs, bool set_as_default = true);
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  installFromPath(Project p, u32 jobs, bool save_path);
+  installFromPath(Project &p, u32 jobs, bool save_path);
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  updateFromPath(Project &p, u32 jobs, bool save_path);
+  updateFromPath(Project &p, u32 jobs, bool save_path, bool set_as_default = true);
 
   [[nodiscard]] std::expected<RegistryProject, Exception> uninstallFromPath(const Project &p, bool force);
 
   [[nodiscard]] std::expected<RegistryPkg, Exception> uninstall(std::string_view name, bool force);
   [[nodiscard]] std::expected<RegistryProject, Exception>
   uninstall(std::string_view name, Version version, bool force);
-
-  // TODO: add method to set default version for some package to update symlinks
 };
 
 } // namespace zc::core

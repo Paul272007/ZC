@@ -1,21 +1,23 @@
 #pragma once
 
+#include <expected>
 #include <string>
 
 #include "core/registry/target/RegistryTargetDependency.hpp"
-#include "framework/util/types.hpp"
-#include "RegistryTargetType.hpp"
+#include "core/registry/target/RegistryTargetType.hpp"
 
-namespace zc::core
+namespace zc
+{
+
+class Exception;
+
+namespace core
 {
 
 /// @brief Contains the information of a target that is stored once this target is installed
 struct RegistryTarget {
   /// @brief Target name
   std::string name;
-
-  /// @brief Target include dirs (only public ones are kept)
-  std::vector<std::string> inc_dirs;
 
   /// @brief Target macros (only public ones are kept)
   std::map<std::string, std::string> macros;
@@ -33,44 +35,27 @@ struct RegistryTarget {
   RegistryTarget &operator=(const RegistryTarget &) = default;
   virtual ~RegistryTarget()                         = default;
 
-  [[nodiscard]] virtual std::string_view type() const              = 0;
-  [[nodiscard]] virtual std::expected<void, Exception> uninstall() = 0;
+  virtual void writeToJson(json &j) const;
+
+  virtual void loadFromJson(const json &j);
+
+  [[nodiscard]] virtual RegistryTargetType type() const = 0;
+
+  [[nodiscard]] virtual std::expected<void, Exception>
+  addSymlinks(std::string_view pkg_name, const stdfs::path &snapshot_dir) const = 0;
+
+  [[nodiscard]] virtual std::expected<void, Exception> removeSymlinks(std::string_view pkg_name) const = 0;
+
+protected:
+  [[nodiscard]] std::expected<void, Exception>
+  addHeaderSymlink(std::string_view pkg_name, const stdfs::path &snapshot_dir) const;
+
+  [[nodiscard]] std::expected<void, Exception> removeHeaderSymlink(std::string_view pkg_name) const;
 };
 
-inline void to_json(json &j, const std::unique_ptr<RegistryTarget> &t)
-{
-  if (!t) {
-    j = nullptr;
-    return;
-  }
-  j = json{
-    { "type", t->type() },
-    { "name", t->name },
-    { "inc_dirs", t->inc_dirs },
-    { "internal_deps", t->internal_deps },
-    { "external_deps", t->external_deps },
-    { "macros", t->macros },
-  };
-}
+void to_json(json &j, const std::unique_ptr<RegistryTarget> &t);
 
-inline void from_json(const json &j, std::unique_ptr<RegistryTarget> &t)
-{
-  auto type = RegistryTargetType::Undef;
-  get_key(j, "type", type);
+void from_json(const json &j, std::unique_ptr<RegistryTarget> &t);
 
-  switch (type) {
-    // TODO: add subclasses
-  default:
-    t = nullptr;
-  }
-  if (!t)
-    return;
-
-  get_key(j, "name", t->name);
-  get_key(j, "inc_dirs", t->inc_dirs);
-  get_key(j, "internal_deps", t->internal_deps);
-  get_key(j, "external_deps", t->external_deps);
-  get_key(j, "macros", t->macros);
-}
-
-} // namespace zc::core
+} // namespace core
+} // namespace zc

@@ -10,16 +10,12 @@ namespace zc::core
 
 class ProjectBinTarget final : public ProjectCompiledTarget
 {
-  [[nodiscard]] stdfs::path installDir() const;
-
   [[nodiscard]] std::string binFmt() const;
 
 protected:
-  void load() override;
+  void load() override { ProjectTarget::load(); }
 
-  void write() override;
-
-  [[nodiscard]] bool isOutputValid() const override;
+  void write() override { ProjectTarget::write(); }
 
 public:
   ProjectBinTarget(ProjectBinTarget &&)                 = delete;
@@ -33,15 +29,13 @@ public:
   {
   }
 
-  [[nodiscard]] std::unique_ptr<RegistryTarget> toRegistryTarget() const override;
+  [[nodiscard]] std::expected<void, Exception> install() const override;
 
-  std::expected<void, Exception> build() override;
-
-  std::expected<void, Exception> install() override;
+  [[nodiscard]] std::vector<std::string> generateBuildStatements() const override;
 
   [[nodiscard]] std::vector<stdfs::path> outputFiles() const override;
 
-  [[nodiscard]] std::vector<std::string> generateBuildStatements() const override;
+  [[nodiscard]] std::unique_ptr<RegistryTarget> whenInstalled() const override;
 
   [[nodiscard]] int
   execute(const std::vector<std::string> &args, sh::Output output = sh::Output::ShowAll) const;

@@ -2,6 +2,7 @@
 
 #include "core/project/LanguageConf.hpp"
 #include "core/project/target/ProjectBinTarget.hpp"
+#include "core/registry/Registry.hpp"
 #include "core/util/directories.hpp"
 #include "core/util/helpers.hpp"
 #include "core/util/ZCError.hpp"
@@ -13,126 +14,36 @@
 namespace zc::core
 {
 
-bool Project::isStructureValid() const
-{
-  return fs::file_exists(file_) && !name_.empty();
-}
-
-void Project::load()
-{
-  if (!fs::file_exists(file_))
-    throw_or_terminate(Exception(FSError::FileNotFound, "Project does not exist"));
-
-  const auto read_res = fs::read_json(file_);
-  if (!read_res)
-    throw_or_terminate(read_res.error());
-  const auto &json_conf = read_res.value();
-
-  get_key(json_conf, "name", name_);
-  get_key(json_conf, "author", author_);
-  get_key(json_conf, "description", description_);
-  get_key(json_conf, "version", version_);
-
-  if (jsonContainsObject(json_conf, "languages"))
-    for (const auto &[lang, conf] : json_conf["languages"].items())
-      if (const auto l = from_str<Language>(lang)) {
-        LanguageConf lang_conf;
-        lang_conf.language = *l;
-        conf.get_to(lang_conf);
-        languages_.insert_or_assign(*l, std::move(lang_conf));
-      }
-
-  if (languages_.empty()) {
-    LanguageConf cxx_conf;
-    cxx_conf.language         = Language::CXX;
-    cxx_conf.compiler         = default_compiler(Language::CXX);
-    cxx_conf.std              = default_std(Language::CXX);
-    cxx_conf.flags            = default_flags(Language::CXX);
-    languages_[Language::CXX] = std::move(cxx_conf);
-  }
-
-  if (jsonContainsArray(json_conf, "targets")) {
-    for (const auto &target : json_conf["targets"])
-      targets_.push_back(ProjectTarget::fromRoot(root_ / target.get<std::string_view>(), this));
-  } else {
-    // Load target from root directory
-    targets_.push_back(ProjectTarget::fromJson(root_, json_conf, this));
-  }
-}
-
-void Project::write()
-{
-  json j;
-  j["name"]        = name_;
-  j["author"]      = author_;
-  j["description"] = description_;
-  j["version"]     = version_;
-
-  json langs = json::object();
-  for (const auto &[l, conf] : languages_)
-    if (auto name = to_str(l))
-      langs[*name] = conf;
-  j["languages"] = langs;
-
-  auto write_res = fs::write_json(file_, j);
-  if (!write_res)
-    throw_or_terminate(write_res.error());
-  modified_ = false;
-}
-
-Project::Project(stdfs::path root) : Conf(root / zc_project_file), root_(std::move(root))
-{
-  load();
-}
-
-void Project::clean() const
-{
-  if (fs::dir_exists(buildDir())) {
-    std::error_code ec;
-    stdfs::remove_all(buildDir(), ec);
-  }
-}
-
 BuildMode Project::currentBuildMode() const
 {
   return from_str<BuildMode>(fs::read(buildModeFile()).value_or("Auto")).value_or(BuildMode::Auto);
 }
 
-std::expected<void, Exception> Project::generateBuildConfig(BuildMode mode)
+bool Project::isStructureValid() const
 {
-  const BuildMode current_mode = currentBuildMode();
-
-  if (mode == BuildMode::Auto)
-    if (current_mode == BuildMode::Auto)
-      mode = BuildMode::Debug; // default mode
-    else
-      mode = current_mode;
-  else if (current_mode != BuildMode::Auto && mode != current_mode)
-    clean(); // mode changed -> force full rebuild
-
-  std::error_code ec;
-  stdfs::create_directories(buildDir(), ec);
-  auto _ = fs::write(buildModeFile(), std::string(to_str(mode).value_or("Debug")));
-
-  return generateBuildFile(mode);
+  return fs::file_exists(file_) && !name_.empty();
 }
 
-std::expected<void, Exception> Project::generateBuildConfigInstall(BuildMode mode)
+sh::Cmd Project::buildCommand(const u32 jobs, const std::string_view target) const
 {
-  if (mode == BuildMode::Auto)
-    mode = BuildMode::Release;
-  return generateBuildConfig(mode);
+  sh::Cmd cmd({ "ninja", "-C" }, sh::Output::ShowAll);
+  cmd << root_ << "-f" << ninjaFile();
+  if (jobs > 0)
+    cmd << "-j" << jobs;
+  cmd << target;
+  return cmd;
 }
 
-std::expected<void, Exception> Project::generateCompileCommands(BuildMode /*mode*/)
+std::expected<void, Exception> Project::generateCompileCommands(BuildMode /*mode*/) const
 {
+  // TODO: implement
   return {};
 }
 
-std::expected<void, Exception> Project::generateBuildFile(BuildMode mode)
+std::expected<void, Exception> Project::generateNinjaFile(BuildMode mode) const
 {
   engine::Ctx ctx;
-  ctx.set("AR", "ar");
+  ctx.set("AR", "ar"); // TODO: change to use global setting
 
   bool has_cxx = false;
   bool has_c   = false;
@@ -196,8 +107,147 @@ std::expected<void, Exception> Project::generateBuildFile(BuildMode mode)
   return engine::render_to(templates_dir() / zc_ninja_template_file, ninjaFile(), ctx);
 }
 
+void Project::load()
+{
+  if (!fs::file_exists(file_))
+    throw_or_terminate(Exception(FSError::FileNotFound, "Project does not exist"));
+
+  const auto read_res = fs::read_json(file_);
+  if (!read_res)
+    throw_or_terminate(read_res.error());
+  const auto &json_conf = read_res.value();
+
+  get_key(json_conf, "name", name_);
+  get_key(json_conf, "author", author_);
+  get_key(json_conf, "description", description_);
+  get_key(json_conf, "version", version_);
+
+  if (jsonContainsObject(json_conf, "languages"))
+    for (const auto &[lang, conf] : json_conf["languages"].items())
+      if (const auto l = from_str<Language>(lang)) {
+        LanguageConf lang_conf;
+        lang_conf.language = *l;
+        conf.get_to(lang_conf);
+        languages_.insert_or_assign(*l, std::move(lang_conf));
+      }
+
+  if (languages_.empty()) {
+    LanguageConf cxx_conf;
+    cxx_conf.language         = Language::CXX;
+    cxx_conf.compiler         = default_compiler(Language::CXX);
+    cxx_conf.std              = default_std(Language::CXX);
+    cxx_conf.flags            = default_flags(Language::CXX);
+    languages_[Language::CXX] = std::move(cxx_conf);
+  }
+
+  if (jsonContainsArray(json_conf, "targets")) {
+    for (const auto &target : json_conf["targets"])
+      targets_.push_back(ProjectTarget::fromRoot(root_ / target.get<std::string_view>(), this));
+  } else {
+    // Load target from root directory
+    targets_.push_back(ProjectTarget::fromJson(root_, json_conf, this));
+  }
+
+  for (auto &target : targets_)
+    target->resolveInternalDeps(targets_);
+}
+
+void Project::write()
+{
+  json j;
+  j["name"]        = name_;
+  j["author"]      = author_;
+  j["description"] = description_;
+  j["version"]     = version_;
+
+  json langs = json::object();
+  for (const auto &[l, conf] : languages_)
+    if (auto name = to_str(l))
+      langs[*name] = conf;
+  j["languages"] = langs;
+
+  auto write_res = fs::write_json(file_, j);
+  if (!write_res)
+    throw_or_terminate(write_res.error());
+  modified_ = false;
+}
+
+Project::Project(stdfs::path root) : Conf(root / zc_project_file), root_(std::move(root))
+{
+  load();
+}
+
+std::expected<void, Exception> Project::installDependencies(const u32 jobs) const
+{
+  for (const auto &target : targets_) {
+    for (const auto &dep : target->externalDeps()) {
+      auto install_res = Registry::get().installFromServer(dep.package, dep.version, jobs);
+      if (!install_res)
+        return std::unexpected(install_res.error());
+    }
+  }
+  return {};
+}
+
+std::expected<void, Exception> Project::updateDependencies(const u32 jobs) const
+{
+  for (const auto &target : targets_) {
+    for (const auto &dep : target->externalDeps()) {
+      auto install_res = Registry::get().updateFromServer(dep.package, dep.version, jobs);
+      if (!install_res)
+        return std::unexpected(install_res.error());
+    }
+  }
+  return {};
+}
+
+std::expected<void, Exception> Project::uninstallDependencies() const
+{
+  for (const auto &target : targets_) {
+    for (const auto &dep : target->externalDeps()) {
+      auto install_res = Registry::get().uninstall(dep.package, dep.version, false);
+      if (!install_res)
+        return std::unexpected(install_res.error());
+    }
+  }
+  return {};
+}
+
+void Project::clean() const
+{
+  if (fs::dir_exists(buildDir())) {
+    std::error_code ec;
+    stdfs::remove_all(buildDir(), ec);
+  }
+}
+
 std::expected<void, Exception>
-Project::buildTarget(std::string_view target, const BuildMode mode, const u32 jobs)
+Project::generateBuildConfig(BuildMode mode, const bool compile_commands) const
+{
+  const BuildMode current_mode = currentBuildMode();
+
+  if (mode == BuildMode::Auto)
+    if (current_mode == BuildMode::Auto)
+      mode = BuildMode::Debug; // default mode
+    else
+      mode = current_mode;
+  else if (current_mode != BuildMode::Auto && mode != current_mode)
+    clean(); // mode changed -> force full rebuild
+
+  std::error_code ec;
+  stdfs::create_directories(buildDir(), ec);
+  auto _ = fs::write(buildModeFile(), std::string(to_str(mode).value_or("Debug")));
+
+  if (compile_commands) {
+    auto compile_cmds_res = generateCompileCommands(mode);
+    if (!compile_cmds_res)
+      return std::unexpected(compile_cmds_res.error());
+  }
+  return generateNinjaFile(mode);
+}
+
+std::expected<void, Exception>
+Project::buildTarget(const std::string_view target, const BuildMode mode, const u32 jobs) const
 {
   bool found = false;
   for (const auto &t : targets_) {
@@ -213,11 +263,7 @@ Project::buildTarget(std::string_view target, const BuildMode mode, const u32 jo
   if (!config_res)
     return config_res;
 
-  sh::Cmd cmd({ "ninja", "-C" }, sh::Output::ShowAll);
-  cmd << root().string() << "-f" << ninjaFile().string();
-  if (jobs > 0)
-    cmd << "-j" << jobs;
-  cmd << target;
+  const sh::Cmd cmd = buildCommand(jobs, target);
 
   const int code = cmd();
   if (code != 0)
@@ -226,51 +272,39 @@ Project::buildTarget(std::string_view target, const BuildMode mode, const u32 jo
   return {};
 }
 
-std::expected<void, Exception> Project::buildAll(const BuildMode mode, const u32 jobs)
+std::expected<void, Exception> Project::buildAll(const BuildMode mode, const u32 jobs) const
 {
   auto config_res = generateBuildConfig(mode);
   if (!config_res)
     return config_res;
 
-  sh::Cmd cmd({ "ninja", "-C" }, sh::Output::ShowAll);
-  cmd << root().string() << "-f" << ninjaFile().string();
-  if (jobs > 0)
-    cmd << "-j" << jobs;
-  cmd << "all";
-
-  const int code = cmd();
+  const int code = buildCommand(jobs, "all")();
   if (code != 0)
     return std::unexpected(Exception(ZCError::BuildFailed, "ninja build failed with exit code {}", code));
 
   return {};
 }
 
-std::expected<void, Exception> Project::installBuild(u32 jobs)
+std::expected<void, Exception> Project::installBuild(const u32 jobs) const
 {
-  auto build_res = buildAll(BuildMode::Release, jobs);
-  if (!build_res)
-    return build_res;
+  auto config_res = generateBuildConfig(BuildMode::Release, false);
+  if (!config_res)
+    return config_res;
 
-  return installTargets();
+  const int code = buildCommand(jobs, "all")();
+  if (code != 0)
+    return std::unexpected(Exception(ZCError::BuildFailed, "ninja build failed with exit code {}", code));
+
+  return {};
 }
 
-std::expected<void, Exception> Project::installTargets()
+std::expected<void, Exception> Project::installTargets() const
 {
   for (const auto &target : targets_) {
     auto res = target->install();
     if (!res)
       return res;
   }
-  return {};
-}
-
-std::expected<void, Exception> Project::installDependencies()
-{
-  return {};
-}
-
-std::expected<void, Exception> Project::updateDependencies()
-{
   return {};
 }
 

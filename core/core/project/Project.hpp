@@ -4,6 +4,7 @@
 #include "core/project/BuildMode.hpp"
 #include "core/project/LanguageConf.hpp"
 #include "core/project/target/ProjectTarget.hpp"
+#include "framework/shell.hpp"
 #include "framework/Version.hpp"
 
 namespace zc::core
@@ -22,14 +23,16 @@ class Project final : public Conf
   std::map<Language, LanguageConf>            languages_;
   std::vector<std::unique_ptr<ProjectTarget>> targets_;
 
+  [[nodiscard]] BuildMode currentBuildMode() const;
+
   /// @brief Check if the project's structure is correct
   /// @return Whether the project structure is valid or not
   [[nodiscard]] bool isStructureValid() const;
 
-  [[nodiscard]] BuildMode currentBuildMode() const;
+  [[nodiscard]] sh::Cmd buildCommand(u32 jobs, std::string_view target) const;
 
-  [[nodiscard]] std::expected<void, Exception> generateBuildFile(BuildMode mode);
-  [[nodiscard]] std::expected<void, Exception> generateCompileCommands(BuildMode mode);
+  [[nodiscard]] std::expected<void, Exception> generateCompileCommands(BuildMode mode) const;
+  [[nodiscard]] std::expected<void, Exception> generateNinjaFile(BuildMode mode) const;
 
 protected:
   void load() override;
@@ -67,16 +70,15 @@ public:
 
   [[nodiscard]] const std::map<Language, LanguageConf> &languages() const noexcept { return languages_; }
 
-  [[nodiscard]] const std::vector<std::unique_ptr<ProjectTarget>> &targets() const noexcept
-  {
-    return targets_;
-  }
+  [[nodiscard]] const auto &targets() const noexcept { return targets_; }
 
   // ——— Dependencies ———
 
-  std::expected<void, Exception> installDependencies();
+  [[nodiscard]] std::expected<void, Exception> installDependencies(u32 jobs = 1) const;
 
-  std::expected<void, Exception> updateDependencies();
+  [[nodiscard]] std::expected<void, Exception> updateDependencies(u32 jobs = 1) const;
+
+  [[nodiscard]] std::expected<void, Exception> uninstallDependencies() const;
 
   // ——— Public utilities ———
 
@@ -84,20 +86,20 @@ public:
 
   // ——— Build ———
 
-  std::expected<void, Exception> generateBuildConfig(BuildMode mode);
+  [[nodiscard]] std::expected<void, Exception>
+  generateBuildConfig(BuildMode mode, bool compile_commands = true) const;
 
-  std::expected<void, Exception> generateBuildConfigInstall(BuildMode mode);
+  [[nodiscard]] std::expected<void, Exception>
+  buildTarget(std::string_view target, BuildMode mode = BuildMode::Auto, u32 jobs = 1) const;
 
-  std::expected<void, Exception>
-  buildTarget(std::string_view target, BuildMode mode = BuildMode::Auto, u32 jobs = 1);
+  [[nodiscard]] std::expected<void, Exception>
+  buildAll(BuildMode mode = BuildMode::Auto, u32 jobs = 1) const;
 
-  std::expected<void, Exception> buildAll(BuildMode mode = BuildMode::Auto, u32 jobs = 1);
-
-  std::expected<void, Exception> installBuild(u32 jobs = 1);
+  [[nodiscard]] std::expected<void, Exception> installBuild(u32 jobs = 1) const;
 
   // ——— Targets installation ———
 
-  std::expected<void, Exception> installTargets();
+  [[nodiscard]] std::expected<void, Exception> installTargets() const;
 };
 
 } // namespace zc::core

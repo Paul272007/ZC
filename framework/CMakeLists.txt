@@ -19,6 +19,7 @@ add_library(zc-framework STATIC
   framework/util/terminal.hpp
   framework/util/types.hpp
 
+  framework/attributes.h
   framework/Exception.hpp
   framework/fs.hpp
   framework/network.hpp

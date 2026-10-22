@@ -59,23 +59,31 @@ std::expected<void, Exception> write_json(const stdfs::path &file, const json &c
   return {};
 }
 
-void remove(const std::filesystem::path &p)
+bool remove(const stdfs::path &path)
 {
-  if (stdfs::is_directory(p))
-    stdfs::remove_all(p);
-  else if (stdfs::exists(p) || stdfs::is_symlink(p))
-    stdfs::remove(p);
+  if (stdfs::is_directory(path))
+    return stdfs::remove_all(path) > 0;
+
+  if (stdfs::exists(path) || stdfs::is_symlink(path))
+    return stdfs::remove(path);
+
+  return false;
 }
 
-bool dir_exists(const stdfs::path &p)
+bool dir_exists(const stdfs::path &path)
 {
-  return stdfs::is_directory(p);
+  return stdfs::is_directory(path);
 }
 
-bool file_exists(const stdfs::path &p)
+bool file_exists(const stdfs::path &path)
 {
   std::error_code ec;
-  return stdfs::is_regular_file(p, ec);
+  return stdfs::is_regular_file(path, ec);
+}
+
+bool symlink_exists(const stdfs::path &path)
+{
+  return stdfs::is_symlink(path) && stdfs::exists(path);
 }
 
 } // namespace zc::fs

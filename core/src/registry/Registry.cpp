@@ -13,11 +13,10 @@ namespace zc::core
 
 Registry::Registry() : Conf(zc_dir() / zc_registry_file)
 {
-  if (!fs::file_exists(file_)) {
-    // or juste create it ?
-    throw_or_terminate(Exception(FSError::FileNotFound, "Registry file not found: {}", file_));
-  }
-  Registry::load();
+  if (!fs::file_exists(file_))
+    modified_ = true; // So that file is created in destructor
+  else
+    Registry::load();
 }
 
 RegistryPkg *Registry::addToIndex(RegistryPkg pkg)
@@ -101,7 +100,7 @@ Registry::finishInstallation(Project &p, const std::string &origin, const u32 jo
   std::vector<std::unique_ptr<RegistryTarget>> targets;
   targets.reserve(p.targets().size());
   for (const auto &target : p.targets())
-    targets.emplace_back(target->toRegistryTarget());
+    targets.emplace_back(target->whenInstalled());
 
   RegistryPkg pkg{
     .path            = "",
@@ -118,11 +117,15 @@ Registry::finishInstallation(Project &p, const std::string &origin, const u32 jo
       .targets     = std::move(targets),
     }
   );
+  if (auto link_res = pkg.versions.front().createSymlinks(p.name()); !link_res)
+    return std::unexpected(link_res.error());
+
   return addToIndex(std::move(pkg));
 }
 
-std::expected<RegistryPkg *, Exception>
-Registry::finishUpdate(Project &project, const PkgMap::iterator &pkg, const u32 jobs)
+std::expected<RegistryPkg *, Exception> Registry::finishUpdate(
+  Project &project, const PkgMap::iterator &pkg, const u32 jobs, const bool set_as_default
+)
 {
   const auto deps_install_res = project.installDependencies();
   if (!deps_install_res)
@@ -139,7 +142,7 @@ Registry::finishUpdate(Project &project, const PkgMap::iterator &pkg, const u32 
   std::vector<std::unique_ptr<RegistryTarget>> targets;
   targets.reserve(project.targets().size());
   for (const auto &target : project.targets())
-    targets.push_back(target->toRegistryTarget());
+    targets.push_back(target->whenInstalled());
 
   RegistryProject rp{
     .description = project.description(),
@@ -147,10 +150,19 @@ Registry::finishUpdate(Project &project, const PkgMap::iterator &pkg, const u32 
     .version     = project.version(),
     .targets     = std::move(targets),
   };
-  return addVersion(pkg, std::move(rp));
+  auto add_res = addVersion(pkg, std::move(rp));
+  if (!add_res)
+    return std::unexpected(add_res.error());
+
+  if (set_as_default) {
+    if (auto def_res = setDefaultVersion(project.name(), project.version()); !def_res)
+      return std::unexpected(def_res.error());
+  }
+
+  return add_res;
 }
 
-std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_view name)
+std::map<std::string, Version, std::less<>> Registry::dependentsOf(const std::string_view name)
 {
   std::map<std::string, Version, std::less<>> result;
 
@@ -164,7 +176,8 @@ std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_v
   return result;
 }
 
-std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_view name, Version version)
+std::map<std::string, Version, std::less<>>
+Registry::dependentsOf(const std::string_view name, const Version version)
 {
   std::map<std::string, Version, std::less<>> result;
 
@@ -180,7 +193,7 @@ std::map<std::string, Version, std::less<>> Registry::dependentsOf(std::string_v
 
 void Registry::load()
 {
-  if (const auto expected_root = fs::read_json(file_); expected_root) {
+  if (const auto expected_root = fs::read_json(file_)) {
     if (const json &root = *expected_root; jsonContainsObject(root, "packages")) {
       pkgs_.clear();
       for (const auto &[key, value] : root["packages"].items()) {
@@ -249,9 +262,28 @@ Registry::setDefaultVersion(const std::string_view name, const Version version)
     return std::unexpected(it_res.error());
   const auto it = it_res.value();
 
+  const RegistryProject *new_snapshot = nullptr;
+  const RegistryProject *old_snapshot = nullptr;
+  for (const auto &v : it->second.versions) {
+    if (v.version == version)
+      new_snapshot = &v;
+    if (v.version == it->second.default_version)
+      old_snapshot = &v;
+  }
+
+  if (!new_snapshot)
+    return std::unexpected(
+      Exception(ZCError::VersionNotFound, "Version '{}' of package '{}' not found", version, name)
+    );
+
+  if (old_snapshot) {
+    if (auto rem_res = old_snapshot->removeSymlinks(name); !rem_res)
+      return rem_res;
+  }
+
   it->second.default_version = version;
   modified_                  = true;
-  return {};
+  return new_snapshot->createSymlinks(name);
 }
 
 bool Registry::isInstalled(const std::string_view name) const
@@ -306,8 +338,9 @@ Registry::installFromServer(const std::string_view name, const Version version, 
   return finishInstallation(p, "main", jobs);
 }
 
-std::expected<RegistryPkg *, Exception>
-Registry::updateFromServer(std::string_view name, Version version, u32 jobs)
+std::expected<RegistryPkg *, Exception> Registry::updateFromServer(
+  const std::string_view name, const Version version, const u32 jobs, const bool set_as_default
+)
 {
   const auto it_res = getPkgIt(name);
   if (!it_res)
@@ -329,11 +362,11 @@ Registry::updateFromServer(std::string_view name, Version version, u32 jobs)
     return std::unexpected(project_dir.error());
 
   Project p(*project_dir);
-  return finishUpdate(p, it, jobs);
+  return finishUpdate(p, it, jobs, set_as_default);
 }
 
 std::expected<RegistryPkg *, Exception>
-Registry::installFromPath(Project p, const u32 jobs, const bool save_path)
+Registry::installFromPath(Project &p, const u32 jobs, const bool save_path)
 {
   const auto install_res = finishInstallation(p, "local", jobs);
   if (!install_res)
@@ -346,14 +379,14 @@ Registry::installFromPath(Project p, const u32 jobs, const bool save_path)
 }
 
 std::expected<RegistryPkg *, Exception>
-Registry::updateFromPath(Project &p, const u32 jobs, const bool save_path)
+Registry::updateFromPath(Project &p, const u32 jobs, const bool save_path, const bool set_as_default)
 {
   const auto it_res = getPkgIt(p.name());
   if (!it_res)
     return std::unexpected(it_res.error());
   const auto &it = it_res.value();
 
-  const auto update_res = finishUpdate(p, it, jobs);
+  const auto update_res = finishUpdate(p, it, jobs, set_as_default);
   if (!update_res)
     return std::unexpected(update_res.error());
   auto *pkg = update_res.value();
@@ -388,10 +421,11 @@ std::expected<RegistryPkg, Exception> Registry::uninstall(const std::string_view
     return std::unexpected(pkg_res.error());
   auto pkg = std::move(*pkg_res);
 
-  for (auto &snapshot : pkg.versions) {
-    const auto uninstall_res = snapshot.uninstallTargets();
-    if (!uninstall_res)
-      return std::unexpected(uninstall_res.error()); // or just continue to remove all ?
+  for (const auto &v : pkg.versions) {
+    if (v.version == pkg.default_version) {
+      (void)v.removeSymlinks(name);
+      break;
+    }
   }
 
   const stdfs::path pkg_path = cache_dir() / name;
@@ -417,16 +451,38 @@ Registry::uninstall(const std::string_view name, const Version version, const bo
       ));
     }
   }
+
+  const auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+  const bool was_default = (it_res.value()->second.default_version == version);
+
   auto snapshot_res = removeFromIndex(name, version);
   if (!snapshot_res)
     return std::unexpected(snapshot_res.error());
-  auto &snapshot = snapshot_res.value();
+  auto snapshot = std::move(snapshot_res.value());
 
-  const auto uninstall_res = snapshot.uninstallTargets();
-  if (!uninstall_res)
-    return std::unexpected(uninstall_res.error());
+  if (was_default)
+    (void)snapshot.removeSymlinks(name);
 
-  return std::move(snapshot);
+  const stdfs::path snapshot_path = cache_dir() / name / snapshot.version.string();
+  if (fs::dir_exists(snapshot_path))
+    stdfs::remove_all(snapshot_path);
+
+  if (auto pkg_it = getPkgIt(name); pkg_it) {
+    auto &versions = pkg_it.value()->second.versions;
+    if (versions.empty()) {
+      (void)removeFromIndex(name);
+      const stdfs::path pkg_path = cache_dir() / name;
+      if (fs::dir_exists(pkg_path))
+        stdfs::remove_all(pkg_path);
+    } else if (was_default) {
+      const auto latest = std::ranges::max_element(versions, {}, &RegistryProject::version);
+      (void)setDefaultVersion(name, latest->version);
+    }
+  }
+
+  return snapshot;
 }
 
 } // namespace zc::core

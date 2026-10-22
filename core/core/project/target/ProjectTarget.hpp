@@ -6,19 +6,18 @@
 
 #include "core/Conf.hpp"
 #include "core/project/Language.hpp"
+#include "core/project/Link.hpp"
 #include "core/project/target/ProjectTargetDependency.hpp"
 #include "core/project/target/ProjectTargetResolvedFlags.hpp"
 #include "core/registry/target/RegistryTarget.hpp"
 #include "core/util/directories.hpp"
-#include "framework/Exception.hpp"
-#include "framework/util/string.hpp"
+
+namespace zc { class Exception; } // namespace zc
 
 namespace zc::core
 {
 
 class Project;
-
-using SourceMap = std::map<Language, std::vector<stdfs::path>>;
 
 /// @brief A project build target
 class ProjectTarget : public Conf
@@ -31,17 +30,14 @@ protected:
   /// @brief Target name
   std::string name_;
 
-  std::vector<std::string> public_inc_dirs_;
-  std::vector<std::string> private_inc_dirs_;
-
   std::map<std::string, std::string> public_macros_;
   std::map<std::string, std::string> private_macros_;
 
-  // TODO: change to map to allow static linking
-  std::vector<ProjectTarget *>         internal_deps_;
-  std::vector<ProjectTargetDependency> external_deps_;
+  std::map<std::string, Link>                   raw_internal_deps_;
+  std::vector<std::pair<ProjectTarget *, Link>> internal_deps_;
+  std::vector<ProjectTargetDependency>          external_deps_;
 
-  ProjectTarget(Project *parent, stdfs::path root)
+  explicit ProjectTarget(Project *parent, stdfs::path root)
     : Conf(root / zc_target_file), parent_(parent), root_(std::move(root)), name_(root_.filename().string())
   {
     // TODO: check folders structure and target name
@@ -49,7 +45,19 @@ protected:
 
   void load() override;
 
+  void write() override;
+
   virtual void loadFromJson(const json &conf);
+
+  virtual void writeToJson(json &conf) const;
+
+  [[nodiscard]] stdfs::path installDir() const;
+
+  [[nodiscard]] std::string formatIncludeFlag(const stdfs::path &dir) const;
+
+  [[nodiscard]] std::expected<void, Exception> installHeaders() const;
+
+  void fillRegistryTarget(RegistryTarget &target) const;
 
 public:
   ProjectTarget(ProjectTarget &&)                 = delete;
@@ -63,20 +71,27 @@ public:
   [[nodiscard]] static std::unique_ptr<ProjectTarget>
   fromJson(stdfs::path root, const json &conf, Project *parent);
 
+  // ——— Getters ———
+
   [[nodiscard]] const std::string &name() const noexcept { return name_; }
 
   [[nodiscard]] const stdfs::path &root() const noexcept { return root_; }
 
-  [[nodiscard]] virtual ProjectTargetResolvedFlags resolveFlags() const;
+  [[nodiscard]] const auto &externalDeps() const noexcept { return external_deps_; }
+
+  // ——— Interface ———
+
+  [[nodiscard]] virtual std::expected<void, Exception> install() const = 0;
 
   [[nodiscard]] virtual std::vector<std::string> generateBuildStatements() const = 0;
 
   [[nodiscard]] virtual std::vector<stdfs::path> outputFiles() const = 0;
 
-  [[nodiscard]] virtual std::unique_ptr<RegistryTarget> toRegistryTarget() const = 0;
+  [[nodiscard]] virtual std::unique_ptr<RegistryTarget> whenInstalled() const = 0;
 
-  virtual std::expected<void, Exception> build()   = 0;
-  virtual std::expected<void, Exception> install() = 0;
+  [[nodiscard]] virtual ProjectTargetResolvedFlags resolveFlags() const;
+
+  void resolveInternalDeps(const std::vector<std::unique_ptr<ProjectTarget>> &project_targets);
 };
 
 } // namespace zc::core

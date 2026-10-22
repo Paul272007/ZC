@@ -3,6 +3,8 @@ add_library(zc-core STATIC
 
   core/project/target/ProjectBinTarget.hpp
   core/project/target/ProjectCompiledTarget.hpp
+  core/project/target/ProjectHeaderTarget.hpp
+  core/project/target/ProjectLibTarget.hpp
   core/project/target/ProjectTarget.hpp
   core/project/target/ProjectTargetDependency.hpp
   core/project/target/ProjectTargetResolvedFlags.hpp
@@ -14,6 +16,8 @@ add_library(zc-core STATIC
   core/project/Project.hpp
 
   core/registry/target/RegistryBinTarget.hpp
+  core/registry/target/RegistryHeaderTarget.hpp
+  core/registry/target/RegistryLibTarget.hpp
   core/registry/target/RegistryTarget.hpp
   core/registry/target/RegistryTargetDependency.hpp
   core/registry/target/RegistryTargetType.hpp
@@ -39,9 +43,13 @@ add_library(zc-core STATIC
 
   src/project/target/ProjectBinTarget.cpp
   src/project/target/ProjectCompiledTarget.cpp
+  src/project/target/ProjectHeaderTarget.cpp
+  src/project/target/ProjectLibTarget.cpp
   src/project/target/ProjectTarget.cpp
 
   src/project/Project.cpp
+
+  src/registry/target/RegistryTarget.cpp
 
   src/registry/package_index.cpp
   src/registry/Registry.cpp

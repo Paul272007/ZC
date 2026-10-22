@@ -4,6 +4,7 @@
 
 #include "core/project/Language.hpp"
 #include "core/project/target/ProjectTarget.hpp"
+#include "core/util/helpers.hpp"
 
 namespace zc::core
 {
@@ -21,11 +22,23 @@ protected:
 
   void loadFromJson(const json &conf) override;
 
-  [[nodiscard]] virtual bool isOutputValid() const = 0;
+  void writeToJson(json &conf) const override;
 
-  [[nodiscard]] static Language linker(const SourceMap &sources);
+  [[nodiscard]] virtual bool isOutputValid() const;
 
   [[nodiscard]] SourceMap findSources() const;
+
+  [[nodiscard]] std::vector<std::string> compileObjectStatements(
+    const SourceMap &sources, const ProjectTargetResolvedFlags &flags, std::vector<std::string> &statements,
+    bool pic = false
+  ) const;
+
+  [[nodiscard]] std::string resolveLinker(const SourceMap &sources) const;
+
+  [[nodiscard]] std::string formatLinkStatement(
+    const stdfs::path &out_rel, const std::vector<std::string> &objs, const SourceMap &sources,
+    const ProjectTargetResolvedFlags &flags, bool shared = false
+  ) const;
 
 public:
   ProjectCompiledTarget(ProjectCompiledTarget &&)                 = delete;
@@ -34,7 +47,7 @@ public:
   ProjectCompiledTarget &operator=(const ProjectCompiledTarget &) = delete;
   ~ProjectCompiledTarget() override                               = default;
 
-  [[nodiscard]] std::vector<stdfs::path> outputFiles() const override = 0;
+  [[nodiscard]] ProjectTargetResolvedFlags resolveFlags() const override;
 };
 
 } // namespace zc::core

@@ -13,6 +13,8 @@ enum class Language : u8 {
   Unknown,
 };
 
+using SourceMap = std::map<Language, std::vector<stdfs::path>>;
+
 inline void to_json(json &p, const Language l)
 {
   p = to_str<Language>(l).value_or("Unknown");

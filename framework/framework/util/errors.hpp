@@ -31,6 +31,9 @@ enum class FSError : u8 {
   ReadingError,
   WritingError,
   ParsingError,
+  MoveError,
+  CopyError,
+  RemoveError,
 };
 
 constexpr u8 exit_code_base(FSError /**/) noexcept
