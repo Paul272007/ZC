@@ -31,7 +31,7 @@ class Project final : public Conf
 
   [[nodiscard]] sh::Cmd buildCommand(u32 jobs, std::string_view target) const;
 
-  [[nodiscard]] std::expected<void, Exception> generateCompileCommands(BuildMode mode) const;
+  [[nodiscard]] std::expected<void, Exception> generateCompileCommands() const;
   [[nodiscard]] std::expected<void, Exception> generateNinjaFile(BuildMode mode) const;
 
 protected:

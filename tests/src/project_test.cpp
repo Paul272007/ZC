@@ -44,8 +44,9 @@ TEST(ProjectTest, GenerateBuildFileAndCompileBinary)
   auto gen_res = project.generateBuildConfig(core::BuildMode::Debug);
   ASSERT_TRUE(gen_res.has_value()) << gen_res.error().what();
 
-  // Check that build.ninja was generated
+  // Check that build.ninja and compile_commands.json were generated
   EXPECT_TRUE(fs::file_exists(project.ninjaFile()));
+  EXPECT_TRUE(fs::file_exists(temp_dir / "compile_commands.json"));
   auto ninja_content = fs::read(project.ninjaFile());
   ASSERT_TRUE(ninja_content.has_value());
   EXPECT_NE(ninja_content->find("rule compile_cxx"), std::string::npos);

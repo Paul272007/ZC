@@ -1,6 +1,6 @@
 #include "core/project/target/ProjectCompiledTarget.hpp"
 
-#include "core/project/LanguageConf.hpp"
+#include "core/global-config/GlobalConfig.hpp"
 #include "core/project/Project.hpp"
 #include "framework/fs.hpp"
 
@@ -108,7 +108,7 @@ std::string ProjectCompiledTarget::resolveLinker(const SourceMap &sources) const
   const Language link_lang = linker(sources);
   if (parent_ && parent_->languages().contains(link_lang))
     return parent_->languages().at(link_lang).compiler;
-  return default_compiler(link_lang);
+  return gc().languages().at(link_lang).compiler;
 }
 
 std::string ProjectCompiledTarget::formatLinkStatement(

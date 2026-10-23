@@ -3,7 +3,6 @@
 #include <string_view>
 
 #include "framework/fs.hpp"
-#include "platform.hpp"
 
 namespace zc::core
 {

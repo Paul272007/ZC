@@ -1,27 +1,31 @@
 #include "core/util/helpers.hpp"
 
+#include <string_view>
 #include <thread>
+
+#include "core/project/Language.hpp"
 
 namespace zc::core
 {
 
-std::string default_compiler(Language language)
+std::string_view default_compiler(Language language)
 {
   switch (language) {
   case Language::C:
-    return "clang";
+    return "cc";
   case Language::CXX:
-    return "clang++";
+    return "c++";
+  case Language::ASM:
   default:
-    return "";
+    return "nasm";
   }
 }
 
-std::string default_std(Language language)
+std::string_view default_std(Language language)
 {
   switch (language) {
   case Language::C:
-    return "c17";
+    return "c23";
   case Language::CXX:
     return "c++26";
   default:
@@ -29,9 +33,16 @@ std::string default_std(Language language)
   }
 }
 
-std::vector<std::string> default_flags(Language /*language*/)
+std::vector<std::string> default_flags(Language language)
 {
-  return {};
+  switch (language) {
+  case Language::C:
+  case Language::CXX:
+    return { "-Wall", "-Wextra" };
+  case Language::ASM:
+  default:
+    return {};
+  }
 }
 
 u32 default_jobs_count()

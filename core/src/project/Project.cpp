@@ -1,10 +1,10 @@
 #include "core/project/Project.hpp"
 
+#include "core/global-config/GlobalConfig.hpp"
+#include "core/project/Language.hpp"
 #include "core/project/LanguageConf.hpp"
-#include "core/project/target/ProjectBinTarget.hpp"
 #include "core/registry/Registry.hpp"
 #include "core/util/directories.hpp"
-#include "core/util/helpers.hpp"
 #include "core/util/ZCError.hpp"
 #include "engine/Ctx.hpp"
 #include "engine/engine.hpp"
@@ -34,16 +34,29 @@ sh::Cmd Project::buildCommand(const u32 jobs, const std::string_view target) con
   return cmd;
 }
 
-std::expected<void, Exception> Project::generateCompileCommands(BuildMode /*mode*/) const
+std::expected<void, Exception> Project::generateCompileCommands() const
 {
-  // TODO: implement
-  return {};
+#ifdef ZC_DEBUG
+  sh::Cmd cmd({ "ninja", "-C" }, sh::Output::ShowAll);
+#else
+  sh::Cmd cmd({ "ninja", "-C" }, sh::Output::HideStderr);
+#endif
+  cmd << root_ << "-f" << ninjaFile() << "-t" << "compdb";
+
+  std::string compdb;
+  const int   code = cmd.forEachLine(4096, [&](const std::string &line) { compdb += line; });
+  if (code != 0)
+    return std::unexpected(
+      Exception(ZCError::BuildFailed, "failed to generate compile_commands.json (exit code {})", code)
+    );
+
+  return fs::write(root_ / "compile_commands.json", compdb);
 }
 
 std::expected<void, Exception> Project::generateNinjaFile(BuildMode mode) const
 {
   engine::Ctx ctx;
-  ctx.set("AR", "ar"); // TODO: change to use global setting
+  ctx.set("AR", std::string(gc().archiver()));
 
   bool has_cxx = false;
   bool has_c   = false;
@@ -73,8 +86,8 @@ std::expected<void, Exception> Project::generateNinjaFile(BuildMode mode) const
       break;
     }
 
-    std::string compiler = conf.compiler.empty() ? default_compiler(lang) : conf.compiler;
-    std::string std_ver  = conf.std.empty() ? default_std(lang) : conf.std;
+    std::string compiler = conf.compiler.empty() ? gc().languages().at(lang).compiler : conf.compiler;
+    std::string std_ver  = conf.std.empty() ? gc().languages().at(lang).std : conf.std;
 
     ctx.set(name + "_COMPILER", compiler);
     ctx.set(name + "_FLAGS", join(flags, " "));
@@ -125,20 +138,24 @@ void Project::load()
   if (jsonContainsObject(json_conf, "languages"))
     for (const auto &[lang, conf] : json_conf["languages"].items())
       if (const auto l = from_str<Language>(lang)) {
-        LanguageConf lang_conf;
+        LanguageConf lang_conf = conf.get<LanguageConf>();
+
         lang_conf.language = *l;
-        conf.get_to(lang_conf);
+
+        if (lang_conf.compiler.empty())
+          lang_conf.compiler = gc().languages().at(*l).compiler;
+
+        if (lang_conf.flags.empty())
+          lang_conf.flags = gc().languages().at(*l).flags;
+
+        if (lang_conf.std.empty())
+          lang_conf.std = gc().languages().at(*l).std;
+
         languages_.insert_or_assign(*l, std::move(lang_conf));
       }
 
-  if (languages_.empty()) {
-    LanguageConf cxx_conf;
-    cxx_conf.language         = Language::CXX;
-    cxx_conf.compiler         = default_compiler(Language::CXX);
-    cxx_conf.std              = default_std(Language::CXX);
-    cxx_conf.flags            = default_flags(Language::CXX);
-    languages_[Language::CXX] = std::move(cxx_conf);
-  }
+  if (languages_.empty())
+    languages_.insert_or_assign(Language::CXX, gc().languages().at(Language::CXX));
 
   if (jsonContainsArray(json_conf, "targets")) {
     for (const auto &target : json_conf["targets"])
@@ -238,12 +255,13 @@ Project::generateBuildConfig(BuildMode mode, const bool compile_commands) const
   stdfs::create_directories(buildDir(), ec);
   auto _ = fs::write(buildModeFile(), std::string(to_str(mode).value_or("Debug")));
 
-  if (compile_commands) {
-    auto compile_cmds_res = generateCompileCommands(mode);
-    if (!compile_cmds_res)
-      return std::unexpected(compile_cmds_res.error());
-  }
-  return generateNinjaFile(mode);
+  if (auto ninja_res = generateNinjaFile(mode); !ninja_res)
+    return ninja_res;
+
+  if (compile_commands)
+    return generateCompileCommands();
+
+  return {};
 }
 
 std::expected<void, Exception>
