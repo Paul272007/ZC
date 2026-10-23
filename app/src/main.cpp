@@ -16,6 +16,7 @@
 
 #include "commands/Command.hpp"
 #include "commands/Install.hpp"
+#include "commands/Uninstall.hpp"
 #include "commands/Update.hpp"
 #include "context/BuildCommandCtx.hpp"
 #include "context/InstallCommandCtx.hpp"
@@ -54,7 +55,7 @@ int main(const int argc, char **argv)
       .flag<"sync", 's'>(install_ctx.sync, "Also add installed packages to project dependencies")
       .flag<"save", 'S'>(save_path, "Save path of local project in registry")
       .flagWithDefault<"jobs", 'j'>(
-        build_ctx.jobs, zc::core::gc().jobs_count(), "Number of concurrent jobs for compilation"
+        build_ctx.jobs, zc::core::gc().jobs(), "Number of concurrent jobs for compilation"
       )
       .setAction([&] {
         command = std::make_unique<zc::app::Install>(cmd_ctx, install_ctx, build_ctx, save_path);
@@ -68,11 +69,18 @@ int main(const int argc, char **argv)
       .flag<"save", 'S'>(save_path, "Save path of local project in registry")
       .flag<"dont-use", 'd'>(dont_use, "Do not set newly installed version as default version for package")
       .flagWithDefault<"jobs", 'j'>(
-        build_ctx.jobs, zc::core::gc().jobs_count(), "Number of concurrent jobs for compilation"
+        build_ctx.jobs, zc::core::gc().jobs(), "Number of concurrent jobs for compilation"
       )
       .setAction([&] {
         command = std::make_unique<zc::app::Update>(cmd_ctx, install_ctx, build_ctx, save_path, !dont_use);
       });
+
+  const auto uninstall =
+    zc::cli::cmd<"uninstall", "Uninstall packages">()
+      .positional<"targets">(install_ctx.targets, "Packages to uninstall")
+      .flag<"local", 'l'>(install_ctx.target_path, "Uninstall from local project instead of remote")
+      .flag<"sync", 's'>(install_ctx.sync, "Also remove uninstalled packages from project dependencies")
+      .setAction([&] { command = std::make_unique<zc::app::Uninstall>(cmd_ctx, install_ctx); });
 
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
                           .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
@@ -84,6 +92,7 @@ int main(const int argc, char **argv)
                           .global<"project-path", 'p'>(cmd_ctx.project_path, "Path to project")
                           .subcommand(install)
                           .subcommand(update)
+                          .subcommand(uninstall)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);

@@ -79,6 +79,8 @@ public:
 
   [[nodiscard]] const RegistryPkg *getPkg(std::string_view name) const;
 
+  [[nodiscard]] std::expected<Version, Exception> latestOf(std::string_view name) const;
+
   [[nodiscard]] std::expected<void, Exception> setPath(std::string_view name, const stdfs::path &path);
   [[nodiscard]] std::expected<void, Exception> setDefaultVersion(std::string_view name, Version version);
 

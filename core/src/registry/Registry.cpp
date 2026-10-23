@@ -244,6 +244,19 @@ const RegistryPkg *Registry::getPkg(const std::string_view name) const
   return it == pkgs_.end() ? nullptr : &it->second;
 }
 
+std::expected<Version, Exception> Registry::latestOf(const std::string_view name) const
+{
+  const auto it = pkgs_.find(name);
+  if (it == pkgs_.end())
+    return std::unexpected(Exception(ZCError::PkgNotFound, "Package '{}' not found", name));
+
+  const auto max_it = std::ranges::max_element(it->second.versions, {}, &RegistryProject::version);
+
+  if (max_it == it->second.versions.end())
+    return Version::empty();
+  return max_it->version;
+}
+
 std::expected<void, Exception> Registry::setPath(const std::string_view name, const stdfs::path &path)
 {
   const auto it_res = getPkgIt(name);

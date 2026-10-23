@@ -13,8 +13,19 @@ namespace zc::core
 
 class GlobalConfig final : public Conf
 {
-  u32 jobs_count_ = 1;
+  bool always_keep_       : 1 = false;
+  bool always_add_std_    : 1 = false;
+  bool move_bin_to_wd_    : 1 = false;
+  bool clear_before_run_  : 1 = false;
+  bool clear_after_run_   : 1 = false;
+  bool open_after_init_   : 1 = false;
+  bool open_after_create_ : 1 = false;
 
+  u32 jobs_ = 1;
+
+  std::string token_;
+  std::string username_;
+  std::string editor_   = "nvim";
   std::string archiver_ = "ar";
 
   std::map<Language, LanguageConf> languages_;
@@ -36,7 +47,21 @@ public:
 
   // ——— Getters ———
 
-  [[nodiscard]] u32 jobs_count() const noexcept { return jobs_count_; }
+  [[nodiscard]] bool alwaysKeep() const noexcept { return always_keep_; }
+
+  [[nodiscard]] bool alwaysAddStd() const noexcept { return always_add_std_; }
+
+  [[nodiscard]] bool moveBinToWD() const noexcept { return move_bin_to_wd_; }
+
+  [[nodiscard]] bool clearBeforeRun() const noexcept { return clear_before_run_; }
+
+  [[nodiscard]] bool clearAfterRun() const noexcept { return clear_after_run_; }
+
+  [[nodiscard]] bool openAfterInit() const noexcept { return open_after_init_; }
+
+  [[nodiscard]] bool openAfterCreate() const noexcept { return open_after_create_; }
+
+  [[nodiscard]] u32 jobs() const noexcept { return jobs_; }
 
   [[nodiscard]] std::string_view archiver() const noexcept { return archiver_; }
 

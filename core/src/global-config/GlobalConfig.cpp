@@ -59,7 +59,7 @@ void GlobalConfig::load()
 {
   if (const auto res = fs::read_json(file_)) {
     const auto &j = *res;
-    get_key_with_default(j, "jobs", jobs_count_, default_jobs_count());
+    get_key_with_default(j, "jobs", jobs_, default_jobs_count());
     get_key_with_default(j, "archiver", archiver_, std::string("ar"));
 
     if (jsonContainsObject(j, "languages")) {
@@ -76,7 +76,7 @@ void GlobalConfig::load()
 void GlobalConfig::write()
 {
   json j = {
-    { "jobs", jobs_count_ },
+    { "jobs", jobs_ },
     { "archiver", archiver_ },
   };
 

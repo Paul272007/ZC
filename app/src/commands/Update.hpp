@@ -1,8 +1,9 @@
 #pragma once
-#include "BuildCommand.hpp"
-#include "Command.hpp"
+
+#include "commands/BuildCommand.hpp"
+#include "commands/Command.hpp"
+#include "commands/InstallCommand.hpp"
 #include "core/registry/Registry.hpp"
-#include "InstallCommand.hpp"
 
 namespace zc::app
 {
