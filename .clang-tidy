@@ -22,7 +22,7 @@ Checks:
   - -readability-identifier-length
   - -readability-implicit-bool-conversion
   - -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
-#  - -cppcoreguidelines-non-private-member-variables-in-classes
+  - -cppcoreguidelines-non-private-member-variables-in-classes
 #  - -cppcoreguidelines-avoid-const-or-ref-data-members
   - -cppcoreguidelines-avoid-magic-numbers
   - -readability-magic-numbers

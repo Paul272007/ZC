@@ -232,6 +232,18 @@ std::expected<void, Exception> Project::uninstallDependencies() const
   return {};
 }
 
+std::expected<void, Exception> Project::useDependencies() const
+{
+  for (const auto &target : targets_) {
+    for (const auto &dep : target->externalDeps()) {
+      auto use_res = reg().setDefaultVersion(dep.package, dep.version);
+      if (!use_res)
+        return std::unexpected(use_res.error());
+    }
+  }
+  return {};
+}
+
 void Project::clean() const
 {
   if (fs::dir_exists(buildDir())) {

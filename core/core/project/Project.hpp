@@ -80,6 +80,8 @@ public:
 
   [[nodiscard]] std::expected<void, Exception> uninstallDependencies() const;
 
+  [[nodiscard]] std::expected<void, Exception> useDependencies() const;
+
   // ——— Public utilities ———
 
   void clean() const;

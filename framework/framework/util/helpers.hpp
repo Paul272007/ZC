@@ -109,7 +109,7 @@ constexpr std::string_view enum_name_value()
 template<Enum E, std::size_t... Is>
 constexpr std::string_view enum_to_string_impl(E value, std::index_sequence<Is...>)
 {
-  std::string_view result = "";
+  std::string_view result;
   ([&] {
     if (value == static_cast<E>(Is)) {
       result = enum_name_value<E, static_cast<E>(Is)>();

@@ -18,6 +18,7 @@
 #include "commands/Install.hpp"
 #include "commands/Uninstall.hpp"
 #include "commands/Update.hpp"
+#include "commands/Use.hpp"
 #include "context/BuildCommandCtx.hpp"
 #include "context/InstallCommandCtx.hpp"
 #include "core/global-config/GlobalConfig.hpp"
@@ -48,6 +49,7 @@ int main(const int argc, char **argv)
   std::unique_ptr<zc::app::Command> command;
 
   // ——— Commands on packages ———
+
   const auto install =
     zc::cli::cmd<"install", "Install packages">()
       .positional<"targets">(install_ctx.targets, "Packages to install")
@@ -82,6 +84,13 @@ int main(const int argc, char **argv)
       .flag<"sync", 's'>(install_ctx.sync, "Also remove uninstalled packages from project dependencies")
       .setAction([&] { command = std::make_unique<zc::app::Uninstall>(cmd_ctx, install_ctx); });
 
+  const auto use =
+    zc::cli::cmd<"use", "Set default version for packages">()
+      .positional<"targets">(install_ctx.targets, "Packages and their version to use")
+      .flag<"local", 'l'>(install_ctx.target_path, "Use version of this local project")
+      .flag<"sync", 's'>(install_ctx.sync, "For each project dependency, set its version as default")
+      .setAction([&] { command = std::make_unique<zc::app::Use>(cmd_ctx, install_ctx); });
+
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
                           .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
                           .global<"verbose", 'v'>(cmd_ctx.verbose, "Enable verbosity")
@@ -93,6 +102,7 @@ int main(const int argc, char **argv)
                           .subcommand(install)
                           .subcommand(update)
                           .subcommand(uninstall)
+                          .subcommand(use)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);
