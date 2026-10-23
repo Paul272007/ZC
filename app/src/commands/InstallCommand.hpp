@@ -2,7 +2,7 @@
 
 #include "context/InstallCommandCtx.hpp"
 #include "framework/Version.hpp"
-#include "helpers.hpp"
+#include "util/helpers.hpp"
 
 namespace zc::app
 {

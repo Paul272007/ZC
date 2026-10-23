@@ -8,6 +8,8 @@ add_library(zc-framework STATIC
   framework/cli/Positional.hpp
 
   framework/ui/DefaultUIStrategy.hpp
+  framework/ui/Table.hpp
+  framework/ui/TableCharset.hpp
   framework/ui/UI.hpp
   framework/ui/UIStrategy.hpp
 
@@ -27,6 +29,8 @@ add_library(zc-framework STATIC
   framework/signals.hpp
   framework/Timer.hpp
   framework/Version.hpp
+
+  src/ui/Table.cpp
 
   src/fs.cpp
   src/network.cpp

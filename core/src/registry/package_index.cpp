@@ -63,6 +63,31 @@ std::expected<RemotePkg, Exception> resolve(const std::string_view name, const V
   };
 }
 
+std::expected<std::map<std::string, Version, std::less<>>, Exception> availablePkgs()
+{
+  auto index_res = GithubClient::getIndex();
+  if (!index_res)
+    return std::unexpected(index_res.error());
+
+  const json &root = *index_res;
+  if (!jsonContainsObject(root, "packages"))
+    return std::unexpected(Exception(ZCError::InvalidIndex, "Invalid package index format"));
+
+  std::map<std::string, Version, std::less<>> pkgs;
+
+  for (const auto &[k, v] : root["packages"].items()) {
+    if (!v.is_object()) {
+      return std::unexpected(
+        Exception(ZCError::VersionNotFound, "No latest version specified for '{}'", k)
+      );
+    }
+    std::string latest;
+    GET_KEY(v, latest);
+    pkgs.insert_or_assign(k, latest);
+  }
+  return pkgs;
+}
+
 std::expected<stdfs::path, Exception> fetchAndExtract(const RemotePkg &pkg)
 {
   const stdfs::path archive_path = tmp_dir() / std::format("{}-{}.tar.gz", pkg.name, pkg.version);

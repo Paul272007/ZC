@@ -16,6 +16,7 @@
 
 #include "commands/Command.hpp"
 #include "commands/Install.hpp"
+#include "commands/List.hpp"
 #include "commands/Uninstall.hpp"
 #include "commands/Update.hpp"
 #include "commands/Use.hpp"
@@ -45,6 +46,9 @@ int main(const int argc, char **argv)
 
   bool save_path = false; // install / update
   bool dont_use  = false; // update
+  bool simple    = false; // list
+
+  std::string_view type;  // list
 
   std::unique_ptr<zc::app::Command> command;
 
@@ -91,6 +95,13 @@ int main(const int argc, char **argv)
       .flag<"sync", 's'>(install_ctx.sync, "For each project dependency, set its version as default")
       .setAction([&] { command = std::make_unique<zc::app::Use>(cmd_ctx, install_ctx); });
 
+  // ——— Commands on global config ———
+
+  const auto list = zc::cli::cmd<"list", "List all sorts of things">()
+                      .positional<"type">(type, "Type of things to list")
+                      .flag<"simple", 's'>(simple, "Use simple list instead of table")
+                      .setAction([&] { command = std::make_unique<zc::app::List>(cmd_ctx, type, simple); });
+
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
                           .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
                           .global<"verbose", 'v'>(cmd_ctx.verbose, "Enable verbosity")
@@ -103,6 +114,7 @@ int main(const int argc, char **argv)
                           .subcommand(update)
                           .subcommand(uninstall)
                           .subcommand(use)
+                          .subcommand(list)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);
