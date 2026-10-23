@@ -12,14 +12,14 @@ struct AppBuilder {
   Cmd              cmd;
   std::string_view version_{};
 
-  [[nodiscard]] AppBuilder version(const std::string_view v) &&
+  [[nodiscard]] constexpr AppBuilder version(const std::string_view v) &&
   {
     return { .cmd = std::move(cmd), .version_ = v };
   }
 
   void printHelp() const { cmd.printHelp(std::tuple{}); }
 
-  bool parse(const int argc, char **argv)
+  bool parse(const int argc, char **argv) const
   {
     if (argc >= 2) {
       const std::string_view first = argv[1];
@@ -40,7 +40,7 @@ struct AppBuilder {
 };
 
 template<typename Cmd>
-auto app(Cmd &&cmd)
+constexpr auto app(Cmd &&cmd)
 {
   return AppBuilder<std::remove_cvref_t<Cmd>>{ std::forward<Cmd>(cmd) };
 }

@@ -37,11 +37,7 @@ protected:
   std::vector<std::pair<ProjectTarget *, Link>> internal_deps_;
   std::vector<ProjectTargetDependency>          external_deps_;
 
-  explicit ProjectTarget(Project *parent, stdfs::path root)
-    : Conf(root / zc_target_file), parent_(parent), root_(std::move(root)), name_(root_.filename().string())
-  {
-    // TODO: check folders structure and target name
-  }
+  explicit ProjectTarget(Project *parent, stdfs::path root);
 
   void load() override;
 

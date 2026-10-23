@@ -1,5 +1,5 @@
 AccessModifierOffset: -2                # Access modifier ("public:", "protected:", "private:") are indented twice left
-AlignAfterOpenBracket: true             # Align arguments that are on separate lines
+AlignAfterOpenBracket: BlockIndent      # Indent arguments on separate lines by ContinuationIndentWidth
 AlignArrayOfStructures: None            # (change to right to) Align struct arguments at the right when initializing a struct array
 AlignConsecutiveAssignments: # Align consecutive variables assignments (Also aligns enum assignments)
   Enabled: true
@@ -64,7 +64,7 @@ AlignConsecutiveTableGenDefinitionColons: # same
   AlignFunctionPointers: false
   PadOperators: false
 AlignEscapedNewlines: LeftWithLastLine            # Align backslashes in escaped newlines at the left, counting last line
-AlignOperands: AlignAfterOperator                 # Horizontally align operands of binary and ternary expressions after operator
+AlignOperands: DontAlign                          # Do not align wrapped lines after '=' or binary operators
 AlignTrailingComments:
   Kind: Always                         # Always align consecutive trailing comments
   OverEmptyLines: 1                              # Align after no more than 1 empty line

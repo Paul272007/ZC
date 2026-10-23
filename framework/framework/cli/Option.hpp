@@ -10,6 +10,17 @@ namespace zc::cli
 
 template<Assignable T, FixedString LongFlag, char ShortFlag = '\0', bool Required = false>
 struct Option {
+  static_assert(!LongFlag.sv().empty(), "Long flag name cannot be empty");
+  static_assert(
+    !LongFlag.sv().starts_with('-'), "Do not prefix flag with dashes ('--' is automatically added)"
+  );
+  static_assert(
+    LongFlag.sv() != "help" && LongFlag.sv() != "version",
+    "'--help' and '--version' are reserved flag names"
+  );
+  static_assert(ShortFlag != '-' && ShortFlag != '=', "Invalid short flag character");
+  static_assert(ShortFlag != 'h' && ShortFlag != 'V', "'-h' and '-V' are reserved short flags");
+
   T &target;
 
   std::string_view help;

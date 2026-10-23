@@ -131,8 +131,8 @@ void Project::load()
   const auto &json_conf = read_res.value();
 
   get_key(json_conf, "name", name_);
-  get_key(json_conf, "author", author_);
-  get_key(json_conf, "description", description_);
+  get_optional_key(json_conf, "author", author_);
+  get_optional_key(json_conf, "description", description_);
   get_key(json_conf, "version", version_);
 
   if (jsonContainsObject(json_conf, "languages"))
@@ -198,7 +198,9 @@ std::expected<void, Exception> Project::installDependencies(const u32 jobs) cons
 {
   for (const auto &target : targets_) {
     for (const auto &dep : target->externalDeps()) {
-      auto install_res = Registry::get().installFromServer(dep.package, dep.version, jobs);
+      if (reg().isInstalled(dep.package, dep.version))
+        continue;
+      auto install_res = reg().installFromServer(dep.package, dep.version, jobs);
       if (!install_res)
         return std::unexpected(install_res.error());
     }
@@ -210,7 +212,7 @@ std::expected<void, Exception> Project::updateDependencies(const u32 jobs) const
 {
   for (const auto &target : targets_) {
     for (const auto &dep : target->externalDeps()) {
-      auto install_res = Registry::get().updateFromServer(dep.package, dep.version, jobs);
+      auto install_res = reg().updateFromServer(dep.package, dep.version, jobs);
       if (!install_res)
         return std::unexpected(install_res.error());
     }
@@ -222,7 +224,7 @@ std::expected<void, Exception> Project::uninstallDependencies() const
 {
   for (const auto &target : targets_) {
     for (const auto &dep : target->externalDeps()) {
-      auto install_res = Registry::get().uninstall(dep.package, dep.version, false);
+      auto install_res = reg().uninstall(dep.package, dep.version, false);
       if (!install_res)
         return std::unexpected(install_res.error());
     }

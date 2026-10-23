@@ -109,4 +109,9 @@ public:
   uninstall(std::string_view name, Version version, bool force);
 };
 
+inline Registry &reg()
+{
+  return Registry::get();
+}
+
 } // namespace zc::core

@@ -23,22 +23,24 @@ GlobalConfig::GlobalConfig() : Conf(zc_dir() / zc_config_file)
 
   if (!languages_.contains(Language::C)) {
     languages_.insert_or_assign(
-      Language::C, LanguageConf{
-                     .language = Language::C,
-                     .std      = std::string(default_std(Language::C)),
-                     .compiler = std::string(default_compiler(Language::C)),
-                     .flags    = default_flags(Language::C),
-                   }
+      Language::C,
+      LanguageConf{
+        .language = Language::C,
+        .std      = std::string(default_std(Language::C)),
+        .compiler = std::string(default_compiler(Language::C)),
+        .flags    = default_flags(Language::C),
+      }
     );
   }
   if (!languages_.contains(Language::CXX)) {
     languages_.insert_or_assign(
-      Language::CXX, LanguageConf{
-                       .language = Language::CXX,
-                       .std      = std::string(default_std(Language::CXX)),
-                       .compiler = std::string(default_compiler(Language::CXX)),
-                       .flags    = default_flags(Language::CXX),
-                     }
+      Language::CXX,
+      LanguageConf{
+        .language = Language::CXX,
+        .std      = std::string(default_std(Language::CXX)),
+        .compiler = std::string(default_compiler(Language::CXX)),
+        .flags    = default_flags(Language::CXX),
+      }
     );
   }
 }

@@ -46,7 +46,6 @@ inline void to_json(json &j, const RegistryProject &p)
   j = json{
     { "description", p.description },
     { "author", p.author },
-    { "version", p.version },
   };
 
   j["targets"] = json::object();
@@ -56,9 +55,8 @@ inline void to_json(json &j, const RegistryProject &p)
 
 inline void from_json(const json &j, RegistryProject &p)
 {
-  get_key(j, "description", p.description);
-  get_key(j, "author", p.author);
-  get_key(j, "version", p.version);
+  get_optional_key(j, "author", p.author);
+  get_optional_key(j, "description", p.description);
 
   if (jsonContainsObject(j, "targets")) {
     for (const auto &[k, v] : j["targets"].items()) {

@@ -8,6 +8,9 @@ namespace zc::cli
 
 template<Assignable T, FixedString Name, bool Required = false>
 struct Positional {
+  static_assert(!Name.sv().empty(), "Positional argument name cannot be empty");
+  static_assert(!Name.sv().starts_with('-'), "Positional argument name cannot start with '-'");
+
   T &target;
 
   std::string_view help;

@@ -27,10 +27,10 @@ struct Timer {
 
   ~Timer()
   {
-    const std::chrono::time_point             end{ std::chrono::steady_clock::now() };
-    std::chrono::duration<double, std::milli> elapsed{ end - start };
+    const std::chrono::time_point                   end{ std::chrono::steady_clock::now() };
+    const std::chrono::duration<double, std::milli> elapsed{ end - start };
 
-    ui.debug("[{}] Duration: {} ms", name, elapsed.count());
+    ui.debug("[{}] Duration: {:.2f} ms", name, elapsed.count());
   }
 };
 

@@ -10,6 +10,15 @@
 namespace zc::core
 {
 
+ProjectTarget::ProjectTarget(Project *parent, stdfs::path root)
+  : Conf(root / zc_target_file),
+    parent_(parent),
+    root_(std::move(root)),
+    name_(parent_ && root_ == parent_->root() ? parent_->name() : root_.filename().string())
+{
+  // TODO: check folders structure and target name
+}
+
 void ProjectTarget::load()
 {
   auto res = fs::read_json(file_);

@@ -4,12 +4,83 @@
 #include <tuple>
 
 #include "ArgStream.hpp"
+#include "FixedString.hpp"
 #include "framework/ui/UI.hpp"
 #include "framework/util/concepts.hpp"
 #include "framework/util/helpers.hpp"
 
 namespace zc::cli::detail
 {
+
+template<typename T>
+struct is_vector : std::false_type {};
+
+template<typename T, typename Alloc>
+struct is_vector<std::vector<T, Alloc>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_vector_v = is_vector<std::remove_cvref_t<T>>::value;
+
+template<FixedString LongFlag, char ShortFlag, typename OptsTuple>
+consteval bool has_conflicting_option()
+{
+  return []<typename... Opts>(std::type_identity<std::tuple<Opts...>>) {
+    return (
+      (Opts::longName() == LongFlag.sv() || (ShortFlag != '\0' && Opts::shortName() == ShortFlag)) || ...
+    );
+  }(std::type_identity<OptsTuple>{});
+}
+
+template<FixedString Name, typename PosTuple>
+consteval bool has_conflicting_positional()
+{
+  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
+    return ((Poss::name() == Name.sv()) || ...);
+  }(std::type_identity<PosTuple>{});
+}
+
+template<typename PosTuple>
+consteval bool has_optional_positional()
+{
+  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
+    return ((!Poss::isRequired()) || ...);
+  }(std::type_identity<PosTuple>{});
+}
+
+template<typename PosTuple>
+consteval bool has_variadic_positional()
+{
+  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
+    return (is_vector_v<decltype(Poss::target)> || ...);
+  }(std::type_identity<PosTuple>{});
+}
+
+template<typename SubCmd, typename SubsTuple>
+consteval bool has_conflicting_subcommand()
+{
+  return []<typename... Subs>(std::type_identity<std::tuple<Subs...>>) {
+    return ((Subs::name() == SubCmd::name()) || ...);
+  }(std::type_identity<SubsTuple>{});
+}
+
+template<typename TupleA, typename TupleB>
+consteval bool has_conflicting_option_tuples()
+{
+  return []<typename... OptsA>(std::type_identity<std::tuple<OptsA...>>) {
+    return (
+      []<typename OptA, typename... OptsB>(
+        std::type_identity<OptA>, std::type_identity<std::tuple<OptsB...>>
+      ) {
+        return (
+          (OptA::longName() == OptsB::longName() ||
+           (OptA::shortName() != '\0' && OptA::shortName() == OptsB::shortName())) ||
+          ...
+        );
+      }(std::type_identity<OptsA>{}, std::type_identity<TupleB>{}) ||
+      ...
+    );
+  }(std::type_identity<TupleA>{});
+}
 
 template<typename Tuple>
 void reset_matched(Tuple &items)
@@ -20,7 +91,13 @@ void reset_matched(Tuple &items)
 template<Assignable T>
 bool parse_value(std::string_view str, T &out)
 {
-  if constexpr (std::is_same_v<T, std::string_view>) {
+  if constexpr (is_vector_v<T>) {
+    typename T::value_type elem{};
+    if (!parse_value(str, elem))
+      return false;
+    out.push_back(std::move(elem));
+    return true;
+  } else if constexpr (std::is_assignable_v<T &, std::string_view>) {
     out = str;
     return true;
   } else if constexpr (std::is_same_v<T, bool>) {
@@ -30,11 +107,9 @@ bool parse_value(std::string_view str, T &out)
     auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), out);
     return ec == std::errc{};
   }
-  // TODO: Add other types / complex types
   return false;
 }
 
-// TODO: simplify / refactor
 template<typename Opt>
 bool try_option(Opt &opt, ArgStream &args)
 {
@@ -44,41 +119,42 @@ bool try_option(Opt &opt, ArgStream &args)
   const auto ln  = opt.longName();
   const char sn  = opt.shortName();
 
-  // Long flag with '=' : --jobs=4
-  if (opt.hasLongName() && arg.starts_with(ln) && arg.size() > ln.size() && arg[ln.size()] == '=') {
-    if (const std::string_view val = arg.substr(ln.size() + 1); !parse_value(val, opt.target))
+  if (arg.starts_with("--")) {
+    const std::string_view body = arg.substr(2);
+    // Long flag with '=' : --jobs=4
+    if (body.starts_with(ln) && body.size() > ln.size() && body[ln.size()] == '=') {
+      if (const std::string_view val = body.substr(ln.size() + 1); !parse_value(val, opt.target))
+        return false;
+      opt.matched = true;
+      args.advance();
+      return true;
+    }
+    if (body != ln)
       return false;
-    opt.matched = true;
-    args.advance();
-    return true;
-  }
-
-  // Short flag with '=' : -j=4
-  if (opt.hasShortName() && arg.size() >= 3 && arg.at(0) == '-' && arg.at(1) == sn && arg.at(2) == '=') {
-    if (const std::string_view val = arg.substr(3); !parse_value(val, opt.target))
+  } else {
+    if (!opt.hasShortName() || arg.size() < 2 || arg.at(0) != '-' || arg.at(1) != sn)
       return false;
-    opt.matched = true;
-    args.advance();
-    return true;
-  }
 
-  // For non-booleans : Short flag without '=' : -j4
-  if constexpr (!std::is_same_v<T, bool>) {
-    if (opt.hasShortName() && arg.size() >= 3 && arg.at(0) == '-' && arg.at(1) == sn && arg.at(2) != '-') {
-      if (const std::string_view val = arg.substr(2); parse_value(val, opt.target)) {
+    if (arg.size() >= 3) {
+      // Short flag with '=' : -j=4
+      if (arg.at(2) == '=') {
+        if (const std::string_view val = arg.substr(3); !parse_value(val, opt.target))
+          return false;
         opt.matched = true;
         args.advance();
         return true;
       }
+      // For non-booleans : Short flag without '=' : -j4
+      if constexpr (!std::is_same_v<T, bool>) {
+        if (const std::string_view val = arg.substr(2); parse_value(val, opt.target)) {
+          opt.matched = true;
+          args.advance();
+          return true;
+        }
+      }
+      return false;
     }
   }
-
-  // Exact match: --jobs or -j
-  const bool is_long  = arg == ln;
-  const bool is_short = opt.hasShortName() && arg.size() == 2 && arg.at(0) == '-' && arg.at(1) == sn;
-
-  if (!is_long && !is_short)
-    return false;
 
   if constexpr (std::is_same_v<T, bool>) {
     opt.target  = true;
@@ -170,7 +246,8 @@ bool try_positional(Tuple &poss, const std::string_view item)
   std::apply(
     [&](auto &...pos) {
       auto try_assign = [&](auto &p) {
-        if (!assigned && !p.matched) {
+        using TargetT = std::remove_reference_t<decltype(p.target)>;
+        if (!assigned && (!p.matched || is_vector_v<TargetT>)) {
           if (parse_value(item, p.target)) {
             p.matched = true;
             assigned  = true;
@@ -194,7 +271,7 @@ void check_required_options(const Tuple &items)
         if constexpr (OptType::isRequired()) {
           if (!o.matched) {
             throw_or_terminate(
-              Exception(CliError::MissingFlag, "missing required option '{}'", o.longName())
+              Exception(CliError::MissingFlag, "missing required option '--{}'", o.longName())
             );
           }
         }
@@ -233,11 +310,13 @@ void print_pos_usage(const Tuple &items)
   std::apply(
     [](const auto &...pos) {
       auto print_one = []<typename T>(const T &p) {
-        using PosType = std::remove_cvref_t<T>;
+        using PosType                   = std::remove_cvref_t<T>;
+        using TargetT                   = std::remove_reference_t<decltype(p.target)>;
+        constexpr std::string_view dots = is_vector_v<TargetT> ? "..." : "";
         if constexpr (PosType::isRequired())
-          ui.print(" <{}>", p.name());
+          ui.print(" <{}>{}", p.name(), dots);
         else
-          ui.print(" [<{}>]", p.name());
+          ui.print(" [<{}>{}]", p.name(), dots);
       };
       (print_one(pos), ...);
     },
@@ -274,11 +353,13 @@ void print_opt_row(const Opt &opt)
   const auto ln = opt.longName();
   const auto sn = opt.shortName();
 
-  std::string col = std::format("  {}", ln);
+  std::string col = std::format("  --{}", ln);
   if (opt.hasShortName())
     std::format_to(std::back_inserter(col), ", -{}", sn);
 
-  if constexpr (std::is_same_v<T, std::string_view>)
+  if constexpr (std::is_same_v<T, stdfs::path>)
+    col += " <path>";
+  else if constexpr (std::is_assignable_v<T &, std::string_view> || is_vector_v<T>)
     col += " <text>";
   else if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>)
     col += " <value>";
@@ -300,7 +381,7 @@ void print_all_opts(const Tuple &items)
 template<typename Cmd>
 void print_cmd_row(const Cmd & /*unused*/)
 {
-  ui.println("  {:<20} {}", Cmd::name(), Cmd::desc());
+  ui.println("  {:<30} {}", Cmd::name(), Cmd::desc());
 }
 
 template<typename Tuple>

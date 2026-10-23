@@ -73,12 +73,23 @@ class UI
     return true;
   }
 
+  void closeStreams() const noexcept
+  {
+    if (in_ && in_ != stdin)
+      (void)std::fclose(in_);
+    if (out_ && out_ != stdout)
+      (void)std::fclose(out_);
+    if (err_ && err_ != stderr)
+      (void)std::fclose(err_);
+  }
+
 public:
   UI(UI &&)                 = delete;
   UI &operator=(UI &&)      = delete;
   UI(const UI &)            = delete;
   UI &operator=(const UI &) = delete;
-  ~UI()                     = default;
+
+  ~UI() { closeStreams(); }
 
   static void init(
     FILE *in = stdin, FILE *out = stdout, FILE *err = stderr, const UIMode mode = UIMode::Normal,

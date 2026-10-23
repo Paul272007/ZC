@@ -47,19 +47,19 @@ TEST(CliTest, ArgStream)
 TEST(CliTest, OptionAndPositionalStructures)
 {
   int  val = 0;
-  auto o1  = cli::opt<int, "--jobs", 'j'>(val, "Number of jobs");
-  EXPECT_EQ(o1.longName(), "--jobs");
+  auto o1  = cli::opt<int, "jobs", 'j'>(val, "Number of jobs");
+  EXPECT_EQ(o1.longName(), "jobs");
   EXPECT_EQ(o1.shortName(), 'j');
   EXPECT_TRUE(o1.hasLongName());
   EXPECT_TRUE(o1.hasShortName());
   EXPECT_FALSE(o1.isRequired());
   EXPECT_FALSE(o1.hasImplicitValue());
 
-  auto o2 = cli::opt_with_default<int, "--threads", 't'>(val, 8, "Thread count");
+  auto o2 = cli::opt_with_default<int, "threads", 't'>(val, 8, "Thread count");
   EXPECT_TRUE(o2.hasImplicitValue());
   EXPECT_EQ(o2.implicitValue(), 8);
 
-  auto o3 = cli::required_opt<int, "--count">(val, "Count");
+  auto o3 = cli::required_opt<int, "count">(val, "Count");
   EXPECT_TRUE(o3.isRequired());
   EXPECT_FALSE(o3.hasShortName());
 
@@ -101,9 +101,9 @@ TEST(CliTest, CombinedFlags)
   bool b = false;
   bool c = false;
 
-  auto opt_a = cli::opt<bool, "--all", 'a'>(a);
-  auto opt_b = cli::opt<bool, "--backup", 'b'>(b);
-  auto opt_c = cli::opt<bool, "--compress", 'c'>(c);
+  auto opt_a = cli::opt<bool, "all", 'a'>(a);
+  auto opt_b = cli::opt<bool, "backup", 'b'>(b);
+  auto opt_c = cli::opt<bool, "compress", 'c'>(c);
 
   auto opts  = std::make_tuple(opt_a, opt_b);
   auto globs = std::make_tuple(opt_c);
@@ -124,8 +124,8 @@ TEST(CliTest, CommandParsingFlagsAndPositionals)
   bool             action_executed = false;
 
   auto my_cmd = cli::cmd<"build", "Build project">()
-                  .flag<"--verbose", 'v'>(verbose, "Verbose output")
-                  .flag<"--jobs", 'j'>(jobs, "Concurrent jobs")
+                  .flag<"verbose", 'v'>(verbose, "Verbose output")
+                  .flag<"jobs", 'j'>(jobs, "Concurrent jobs")
                   .positional<"input">(input, "Input source")
                   .setAction([&] { action_executed = true; });
 
@@ -150,7 +150,7 @@ TEST(CliTest, SubcommandDispatch)
     sub_executed = true;
   });
 
-  auto root_cmd = cli::cmd<"git", "Version control">().subcommand(push_cmd);
+  auto root_cmd = cli::cmd<"git", "Version control">().subcommand(push_cmd).requiresSubcommand();
 
   const char    *argv[] = { "git", "push", "origin" };
   cli::ArgStream stream{ .argc = 3, .argv = argv };
@@ -165,7 +165,7 @@ TEST(CliTest, SubcommandDispatch)
 TEST(CliTest, MissingRequiredFlagThrows)
 {
   int  required_val = 0;
-  auto my_cmd       = cli::cmd<"test", "Test command">().requiredFlag<"--mandatory">(required_val);
+  auto my_cmd       = cli::cmd<"test", "Test command">().requiredFlag<"mandatory">(required_val);
 
   const char    *argv[] = { "test" };
   cli::ArgStream stream{ .argc = 1, .argv = argv };
@@ -198,6 +198,30 @@ TEST(CliTest, AppBuilderHelpAndVersion)
   char *argv_run[] = { arg_app };
   EXPECT_TRUE(app.parse(1, argv_run));
   EXPECT_TRUE(executed);
+}
+
+TEST(CliTest, VariadicPositionalArguments)
+{
+  std::vector<std::string> targets;
+  bool                     executed = false;
+
+  auto install_cmd = cli::cmd<"install", "Install packages">()
+                       .positional<"targets">(targets, "Packages to install")
+                       .setAction([&] { executed = true; });
+
+  auto root_cmd = cli::cmd<"zc", "Package manager">().subcommand(install_cmd).requiresSubcommand();
+
+  const char    *argv[] = { "zc", "install", "pkg1", "pkg2", "pkg3" };
+  cli::ArgStream stream{ .argc = 5, .argv = argv };
+  std::tuple<>   empty;
+
+  root_cmd.parseStream(stream, empty);
+
+  EXPECT_TRUE(executed);
+  ASSERT_EQ(targets.size(), 3U);
+  EXPECT_EQ(targets[0], "pkg1");
+  EXPECT_EQ(targets[1], "pkg2");
+  EXPECT_EQ(targets[2], "pkg3");
 }
 
 } // namespace zc::tests

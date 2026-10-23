@@ -1,0 +1,87 @@
+// clang-format off
+// ZC: Version 0.1.1
+//
+//   ________  ________
+//  |\_____  \|\   ____\
+//   \|___/  /\ \  \___|
+//       /  / /\ \  \
+//      /  /_/__\ \  \____
+//     |\________\ \_______\
+//      \|_______|\|_______|
+//
+// Copyright (c) 2026 Paul Maillard. All Rights Reserved.
+// clang-format on
+
+#include <exception>
+
+#include "commands/Command.hpp"
+#include "commands/Install.hpp"
+#include "context/BuildCommandCtx.hpp"
+#include "context/InstallCommandCtx.hpp"
+#include "core/global-config/GlobalConfig.hpp"
+#include "framework/cli/AppBuilder.hpp"
+#include "framework/cli/CommandBuilder.hpp"
+#include "framework/Exception.hpp"
+#include "framework/Timer.hpp"
+#include "framework/ui/UI.hpp"
+#include "framework/util/terminal.hpp"
+
+int main(const int argc, char **argv)
+{
+  ZC_DEBUG_TIMER("Total time")
+
+#ifdef ZC_DEBUG
+  constexpr std::string_view version_str = "ZC v" ZC_VERSION " (debug)";
+#else
+  constexpr std::string_view version_str = "ZC v" ZC_VERSION;
+#endif
+
+  zc::app::CommandCtx        cmd_ctx;
+  zc::app::InstallCommandCtx install_ctx;
+  zc::app::BuildCommandCtx   build_ctx;
+
+  // install
+  bool save_path = false;
+
+  std::unique_ptr<zc::app::Command> command;
+
+  // ——— Commands on packages ———
+  const auto install =
+    zc::cli::cmd<"install", "Install packages">()
+      .positional<"targets">(install_ctx.targets, "Packages to install")
+      .flag<"local", 'l'>(install_ctx.target_path, "Install from local project instead of remote")
+      .flag<"sync", 's'>(install_ctx.sync, "Also add installed packages to project dependencies")
+      .flag<"save", 'S'>(save_path, "Save path of local project in registry")
+      .flagWithDefault<"jobs", 'j'>(
+        build_ctx.jobs, zc::core::gc().jobs_count(), "Number of concurrent jobs for compilation"
+      )
+      .setAction([&] {
+        command = std::make_unique<zc::app::Install>(cmd_ctx, install_ctx, build_ctx, save_path);
+      });
+
+  const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
+                          .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
+                          .global<"verbose", 'v'>(cmd_ctx.verbose, "Enable verbosity")
+                          .global<"force", 'f'>(cmd_ctx.force, "Force execution and skip usual warnings")
+                          .global<"input", 'i'>(cmd_ctx.in_path, "Input file")
+                          .global<"output", 'o'>(cmd_ctx.out_path, "Output file")
+                          .global<"error", 'e'>(cmd_ctx.err_path, "Error file")
+                          .global<"project-path", 'p'>(cmd_ctx.project_path, "Path to project")
+                          .subcommand(install)
+                          .requiresSubcommand();
+
+  const auto app = zc::cli::app(root_cmd).version(version_str);
+
+  try {
+    app.parse(argc, argv);
+    if (command)
+      command->execute();
+    return 0;
+  } catch (const zc::Exception &e) {
+    zc::ui.printException(e);
+    return e.code();
+  } catch (const std::exception &e) {
+    zc::ui.error("{}Unexpected fatal error:{} {}", zc::red, zc::reset, e.what());
+    return 255;
+  }
+}

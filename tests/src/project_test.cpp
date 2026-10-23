@@ -75,13 +75,12 @@ TEST(ProjectTest, GenerateBuildFileAndCompileLibrary)
   const stdfs::path temp_dir = stdfs::temp_directory_path() / "zc_test_project_lib";
   std::error_code   ec;
   stdfs::remove_all(temp_dir, ec);
-  stdfs::create_directories(temp_dir / "include" / "zc_test_project_lib", ec);
+  stdfs::create_directories(temp_dir / "include" / "sample_pkg", ec);
   stdfs::create_directories(temp_dir / "src", ec);
 
   // Public header in include/<target_name>/math.hpp
-  auto write_pub_res = fs::write(
-    temp_dir / "include" / "zc_test_project_lib" / "math.hpp", "#pragma once\nint add(int a, int b);\n"
-  );
+  auto write_pub_res =
+    fs::write(temp_dir / "include" / "sample_pkg" / "math.hpp", "#pragma once\nint add(int a, int b);\n");
   ASSERT_TRUE(write_pub_res.has_value());
 
   // Private header in src/internal.hpp
@@ -89,10 +88,10 @@ TEST(ProjectTest, GenerateBuildFileAndCompileLibrary)
     fs::write(temp_dir / "src" / "internal.hpp", "#pragma once\ninline int offset() { return 0; }\n");
   ASSERT_TRUE(write_priv_res.has_value());
 
-  // Source file including both <zc_test_project_lib/math.hpp> and "internal.hpp"
+  // Source file including both <sample_pkg/math.hpp> and "internal.hpp"
   auto write_src_res = fs::write(
     temp_dir / "src" / "math.cpp",
-    "#include <zc_test_project_lib/math.hpp>\n#include \"internal.hpp\"\nint add(int a, int b) { return a + b + offset(); }\n"
+    "#include <sample_pkg/math.hpp>\n#include \"internal.hpp\"\nint add(int a, int b) { return a + b + offset(); }\n"
   );
   ASSERT_TRUE(write_src_res.has_value());
 
@@ -213,17 +212,14 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
   stdfs::remove_all(app_dir, ec);
   (void)core::Registry::get().uninstall("zc_ext_pkg", true);
 
-  // 1. Create external library package v1.0.0 (target name: "zc_test_ext_lib")
-  stdfs::create_directories(lib_dir / "include" / "zc_test_ext_lib", ec);
+  // 1. Create external library package v1.0.0 (target name: "zc_ext_pkg")
+  stdfs::create_directories(lib_dir / "include" / "zc_ext_pkg", ec);
   stdfs::create_directories(lib_dir / "src", ec);
   ASSERT_TRUE(
-    fs::write(lib_dir / "include" / "zc_test_ext_lib" / "ext.hpp", "#pragma once\nint ext_val();\n")
-      .has_value()
+    fs::write(lib_dir / "include" / "zc_ext_pkg" / "ext.hpp", "#pragma once\nint ext_val();\n").has_value()
   );
   ASSERT_TRUE(
-    fs::write(
-      lib_dir / "src" / "ext.cpp", "#include <zc_test_ext_lib/ext.hpp>\nint ext_val() { return 11; }\n"
-    )
+    fs::write(lib_dir / "src" / "ext.cpp", "#include <zc_ext_pkg/ext.hpp>\nint ext_val() { return 11; }\n")
       .has_value()
   );
   ASSERT_TRUE(
@@ -248,14 +244,12 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
   }
 
   // Verify v1.0.0 symlinks exist
-  const stdfs::path inc_symlink = core::include_links_dir() / "zc_ext_pkg" / "zc_test_ext_lib";
+  const stdfs::path inc_symlink = core::include_links_dir() / "zc_ext_pkg" / "zc_ext_pkg";
   EXPECT_TRUE(fs::symlink_exists(inc_symlink));
 
   // 2. Update package to v2.0.0 WITHOUT changing default version
   ASSERT_TRUE(
-    fs::write(
-      lib_dir / "src" / "ext.cpp", "#include <zc_test_ext_lib/ext.hpp>\nint ext_val() { return 22; }\n"
-    )
+    fs::write(lib_dir / "src" / "ext.cpp", "#include <zc_ext_pkg/ext.hpp>\nint ext_val() { return 22; }\n")
       .has_value()
   );
   ASSERT_TRUE(
@@ -294,7 +288,7 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
   ASSERT_TRUE(
     fs::write(
       app_dir / "src" / "main.cpp",
-      "#include <zc_ext_pkg/zc_test_ext_lib/ext.hpp>\nint main() { return ext_val(); }\n"
+      "#include <zc_ext_pkg/zc_ext_pkg/ext.hpp>\nint main() { return ext_val(); }\n"
     )
       .has_value()
   );
@@ -310,7 +304,7 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
   "dependencies": {
     "zc_ext_pkg": {
       "version": "2.0.0",
-      "targets": [["zc_test_ext_lib", "Static"]]
+      "targets": [["zc_ext_pkg", "Static"]]
     }
   }
 })"

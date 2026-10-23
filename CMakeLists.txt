@@ -39,8 +39,8 @@ endif()
 
 add_compile_definitions(ZC_MAJOR=0)
 add_compile_definitions(ZC_MINOR=1)
-add_compile_definitions(ZC_PATCH=0)
-add_compile_definitions(ZC_VERSION="0.1.0")
+add_compile_definitions(ZC_PATCH=1)
+add_compile_definitions(ZC_VERSION="0.1.1")
 
 if (WIN32)
   add_compile_definitions(ZC_WINDOWS)
@@ -78,7 +78,7 @@ endif()
 add_subdirectory(framework) # Framework to build CLIs in C++, used by ZC
 add_subdirectory(engine)    # Template engine - depends on framework
 add_subdirectory(core)      # ZC backend      - depends on zengine
-# add_subdirectory(app)       # ZC CLI frontend - depends on framework and backend
+add_subdirectory(app)       # ZC CLI frontend - depends on framework and backend
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   enable_testing()
