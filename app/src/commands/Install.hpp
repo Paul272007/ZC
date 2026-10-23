@@ -14,13 +14,11 @@ class Install final : public Command, InstallCommand, BuildCommand
 
   void installFromPath() const
   {
-    if (!targets_.empty())
-      throw_or_terminate(Exception(
-        CliError::IncompatibleFlags, "cannot install from remote and from local project at the same time"
-      ));
+    if (target_path_.empty())
+      return;
 
     core::Project project(target_path_);
-    auto          install_res = core::reg().installFromPath(project, jobs_, save_path_);
+    auto          install_res = core::reg().installFromPath(project, jobs_, save_path_, force_);
     if (!install_res)
       throw_or_terminate(install_res.error());
 
@@ -31,9 +29,9 @@ class Install final : public Command, InstallCommand, BuildCommand
   void installFromServer() const
   {
     for (const auto &[pkg, ver] : targets_) {
-      auto inst_res = core::reg().installFromServer(pkg, ver, jobs_);
-      if (!inst_res)
-        throw_or_terminate(inst_res.error());
+      auto install_res = core::reg().installFromServer(pkg, ver, jobs_, force_);
+      if (!install_res)
+        throw_or_terminate(install_res.error());
       // TODO: sync
     }
   }
@@ -58,9 +56,8 @@ public:
       auto install_res = p().installDependencies(jobs_);
       if (!install_res)
         throw_or_terminate(install_res.error());
-    } else if (!target_path_.empty()) {
-      installFromPath();
     } else {
+      installFromPath();
       installFromServer();
     }
   }

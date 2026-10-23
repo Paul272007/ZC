@@ -17,6 +17,7 @@ enum class ZCError : u8 {
   OriginMismatch,
   BrokenDependency,
   SymlinkAlreadyExists,
+  AlreadyInstalled,
   // Remote index errors
   MissingUrl,
   MissingSha256,

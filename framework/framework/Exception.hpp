@@ -17,6 +17,12 @@ namespace zc
   #define ZC_EXCEPTIONS_ENABLED
 #endif
 
+template<Enum EnumType>
+[[nodiscard]] constexpr i32 exit_code(EnumType value) noexcept
+{
+  return exit_code_base(value) + static_cast<i32>(value);
+}
+
 class Exception : public std::exception
 {
   i32         code_;
@@ -24,21 +30,31 @@ class Exception : public std::exception
 
 public:
   template<Enum EnumType>
-  explicit Exception(EnumType value)
-    : code_(exit_code_base(value) + static_cast<i32>(value)), message_("Error")
+  explicit Exception(EnumType value) : code_(exit_code(value)), message_("Error")
   {
   }
 
   template<Enum EnumType, typename... Args>
-  explicit Exception(EnumType value, std::format_string<Args...> fmt = "", Args &&...args)
-    : code_(exit_code_base(value) + static_cast<i32>(value)),
-      message_("Error: " + std::format(fmt, std::forward<Args>(args)...) + ".")
+  explicit Exception(EnumType value, std::format_string<Args...> fmt, Args &&...args)
+    : code_(exit_code(value)), message_("Error: " + std::format(fmt, std::forward<Args>(args)...) + ".")
   {
   }
 
   [[nodiscard]] i32 code() const noexcept { return code_; }
 
   [[nodiscard]] const char *what() const noexcept override { return message_.c_str(); }
+
+  template<Enum EnumType>
+  [[nodiscard]] bool is(EnumType value) const noexcept
+  {
+    return code_ == exit_code(value);
+  }
+
+  template<Enum EnumType>
+  [[nodiscard]] friend bool operator==(const Exception &ex, EnumType value) noexcept
+  {
+    return ex.is(value);
+  }
 };
 
 template<typename E>

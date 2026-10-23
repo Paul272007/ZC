@@ -10,11 +10,15 @@ namespace zc::tests
 TEST(ExceptionTest, ConstructionAndCode)
 {
   Exception ex1(CliError::UnknownFlag);
-  EXPECT_EQ(ex1.code(), exit_code_base(CliError::UnknownFlag) + static_cast<i32>(CliError::UnknownFlag));
+  EXPECT_EQ(ex1.code(), exit_code(CliError::UnknownFlag));
+  EXPECT_TRUE(ex1.is(CliError::UnknownFlag));
+  EXPECT_EQ(ex1, CliError::UnknownFlag);
+  EXPECT_NE(ex1, CliError::MissingFlag);
+  EXPECT_NE(ex1, FSError::FileNotFound);
   EXPECT_STREQ(ex1.what(), "Error");
 
   Exception ex2(CliError::UnknownFlag, "Flag '{}' not recognized", "--foo");
-  EXPECT_EQ(ex2.code(), exit_code_base(CliError::UnknownFlag) + static_cast<i32>(CliError::UnknownFlag));
+  EXPECT_EQ(ex2.code(), exit_code(CliError::UnknownFlag));
   EXPECT_STREQ(ex2.what(), "Error: Flag '--foo' not recognized.");
 }
 

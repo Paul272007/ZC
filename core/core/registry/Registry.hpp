@@ -91,16 +91,17 @@ public:
   installStd(std::string name, std::vector<std::unique_ptr<RegistryTarget>> targets);
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  installFromServer(std::string_view name, Version version, u32 jobs);
+  installFromServer(std::string_view name, Version version, u32 jobs, bool force = false);
+
+  [[nodiscard]] std::expected<RegistryPkg *, Exception> updateFromServer(
+    std::string_view name, Version version, u32 jobs, bool force = false, bool set_as_default = true
+  );
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  updateFromServer(std::string_view name, Version version, u32 jobs, bool set_as_default = true);
+  installFromPath(Project &p, u32 jobs, bool save_path, bool force = false);
 
   [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  installFromPath(Project &p, u32 jobs, bool save_path);
-
-  [[nodiscard]] std::expected<RegistryPkg *, Exception>
-  updateFromPath(Project &p, u32 jobs, bool save_path, bool set_as_default = true);
+  updateFromPath(Project &p, u32 jobs, bool save_path, bool force = false, bool set_as_default = true);
 
   [[nodiscard]] std::expected<RegistryProject, Exception> uninstallFromPath(const Project &p, bool force);
 

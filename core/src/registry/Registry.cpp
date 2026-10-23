@@ -78,8 +78,10 @@ std::expected<PkgMap::iterator, Exception> Registry::getPkgIt(const std::string_
 
 void Registry::clean()
 {
-  if (fs::dir_exists(tmp_dir()))
-    stdfs::remove_all(tmp_dir());
+  std::error_code   ec;
+  const stdfs::path tmp = zc_dir() / zc_tmp_dir;
+  if (fs::dir_exists(tmp))
+    stdfs::remove_all(tmp, ec);
 }
 
 std::expected<RegistryPkg *, Exception>
@@ -323,12 +325,18 @@ Registry::installStd(std::string name, std::vector<std::unique_ptr<RegistryTarge
   return addToIndex(std::move(pkg));
 }
 
-std::expected<RegistryPkg *, Exception>
-Registry::installFromServer(const std::string_view name, const Version version, const u32 jobs)
+std::expected<RegistryPkg *, Exception> Registry::installFromServer(
+  const std::string_view name, const Version version, const u32 jobs, const bool force
+)
 {
   auto remote_pkg = index::resolve(name, version);
   if (!remote_pkg)
     return std::unexpected(remote_pkg.error());
+
+  if (!force && isInstalled(remote_pkg->name, remote_pkg->version))
+    return std::unexpected(Exception(
+      ZCError::AlreadyInstalled, "Package {}@{} already installed", remote_pkg->name, remote_pkg->version
+    ));
 
   auto project_dir = index::fetchAndExtract(*remote_pkg);
   if (!project_dir)
@@ -339,7 +347,8 @@ Registry::installFromServer(const std::string_view name, const Version version, 
 }
 
 std::expected<RegistryPkg *, Exception> Registry::updateFromServer(
-  const std::string_view name, const Version version, const u32 jobs, const bool set_as_default
+  const std::string_view name, const Version version, const u32 jobs, const bool force,
+  const bool set_as_default
 )
 {
   const auto it_res = getPkgIt(name);
@@ -349,13 +358,24 @@ std::expected<RegistryPkg *, Exception> Registry::updateFromServer(
 
   if (it->second.origin != "main")
     return std::unexpected(Exception(
-      ZCError::OriginMismatch, "Cannot update package of origin '{}' from server",
+      ZCError::OriginMismatch, "cannot update package of origin '{}' from server",
       it_res.value()->second.origin
     ));
 
   auto remote_pkg = index::resolve(name, version);
   if (!remote_pkg)
     return std::unexpected(remote_pkg.error());
+
+  if (!force && isInstalled(remote_pkg->name, remote_pkg->version)) {
+    if (version.isEmpty() || version.isLatest()) {
+      return std::unexpected(
+        Exception(ZCError::AlreadyInstalled, "package {} already up to date", remote_pkg->name)
+      );
+    }
+    return std::unexpected(Exception(
+      ZCError::AlreadyInstalled, "package {}@{} already installed", remote_pkg->name, remote_pkg->version
+    ));
+  }
 
   auto project_dir = index::fetchAndExtract(*remote_pkg);
   if (!project_dir)
@@ -366,8 +386,13 @@ std::expected<RegistryPkg *, Exception> Registry::updateFromServer(
 }
 
 std::expected<RegistryPkg *, Exception>
-Registry::installFromPath(Project &p, const u32 jobs, const bool save_path)
+Registry::installFromPath(Project &p, const u32 jobs, const bool save_path, const bool force)
 {
+  if (!force && isInstalled(p.name(), p.version()))
+    return std::unexpected(
+      Exception(ZCError::AlreadyInstalled, "package {}@{} already installed", p.name(), p.version())
+    );
+
   const auto install_res = finishInstallation(p, "local", jobs);
   if (!install_res)
     return std::unexpected(install_res.error());
@@ -378,13 +403,19 @@ Registry::installFromPath(Project &p, const u32 jobs, const bool save_path)
   return install_res.value();
 }
 
-std::expected<RegistryPkg *, Exception>
-Registry::updateFromPath(Project &p, const u32 jobs, const bool save_path, const bool set_as_default)
+std::expected<RegistryPkg *, Exception> Registry::updateFromPath(
+  Project &p, const u32 jobs, const bool save_path, const bool force, const bool set_as_default
+)
 {
   const auto it_res = getPkgIt(p.name());
   if (!it_res)
     return std::unexpected(it_res.error());
   const auto &it = it_res.value();
+
+  if (!force && isInstalled(p.name(), p.version()))
+    return std::unexpected(
+      Exception(ZCError::AlreadyInstalled, "package {} already up to date", p.name(), p.version())
+    );
 
   const auto update_res = finishUpdate(p, it, jobs, set_as_default);
   if (!update_res)
@@ -455,7 +486,7 @@ Registry::uninstall(const std::string_view name, const Version version, const bo
   const auto it_res = getPkgIt(name);
   if (!it_res)
     return std::unexpected(it_res.error());
-  const bool was_default = (it_res.value()->second.default_version == version);
+  const bool was_default = it_res.value()->second.default_version == version;
 
   auto snapshot_res = removeFromIndex(name, version);
   if (!snapshot_res)

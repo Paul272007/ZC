@@ -1,42 +1,39 @@
 ---
-# Disabled checks kept for reference:
-#   -readability-identifier-length
-#   -cppcoreguidelines-non-private-member-variables-in-classes
-#   -cppcoreguidelines-avoid-const-or-ref-data-members
-Checks: >
-  bugprone-*,
-  performance-*,
-  portability-*,
-  readability-*,
-  modernize-*,
-  cert-*,
-  cppcoreguidelines-*,
-  google-default-arguments,
-  google-runtime-operator,
-  hicpp-exception-baseclass,
-  hicpp-multiway-paths-covered,
-  misc-misplaced-const,
-  misc-new-delete-overloads,
-  misc-non-copyable-objects,
-  misc-throw-by-value-catch-by-reference,
-  misc-unconventional-assign-operator,
-  misc-uniqueptr-reset-release,
-  openmp-use-default-none,
-  -bugprone-easily-swappable-parameters,
-  -modernize-use-trailing-return-type,
-  -readability-braces-around-statements,
-  -readability-implicit-bool-conversion,
-  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -readability-magic-numbers,
-  -cppcoreguidelines-macro-usage,
-  -cppcoreguidelines-avoid-do-while,
-  -cppcoreguidelines-pro-type-static-cast-downcast,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-avoid-c-arrays,
-  -modernize-avoid-c-arrays,
-  -cppcoreguidelines-avoid-goto,
-  -portability-avoid-pragma-once
+Checks:
+  - bugprone-*
+  - performance-*
+  - portability-*
+  - readability-*
+  - modernize-*
+  - cert-*
+  - cppcoreguidelines-*
+  - google-default-arguments
+  - google-runtime-operator
+  - misc-misplaced-const
+  - misc-new-delete-overloads
+  - misc-non-copyable-objects
+  - misc-throw-by-value-catch-by-reference
+  - misc-unconventional-assign-operator
+  - misc-uniqueptr-reset-release
+  - openmp-use-default-none
+  - -bugprone-easily-swappable-parameters
+  - -modernize-use-trailing-return-type
+  - -readability-braces-around-statements
+  - -readability-identifier-length
+  - -readability-implicit-bool-conversion
+  - -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+#  - -cppcoreguidelines-non-private-member-variables-in-classes
+#  - -cppcoreguidelines-avoid-const-or-ref-data-members
+  - -cppcoreguidelines-avoid-magic-numbers
+  - -readability-magic-numbers
+  - -cppcoreguidelines-macro-usage
+  - -cppcoreguidelines-avoid-do-while
+  - -cppcoreguidelines-pro-type-static-cast-downcast
+  - -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  - -cppcoreguidelines-avoid-c-arrays
+  - -modernize-avoid-c-arrays
+  - -cppcoreguidelines-avoid-goto
+  - -portability-avoid-pragma-once
 
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*'

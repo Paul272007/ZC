@@ -75,11 +75,14 @@ void GlobalConfig::load()
 
 void GlobalConfig::write()
 {
-  const json j = {
+  json j = {
     { "jobs", jobs_count_ },
     { "archiver", archiver_ },
-    { "languages", languages_ },
   };
+
+  j["languages"] = json::object();
+  for (const auto &[k, v] : languages_)
+    j["languages"][to_str(k).value_or("C")] = v;
 
   if (fs::write_json(file_, j))
     modified_ = false;

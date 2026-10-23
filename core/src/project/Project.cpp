@@ -200,7 +200,7 @@ std::expected<void, Exception> Project::installDependencies(const u32 jobs) cons
     for (const auto &dep : target->externalDeps()) {
       if (reg().isInstalled(dep.package, dep.version))
         continue;
-      auto install_res = reg().installFromServer(dep.package, dep.version, jobs);
+      auto install_res = reg().installFromServer(dep.package, dep.version, jobs, false);
       if (!install_res)
         return std::unexpected(install_res.error());
     }

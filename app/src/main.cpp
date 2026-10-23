@@ -16,6 +16,7 @@
 
 #include "commands/Command.hpp"
 #include "commands/Install.hpp"
+#include "commands/Update.hpp"
 #include "context/BuildCommandCtx.hpp"
 #include "context/InstallCommandCtx.hpp"
 #include "core/global-config/GlobalConfig.hpp"
@@ -40,8 +41,8 @@ int main(const int argc, char **argv)
   zc::app::InstallCommandCtx install_ctx;
   zc::app::BuildCommandCtx   build_ctx;
 
-  // install
-  bool save_path = false;
+  bool save_path = false; // install / update
+  bool dont_use  = false; // update
 
   std::unique_ptr<zc::app::Command> command;
 
@@ -59,6 +60,20 @@ int main(const int argc, char **argv)
         command = std::make_unique<zc::app::Install>(cmd_ctx, install_ctx, build_ctx, save_path);
       });
 
+  const auto update =
+    zc::cli::cmd<"update", "Update packages">()
+      .positional<"targets">(install_ctx.targets, "Packages to update")
+      .flag<"local", 'l'>(install_ctx.target_path, "Update from local project instead of remote")
+      .flag<"sync", 's'>(install_ctx.sync, "Also add updated packages to project dependencies")
+      .flag<"save", 'S'>(save_path, "Save path of local project in registry")
+      .flag<"dont-use", 'd'>(dont_use, "Do not set newly installed version as default version for package")
+      .flagWithDefault<"jobs", 'j'>(
+        build_ctx.jobs, zc::core::gc().jobs_count(), "Number of concurrent jobs for compilation"
+      )
+      .setAction([&] {
+        command = std::make_unique<zc::app::Update>(cmd_ctx, install_ctx, build_ctx, save_path, !dont_use);
+      });
+
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
                           .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
                           .global<"verbose", 'v'>(cmd_ctx.verbose, "Enable verbosity")
@@ -68,6 +83,7 @@ int main(const int argc, char **argv)
                           .global<"error", 'e'>(cmd_ctx.err_path, "Error file")
                           .global<"project-path", 'p'>(cmd_ctx.project_path, "Path to project")
                           .subcommand(install)
+                          .subcommand(update)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);
