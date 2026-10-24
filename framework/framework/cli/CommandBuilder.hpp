@@ -382,6 +382,8 @@ struct CommandBuilder : CommandTag {
 
         if (detail::try_positional(poss, cur))
           args.advance();
+        else if constexpr (RequireSub)
+          throw_or_terminate(Exception(CliError::UnexpectedPositional, "unknown subcommand '{}'", cur));
         else
           throw_or_terminate(Exception(CliError::UnexpectedPositional, "unexpected argument '{}'", cur));
       }

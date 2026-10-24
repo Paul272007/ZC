@@ -19,6 +19,7 @@
 #include "commands/Install.hpp"
 #include "commands/List.hpp"
 #include "commands/Login.hpp"
+#include "commands/Logout.hpp"
 #include "commands/Uninstall.hpp"
 #include "commands/Update.hpp"
 #include "commands/Use.hpp"
@@ -116,6 +117,10 @@ int main(const int argc, char **argv)
     command = std::make_unique<zc::app::Login>(cmd_ctx);
   });
 
+  const auto logout = zc::cli::cmd<"logout", "Log out of your account">().setAction([&] {
+    command = std::make_unique<zc::app::Logout>(cmd_ctx);
+  });
+
   // ——— Root command ———
 
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
@@ -133,6 +138,7 @@ int main(const int argc, char **argv)
                           .subcommand(list)
                           .subcommand(config)
                           .subcommand(login)
+                          .subcommand(logout)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);
