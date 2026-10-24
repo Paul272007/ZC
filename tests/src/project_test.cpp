@@ -269,7 +269,7 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
 
   {
     core::Project lib_proj_v2(lib_dir);
-    auto          upd_res = core::Registry::get().updateFromPath(lib_proj_v2, 1, false, false);
+    auto          upd_res = core::Registry::get().updateFromPath(lib_proj_v2, 1, false, false, false);
     ASSERT_TRUE(upd_res.has_value()) << upd_res.error().what();
   }
 

@@ -5,6 +5,7 @@ add_executable(zc-app
   src/commands/Install.hpp
   src/commands/InstallCommand.hpp
   src/commands/List.hpp
+  src/commands/Login.hpp
   src/commands/Uninstall.hpp
   src/commands/Update.hpp
   src/commands/Use.hpp

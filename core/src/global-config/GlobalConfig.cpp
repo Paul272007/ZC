@@ -130,6 +130,18 @@ GlobalConfig &GlobalConfig::get()
   return instance;
 }
 
+void GlobalConfig::setToken(std::string token)
+{
+  token_    = std::move(token);
+  modified_ = true;
+}
+
+void GlobalConfig::setUsername(std::string username)
+{
+  username_ = std::move(username);
+  modified_ = true;
+}
+
 std::expected<void, Exception> GlobalConfig::set(const std::string_view key, const std::string_view value)
 {
   if (key == "always_keep") {

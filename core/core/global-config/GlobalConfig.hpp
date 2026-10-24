@@ -63,11 +63,22 @@ public:
 
   [[nodiscard]] u32 jobs() const noexcept { return jobs_; }
 
+  [[nodiscard]] std::string token() const noexcept { return token_; }
+
+  [[nodiscard]] std::string username() const noexcept { return username_; }
+
+  [[nodiscard]] std::string editor() const noexcept { return editor_; }
+
   [[nodiscard]] std::string_view archiver() const noexcept { return archiver_; }
 
   [[nodiscard]] const auto &languages() const noexcept { return languages_; }
 
-  // ——— Setter ———
+  // ——— Setters ———
+
+  void setToken(std::string token);
+
+  void setUsername(std::string username);
+
   [[nodiscard]] std::expected<void, Exception> set(std::string_view key, std::string_view value);
 };
 

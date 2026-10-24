@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "framework/signals.hpp"
 #include "framework/ui/DefaultUIStrategy.hpp"
 #include "framework/ui/UIStrategy.hpp"
 #include "framework/util/raw_mode.hpp"
@@ -101,6 +102,16 @@ public:
     instance_.err_      = err;
     instance_.mode_     = mode;
     instance_.strategy_ = std::move(strategy);
+
+    signals::init();
+    static bool registered_atexit = false;
+    if (!registered_atexit) {
+      registered_atexit = true;
+      (void)std::atexit([] {
+        set_raw_mode(false);
+        write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
+      });
+    }
   }
 
   [[nodiscard]] static UI &get() noexcept { return instance_; }
@@ -131,6 +142,7 @@ public:
   {
     if (!quiet()) {
       print(show_cursor);
+      flush();
       set_raw_mode(false);
     }
   }
@@ -139,17 +151,18 @@ public:
   {
     if (!quiet()) {
       print(hide_cursor);
+      flush();
       set_raw_mode(true);
     }
   }
 
-  void cursorUp(const u64 value) const { print("{}", cursor_up(value)); }
+  void cursorUp(const u64 value) const { print("\r{}", cursor_up(value)); }
 
-  void cursorDown(const u64 value) const { print("{}", cursor_down(value)); }
+  void cursorDown(const u64 value) const { print("\r{}", cursor_down(value)); }
 
   void clearLine() const { print("\r{}", clear_line); }
 
-  void clearUnderCursor() const { print(clear_under_cursor); }
+  void clearUnderCursor() const { print("\r{}", clear_under_cursor); }
 
   // ——— Output style
 
@@ -246,10 +259,12 @@ public:
 
     u64 cursor = 0;
     prompt(fmt, std::forward<Args>(args)...);
+    ln();
     RawModeGuard guard(*this);
 
     while (true) {
       displayCheckboxes(options, selected, cursor);
+      flush();
 
       switch (read_key()) {
       case Key::Enter:
@@ -266,6 +281,7 @@ public:
       default:
         break;
       }
+      cursorUp(options.size());
     }
 
   loop_end:
@@ -285,19 +301,21 @@ public:
   }
 
   template<Formattable T, typename... Args>
-  [[nodiscard]] u32 radios(
+  [[nodiscard]] u64 radios(
     const std::vector<T> &options, u32 default_ans, std::format_string<Args...> fmt, Args &&...args
   ) const
   {
     if (quiet() || options.empty())
       return 0;
 
-    u32 cursor = (default_ans < options.size()) ? default_ans : 0;
-    question(fmt, std::forward<Args>(args)...);
+    u64 cursor = (default_ans < options.size()) ? default_ans : 0;
+    prompt(fmt, std::forward<Args>(args)...);
+    ln();
     RawModeGuard guard(*this);
 
     while (true) {
-      display_radios(options, cursor);
+      displayRadios(options, cursor);
+      flush();
 
       switch (read_key()) {
       case Key::Enter:
@@ -311,7 +329,7 @@ public:
       default:
         break;
       }
-      cursor_up(options.size());
+      cursorUp(options.size());
     }
 
   loop_end:
@@ -468,18 +486,22 @@ public:
 
   template<Formattable T>
   void displayCheckboxes(
-    const std::vector<T> &options, const std::vector<bool> &selected, const u32 cursor
+    const std::vector<T> &options, const std::vector<bool> &selected, const u64 cursor
   ) const
   {
-    for (u32 i = 0; i < options.size(); i++)
-      println("{}", strategy_->checkbox(options.at(i), selected.at(i), i == cursor));
+    for (u64 i = 0; i < options.size(); i++) {
+      clearLine();
+      println("{}", strategy_->checkbox(std::format("{}", options.at(i)), selected.at(i), i == cursor));
+    }
   }
 
   template<Formattable T>
-  void displayRadios(const std::vector<T> &options, const u32 cursor)
+  void displayRadios(const std::vector<T> &options, const u64 cursor) const
   {
-    for (u32 i = 0; i < options.size(); i++)
-      println("{}", strategy_->radio(options.at(i), i == cursor));
+    for (u64 i = 0; i < options.size(); i++) {
+      clearLine();
+      println("{}", strategy_->radio(std::format("{}", options.at(i)), i == cursor));
+    }
   }
 };
 

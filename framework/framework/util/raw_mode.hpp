@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdio>
+#include <csignal>
 
 #include "types.hpp"
 
@@ -54,12 +54,16 @@ enum class Key : u8 {
 inline Key read_key()
 {
   const char c = get_char_raw();
+  if (c == 3) { // Ctrl+C
+    (void)std::raise(SIGINT);
+    return Key::None;
+  }
   if (c == '\n' || c == '\r')
     return Key::Enter;
   if (c == ' ' || c == 'x')
     return Key::Space;
 
-#if defined(_WIN32) || defined(_WIN64)
+#ifdef ZC_WINDOWS
   if (c == -32 || c == 0 || static_cast<unsigned char>(c) == 224) {
     const char dir = get_char_raw();
     if (dir == 72)

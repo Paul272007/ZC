@@ -18,6 +18,7 @@
 #include "commands/Config.hpp"
 #include "commands/Install.hpp"
 #include "commands/List.hpp"
+#include "commands/Login.hpp"
 #include "commands/Uninstall.hpp"
 #include "commands/Update.hpp"
 #include "commands/Use.hpp"
@@ -111,6 +112,10 @@ int main(const int argc, char **argv)
       .positional<"value">(value, "Value given to this key")
       .setAction([&] { command = std::make_unique<zc::app::Config>(cmd_ctx, key, value); });
 
+  const auto login = zc::cli::cmd<"login", "Log into your Github account">().setAction([&] {
+    command = std::make_unique<zc::app::Login>(cmd_ctx);
+  });
+
   // ——— Root command ———
 
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
@@ -127,6 +132,7 @@ int main(const int argc, char **argv)
                           .subcommand(use)
                           .subcommand(list)
                           .subcommand(config)
+                          .subcommand(login)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);

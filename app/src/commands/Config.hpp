@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Command.hpp"
+#include "commands/Command.hpp"
 #include "core/global-config/GlobalConfig.hpp"
 
 namespace zc::app

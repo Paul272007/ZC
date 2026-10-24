@@ -37,12 +37,15 @@ void on()
     detail::interrupted_ = 1;
 
     set_raw_mode(false);
+    write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
     write(STDERR_FILENO, show_cursor.data(), show_cursor.size());
 
-    if constexpr (requires { Action(s); })
-      Action(s);
-    else if (requires { Action(); })
-      Action();
+    if constexpr (Action != nullptr) {
+      if constexpr (requires { Action(s); })
+        Action(s);
+      else if constexpr (requires { Action(); })
+        Action();
+    }
 
     if constexpr (Propagate) {
       (void)std::signal(s, SIG_DFL);
@@ -53,6 +56,14 @@ void on()
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sigaction(Sig, &sa, nullptr);
+}
+
+inline void init()
+{
+#ifndef ZC_WINDOWS
+  on<SIGINT, nullptr, true>();
+  on<SIGTERM, nullptr, true>();
+#endif
 }
 
 } // namespace zc::signals

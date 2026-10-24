@@ -43,17 +43,17 @@ public:
 
   [[nodiscard]] std::string prompt(std::string_view msg) const override
   {
-    return std::format("{}? {}{}: ", blue, reset, msg);
+    return std::format("{}? {}{} ", blue, reset, msg);
   }
 
   [[nodiscard]] std::string prompt(std::string_view msg, std::string_view default_ans) const override
   {
-    return std::format("{}?{} {} ({}): ", blue, reset, msg, default_ans);
+    return std::format("{}?{} {} ({}) ", blue, reset, msg, default_ans);
   }
 
   [[nodiscard]] std::string resolved_prompt(std::string_view msg, std::string_view ans) const override
   {
-    return std::format("{}?{} {} : {}{}{}", blue, reset, msg, blue, ans, reset);
+    return std::format("{}?{} {} {}{}{}", blue, reset, msg, blue, ans, reset);
   }
 
   [[nodiscard]] std::string bullet_list_el(std::string element, const ULStyle style) const override
