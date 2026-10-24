@@ -25,8 +25,8 @@ class GlobalConfig final : public Conf
 
   std::string token_;
   std::string username_;
-  std::string editor_   = "nvim";
-  std::string archiver_ = "ar";
+  std::string editor_;
+  std::string archiver_;
 
   std::map<Language, LanguageConf> languages_;
 
@@ -66,9 +66,12 @@ public:
   [[nodiscard]] std::string_view archiver() const noexcept { return archiver_; }
 
   [[nodiscard]] const auto &languages() const noexcept { return languages_; }
+
+  // ——— Setter ———
+  [[nodiscard]] std::expected<void, Exception> set(std::string_view key, std::string_view value);
 };
 
-inline const GlobalConfig &gc()
+inline GlobalConfig &gc()
 {
   return GlobalConfig::get();
 }

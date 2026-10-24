@@ -22,7 +22,7 @@ inline void to_json(json &p, const Language l)
 
 inline void from_json(const json &p, Language &l)
 {
-  l = from_str<Language>(p).value_or(Language::Unknown);
+  l = from_str<Language>(p.get<std::string>()).value_or(Language::Unknown);
 }
 
 inline Language language_from_str(const std::string_view str)

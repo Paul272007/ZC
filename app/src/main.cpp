@@ -15,6 +15,7 @@
 #include <exception>
 
 #include "commands/Command.hpp"
+#include "commands/Config.hpp"
 #include "commands/Install.hpp"
 #include "commands/List.hpp"
 #include "commands/Uninstall.hpp"
@@ -49,6 +50,8 @@ int main(const int argc, char **argv)
   bool simple    = false; // list
 
   std::string_view type;  // list
+  std::string_view key;   // config
+  std::string_view value; // config
 
   std::unique_ptr<zc::app::Command> command;
 
@@ -102,6 +105,14 @@ int main(const int argc, char **argv)
                       .flag<"simple", 's'>(simple, "Use simple list instead of table")
                       .setAction([&] { command = std::make_unique<zc::app::List>(cmd_ctx, type, simple); });
 
+  const auto config =
+    zc::cli::cmd<"config", "Manage global configuration">()
+      .requiredPositional<"key">(key, "Configuration key to modify")
+      .positional<"value">(value, "Value given to this key")
+      .setAction([&] { command = std::make_unique<zc::app::Config>(cmd_ctx, key, value); });
+
+  // ——— Root command ———
+
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
                           .global<"quiet", 'q'>(cmd_ctx.quiet, "Enable quiet mode")
                           .global<"verbose", 'v'>(cmd_ctx.verbose, "Enable verbosity")
@@ -115,6 +126,7 @@ int main(const int argc, char **argv)
                           .subcommand(uninstall)
                           .subcommand(use)
                           .subcommand(list)
+                          .subcommand(config)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);

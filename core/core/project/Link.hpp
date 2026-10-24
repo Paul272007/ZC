@@ -18,7 +18,7 @@ inline void to_json(json &j, const Link l)
 
 inline void from_json(const json &j, Link &l)
 {
-  l = from_str<Link>(j).value_or(Link::Dynamic);
+  l = from_str<Link>(j.get<std::string>()).value_or(Link::Dynamic);
 }
 
 } // namespace zc::core

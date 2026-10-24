@@ -1,6 +1,7 @@
 #include "core/global-config/GlobalConfig.hpp"
 
 #include <string>
+#include <sys/stat.h>
 
 #include "core/project/Language.hpp"
 #include "core/project/LanguageConf.hpp"
@@ -57,18 +58,38 @@ GlobalConfig::~GlobalConfig()
 
 void GlobalConfig::load()
 {
-  if (const auto res = fs::read_json(file_)) {
-    const auto &j = *res;
-    get_key_with_default(j, "jobs", jobs_, default_jobs_count());
-    get_key_with_default(j, "archiver", archiver_, std::string("ar"));
+  const auto res = fs::read_json(file_);
+  if (!res)
+    return;
+  const auto &j = *res;
 
-    if (jsonContainsObject(j, "languages")) {
-      for (const auto &[k, v] : j["languages"].items()) {
-        auto lang     = from_str<Language>(k).value_or(Language::C);
-        auto conf     = v.get<LanguageConf>();
-        conf.language = lang;
-        languages_.insert_or_assign(lang, conf);
-      }
+  const auto get_flag = [&j](const std::string_view key, const bool current) {
+    bool value = current;
+    get_optional_key(j, key, value);
+    return value;
+  };
+
+  always_keep_       = get_flag("always_keep", always_keep_);
+  always_add_std_    = get_flag("always_add_std", always_add_std_);
+  move_bin_to_wd_    = get_flag("move_bin_to_wd", move_bin_to_wd_);
+  clear_before_run_  = get_flag("clear_before_run", clear_before_run_);
+  clear_after_run_   = get_flag("clear_after_run", clear_after_run_);
+  open_after_init_   = get_flag("open_after_init", open_after_init_);
+  open_after_create_ = get_flag("open_after_create_", open_after_create_);
+
+  get_key_with_default(j, "jobs", jobs_, default_jobs_count());
+
+  get_optional_key(j, "token", token_);
+  get_optional_key(j, "username", username_);
+  get_key_with_default(j, "editor", editor_, std::string("nvim"));
+  get_key_with_default(j, "archiver", archiver_, std::string("ar"));
+
+  if (jsonContainsObject(j, "languages")) {
+    for (const auto &[k, v] : j["languages"].items()) {
+      auto lang     = from_str<Language>(k).value_or(Language::C);
+      auto conf     = v.get<LanguageConf>();
+      conf.language = lang;
+      languages_.insert_or_assign(lang, conf);
     }
   }
 }
@@ -76,9 +97,22 @@ void GlobalConfig::load()
 void GlobalConfig::write()
 {
   json j = {
+    { "always_keep", alwaysKeep() },
+    { "always_add_std", alwaysAddStd() },
+    { "move_bin_to_wd", moveBinToWD() },
+    { "clear_before_run", clearBeforeRun() },
+    { "clear_after_run", clearAfterRun() },
+    { "open_after_init", openAfterInit() },
+    { "open_after_create", openAfterCreate() },
     { "jobs", jobs_ },
+    { "editor", editor_ },
     { "archiver", archiver_ },
   };
+
+  if (!token_.empty())
+    j["token"] = token_;
+  if (!username_.empty())
+    j["username"] = username_;
 
   j["languages"] = json::object();
   for (const auto &[k, v] : languages_)
@@ -86,12 +120,83 @@ void GlobalConfig::write()
 
   if (fs::write_json(file_, j))
     modified_ = false;
+  // FIXME: works on Windows ?
+  chmod(file_.c_str(), S_IRUSR | S_IWUSR); // other users are not allowed to see the authentication token
 }
 
 GlobalConfig &GlobalConfig::get()
 {
   static GlobalConfig instance;
   return instance;
+}
+
+std::expected<void, Exception> GlobalConfig::set(const std::string_view key, const std::string_view value)
+{
+  if (key == "always_keep") {
+    always_keep_ = to_bool(value);
+  } else if (key == "always_add_std") {
+    always_add_std_ = to_bool(value);
+  } else if (key == "move_bin_to_wd") {
+    move_bin_to_wd_ = to_bool(value);
+  } else if (key == "clear_before_run") {
+    clear_before_run_ = to_bool(value);
+  } else if (key == "clear_after_run") {
+    clear_after_run_ = to_bool(value);
+  } else if (key == "open_after_init") {
+    open_after_init_ = to_bool(value);
+  } else if (key == "open_after_create") {
+    open_after_create_ = to_bool(value);
+  } else if (key == "jobs") {
+    // TODO: parse integer
+  } else if (key == "editor") {
+    editor_ = value;
+  } else if (key == "archiver") {
+    archiver_ = value;
+  } else if (key.starts_with("languages.")) {
+    // Expected format: languages.<language>.<std|compiler|flags>
+    constexpr std::string_view prefix = "languages.";
+    const std::string_view     rest   = key.substr(prefix.size());
+
+    const size_t dot = rest.rfind('.');
+    if (dot == std::string_view::npos)
+      return std::unexpected(
+        Exception(ZCError::InvalidValue, "Key '{}' must have the form languages.<language>.<field>", key)
+      );
+
+    const auto language = from_str<Language>(rest.substr(0, dot));
+    if (!language || *language == Language::Unknown)
+      return std::unexpected(
+        Exception(ZCError::InvalidValue, "Unknown language '{}' in key '{}'", rest.substr(0, dot), key)
+      );
+
+    // Creates the language entry if it doesn't exist yet
+    auto &conf =
+      languages_
+        .try_emplace(
+          *language, LanguageConf{ .language = *language, .std = "", .compiler = "", .flags = {} }
+        )
+        .first->second;
+
+    if (const std::string_view field = rest.substr(dot + 1); field == "std") {
+      conf.std = value;
+    } else if (field == "compiler") {
+      conf.compiler = value;
+    } else if (field == "flags") {
+      // Space-separated list of flags
+      conf.flags.clear();
+      for (const auto word : value | std::views::split(' ') |
+             std::views::filter([](const auto &w) { return !std::ranges::empty(w); }))
+        conf.flags.emplace_back(std::string_view(word));
+    } else {
+      return std::unexpected(
+        Exception(ZCError::InvalidValue, "Unknown language field '{}' in key '{}'", field, key)
+      );
+    }
+  } else {
+    return std::unexpected(Exception(ZCError::InvalidValue, "Key '{}' not found", key));
+  }
+  modified_ = true;
+  return {};
 }
 
 } // namespace zc::core

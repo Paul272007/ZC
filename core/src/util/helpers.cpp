@@ -16,8 +16,9 @@ std::string_view default_compiler(Language language)
   case Language::CXX:
     return "c++";
   case Language::ASM:
-  default:
     return "nasm";
+  default:
+    return "";
   }
 }
 

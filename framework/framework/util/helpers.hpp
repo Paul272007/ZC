@@ -122,7 +122,7 @@ constexpr std::string_view enum_to_string_impl(E value, std::index_sequence<Is..
 }
 
 template<Enum E, std::size_t... Is>
-constexpr std::optional<E> enum_from_string_impl(std::string_view name, std::index_sequence<Is...>)
+constexpr std::optional<E> enum_from_string_impl(const std::string_view name, std::index_sequence<Is...>)
 {
   std::optional<E> result;
   ([&] {
@@ -166,7 +166,7 @@ constexpr std::expected<std::string_view, Exception> to_str(E value)
 }
 
 template<Enum E>
-constexpr std::expected<E, Exception> from_str(const std::string &value)
+constexpr std::expected<E, Exception> from_str(const std::string_view value)
 {
   auto opt = detail::enum_from_string_impl<E>(value, std::make_index_sequence<64>{});
   if (!opt)
@@ -197,7 +197,7 @@ constexpr std::expected<std::string_view, Exception> to_str(E value)
 }
 
 template<Enum E>
-constexpr std::expected<E, Exception> from_str(const std::string &value)
+constexpr std::expected<E, Exception> from_str(const std::string_view value)
 {
   constexpr auto count = std::meta::enumerators_of(^^E).size();
 
