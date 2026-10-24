@@ -8,6 +8,14 @@
 namespace zc::core
 {
 
+std::string_view default_editor()
+{
+  if (const char *dollar_editor = getenv("EDITOR"))
+    return dollar_editor;
+
+  return "nvim";
+}
+
 std::string_view default_compiler(Language language)
 {
   switch (language) {

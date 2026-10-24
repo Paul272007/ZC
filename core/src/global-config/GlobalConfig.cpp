@@ -71,6 +71,7 @@ void GlobalConfig::load()
 
   always_keep_       = get_flag("always_keep", always_keep_);
   always_add_std_    = get_flag("always_add_std", always_add_std_);
+  always_init_git_   = get_flag("always_init_git", always_init_git_);
   move_bin_to_wd_    = get_flag("move_bin_to_wd", move_bin_to_wd_);
   clear_before_run_  = get_flag("clear_before_run", clear_before_run_);
   clear_after_run_   = get_flag("clear_after_run", clear_after_run_);
@@ -81,7 +82,7 @@ void GlobalConfig::load()
 
   get_optional_key(j, "token", token_);
   get_optional_key(j, "username", username_);
-  get_key_with_default(j, "editor", editor_, std::string("nvim"));
+  get_key_with_default(j, "editor", editor_, std::string(default_editor()));
   get_key_with_default(j, "archiver", archiver_, std::string("ar"));
 
   if (jsonContainsObject(j, "languages")) {
@@ -99,6 +100,7 @@ void GlobalConfig::write()
   json j = {
     { "always_keep", alwaysKeep() },
     { "always_add_std", alwaysAddStd() },
+    { "always_init_git", alwaysInitGit() },
     { "move_bin_to_wd", moveBinToWD() },
     { "clear_before_run", clearBeforeRun() },
     { "clear_after_run", clearAfterRun() },
@@ -148,6 +150,8 @@ std::expected<void, Exception> GlobalConfig::set(const std::string_view key, con
     always_keep_ = to_bool(value);
   } else if (key == "always_add_std") {
     always_add_std_ = to_bool(value);
+  } else if (key == "always_init_git") {
+    always_init_git_ = to_bool(value);
   } else if (key == "move_bin_to_wd") {
     move_bin_to_wd_ = to_bool(value);
   } else if (key == "clear_before_run") {

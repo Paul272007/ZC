@@ -16,6 +16,7 @@
 
 #include "commands/Command.hpp"
 #include "commands/Config.hpp"
+#include "commands/Init.hpp"
 #include "commands/Install.hpp"
 #include "commands/List.hpp"
 #include "commands/Login.hpp"
@@ -47,13 +48,21 @@ int main(const int argc, char **argv)
   zc::app::InstallCommandCtx install_ctx;
   zc::app::BuildCommandCtx   build_ctx;
 
-  bool save_path = false; // install / update
-  bool dont_use  = false; // update
-  bool simple    = false; // list
+  bool save_path = false;                  // install / update
+  bool dont_use  = false;                  // update
+  bool simple    = false;                  // list
+  bool git       = false;                  // init
+  bool edit      = false;                  // init
 
-  std::string_view type;  // list
-  std::string_view key;   // config
-  std::string_view value; // config
+  std::string_view type;                   // list
+  std::string_view key;                    // config
+  std::string_view value;                  // config
+  std::string_view name;                   // init
+  std::string_view author;                 // init
+  std::string_view description;            // init
+  std::string_view project_template;       // init
+
+  std::vector<std::string_view> languages; // init
 
   std::unique_ptr<zc::app::Command> command;
 
@@ -121,6 +130,22 @@ int main(const int argc, char **argv)
     command = std::make_unique<zc::app::Logout>(cmd_ctx);
   });
 
+  // ——— Commands on projects ———
+
+  const auto init = zc::cli::cmd<"init", "Create and initialize new project">()
+                      .flag<"git", 'g'>(git, "Also initialize git repository")
+                      .flag<"edit", 'E'>(edit, "Open project in editor once initialized")
+                      .flag<"name", 'n'>(name, "New project")
+                      .flag<"author", 'a'>(author, "Set project author")
+                      .flag<"description", 'd'>(description, "Set project description")
+                      .flag<"template", 't'>(project_template, "Project template to use")
+                      .flag<"languages", 'l'>(languages, "Set project languages")
+                      .setAction([&] {
+                        command = std::make_unique<zc::app::Init>(
+                          cmd_ctx, git, edit, name, author, description, project_template, languages
+                        );
+                      });
+
   // ——— Root command ———
 
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
@@ -139,6 +164,7 @@ int main(const int argc, char **argv)
                           .subcommand(config)
                           .subcommand(login)
                           .subcommand(logout)
+                          .subcommand(init)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);

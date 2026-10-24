@@ -45,3 +45,12 @@ inline Language language_of(const stdfs::path &file)
 }
 
 } // namespace zc::core
+
+template<>
+struct std::formatter<zc::core::Language> : std::formatter<std::string_view> {
+  template<typename FormatContext>
+  auto format(const zc::core::Language &l, FormatContext &ctx) const
+  {
+    return std::formatter<std::string_view>::format(zc::to_str(l).value_or("Unknown"), ctx);
+  }
+};

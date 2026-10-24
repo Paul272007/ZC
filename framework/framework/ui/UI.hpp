@@ -84,6 +84,26 @@ class UI
       (void)std::fclose(err_);
   }
 
+  template<Formattable T>
+  void displayCheckboxes(
+    const std::vector<T> &options, const std::vector<bool> &selected, const u64 cursor
+  ) const
+  {
+    for (u64 i = 0; i < options.size(); i++) {
+      clearLine();
+      println("{}", strategy_->checkbox(std::format("{}", options.at(i)), selected.at(i), i == cursor));
+    }
+  }
+
+  template<Formattable T>
+  void displayRadios(const std::vector<T> &options, const u64 cursor) const
+  {
+    for (u64 i = 0; i < options.size(); i++) {
+      clearLine();
+      println("{}", strategy_->radio(std::format("{}", options.at(i)), i == cursor));
+    }
+  }
+
 public:
   UI(UI &&)                 = delete;
   UI &operator=(UI &&)      = delete;
@@ -190,7 +210,7 @@ public:
   input(const std::string &default_ans, std::format_string<Args...> fmt, Args &&...args) const
   {
     const std::string o_default = default_ans.empty() ? "none" : default_ans;
-    prompt(o_default, fmt, std::forward<Args>(args)...);
+    promptWithDefault(o_default, fmt, std::forward<Args>(args)...);
     std::string line;
 
     if (!readLine(line)) {
@@ -199,13 +219,10 @@ public:
       std::clearerr(in_);
       return default_ans;
     }
-    if (line.empty()) {
-      cursorUp(1);
-      clearLine();
-      resolvedPrompt(o_default, fmt, std::forward<Args>(args)...);
-      return default_ans;
-    }
-    return line;
+    cursorUp(1);
+    clearLine();
+    resolvedPrompt(line.empty() ? o_default : line, fmt, std::forward<Args>(args)...);
+    return line.empty() ? default_ans : line;
   }
 
   template<typename... Args>
@@ -444,7 +461,8 @@ public:
   }
 
   template<typename... Args>
-  void prompt(std::string_view default_ans, std::format_string<Args...> fmt, Args &&...args) const
+  void
+  promptWithDefault(std::string_view default_ans, std::format_string<Args...> fmt, Args &&...args) const
   {
     if (!quiet()) {
       const auto message = std::format(fmt, std::forward<Args>(args)...);
@@ -481,26 +499,6 @@ public:
         const std::string formatted_el = std::format("{}", list[i]);
         println("{}", strategy_->ordered_list_el(formatted_el, i, style));
       }
-    }
-  }
-
-  template<Formattable T>
-  void displayCheckboxes(
-    const std::vector<T> &options, const std::vector<bool> &selected, const u64 cursor
-  ) const
-  {
-    for (u64 i = 0; i < options.size(); i++) {
-      clearLine();
-      println("{}", strategy_->checkbox(std::format("{}", options.at(i)), selected.at(i), i == cursor));
-    }
-  }
-
-  template<Formattable T>
-  void displayRadios(const std::vector<T> &options, const u64 cursor) const
-  {
-    for (u64 i = 0; i < options.size(); i++) {
-      clearLine();
-      println("{}", strategy_->radio(std::format("{}", options.at(i)), i == cursor));
     }
   }
 };

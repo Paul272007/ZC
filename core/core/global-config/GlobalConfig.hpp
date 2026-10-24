@@ -15,6 +15,7 @@ class GlobalConfig final : public Conf
 {
   bool always_keep_       : 1 = false;
   bool always_add_std_    : 1 = false;
+  bool always_init_git_   : 1 = false;
   bool move_bin_to_wd_    : 1 = false;
   bool clear_before_run_  : 1 = false;
   bool clear_after_run_   : 1 = false;
@@ -50,6 +51,8 @@ public:
   [[nodiscard]] bool alwaysKeep() const noexcept { return always_keep_; }
 
   [[nodiscard]] bool alwaysAddStd() const noexcept { return always_add_std_; }
+
+  [[nodiscard]] bool alwaysInitGit() const noexcept { return always_init_git_; }
 
   [[nodiscard]] bool moveBinToWD() const noexcept { return move_bin_to_wd_; }
 

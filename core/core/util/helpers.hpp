@@ -9,6 +9,7 @@
 namespace zc::core
 {
 
+[[nodiscard]] std::string_view default_editor();
 [[nodiscard]] std::string_view default_compiler(Language language);
 [[nodiscard]] std::string_view default_std(Language language);
 [[nodiscard]] std::vector<std::string> default_flags(Language language);

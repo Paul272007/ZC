@@ -2,6 +2,7 @@ add_executable(zc-app
   src/commands/BuildCommand.hpp
   src/commands/Command.hpp
   src/commands/Config.hpp
+  src/commands/Init.hpp
   src/commands/Install.hpp
   src/commands/InstallCommand.hpp
   src/commands/List.hpp
