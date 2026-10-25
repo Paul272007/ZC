@@ -71,6 +71,7 @@ struct CommandBuilder : CommandTag {
       !detail::has_conflicting_positional<LongFlag, PosTuple>(),
       "Option name conflicts with a positional argument"
     );
+    static_assert(!std::is_same_v<T, bool>, "Cannot define flag with default value when target is bool");
 
     auto new_opt  = opt_with_default<T, LongFlag, ShortFlag>(target, std::move(implicit_val), help);
     auto new_opts = std::tuple_cat(std::move(opts), std::make_tuple(new_opt));

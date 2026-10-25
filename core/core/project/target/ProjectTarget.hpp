@@ -5,12 +5,10 @@
 #include <utility>
 
 #include "core/Conf.hpp"
-#include "core/project/Language.hpp"
 #include "core/project/Link.hpp"
 #include "core/project/target/ProjectTargetDependency.hpp"
 #include "core/project/target/ProjectTargetResolvedFlags.hpp"
 #include "core/registry/target/RegistryTarget.hpp"
-#include "core/util/directories.hpp"
 
 namespace zc { class Exception; } // namespace zc
 

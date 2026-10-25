@@ -14,6 +14,7 @@
 
 #include <exception>
 
+#include "commands/Build.hpp"
 #include "commands/Command.hpp"
 #include "commands/Config.hpp"
 #include "commands/Init.hpp"
@@ -48,21 +49,28 @@ int main(const int argc, char **argv)
   zc::app::InstallCommandCtx install_ctx;
   zc::app::BuildCommandCtx   build_ctx;
 
-  bool save_path = false;                  // install / update
-  bool dont_use  = false;                  // update
-  bool simple    = false;                  // list
-  bool git       = false;                  // init
-  bool edit      = false;                  // init
+  bool save_path               = false;             // install / update
+  bool dont_use                = false;             // update
+  bool simple                  = false;             // list
+  bool git                     = false;             // init
+  bool edit                    = false;             // init
+  bool clean                   = false;             // build
+  bool release                 = false;             // build
+  bool debug                   = false;             // build
+  bool release_with_debug_info = false;             // build
 
-  std::string_view type;                   // list
-  std::string_view key;                    // config
-  std::string_view value;                  // config
-  std::string_view name;                   // init
-  std::string_view author;                 // init
-  std::string_view description;            // init
-  std::string_view project_template;       // init
+  std::string_view type;                            // list
+  std::string_view key;                             // config
+  std::string_view value;                           // config
+  std::string_view name;                            // init
+  std::string_view author;                          // init
+  std::string_view description;                     // init
+  std::string_view project_template;                // init
 
-  std::vector<std::string_view> languages; // init
+  std::vector<std::string_view> languages;          // init
+  std::vector<std::string>      build_targets;      // build
+
+  std::optional<std::vector<std::string>> run_args; // build
 
   std::unique_ptr<zc::app::Command> command;
 
@@ -146,6 +154,28 @@ int main(const int argc, char **argv)
                         );
                       });
 
+  const auto build =
+    zc::cli::cmd<"build", "Build project targets">()
+      .positional<"targets">(build_targets, "Targets to build")
+      .flag<"clean", 'c'>(clean, "Clean build directory before building")
+      .flag<"release", 'r'>(release, "Compile in Release mode")
+      .flag<"debug", 'd'>(debug, "Compile in Debug mode")
+      .flag<"release-with-debug-info", 'D'>(
+        release_with_debug_info, "Compile in Release with debug info mode"
+      )
+      .flagWithDefault<"jobs", 'j'>(
+        build_ctx.jobs, zc::core::gc().jobs(), "Number of concurrent jobs for compilation"
+      )
+      .flag<"run", 'R'>(run_args, "Execute compiled binary targets with optional arguments")
+      .setAction([&] {
+        const bool               run  = run_args.has_value();
+        std::vector<std::string> args = run_args.value_or(std::vector<std::string>{});
+        command                       = std::make_unique<zc::app::Build>(
+          cmd_ctx, build_ctx, std::move(build_targets), clean, run, release, debug, release_with_debug_info,
+          std::move(args)
+        );
+      });
+
   // ——— Root command ———
 
   const auto root_cmd = zc::cli::cmd<"zc", "The C and C++ package manager and build system!">()
@@ -165,6 +195,7 @@ int main(const int argc, char **argv)
                           .subcommand(login)
                           .subcommand(logout)
                           .subcommand(init)
+                          .subcommand(build)
                           .requiresSubcommand();
 
   const auto app = zc::cli::app(root_cmd).version(version_str);

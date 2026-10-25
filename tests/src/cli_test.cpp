@@ -224,4 +224,99 @@ TEST(CliTest, VariadicPositionalArguments)
   EXPECT_EQ(targets[2], "pkg3");
 }
 
+TEST(CliTest, OptionalVariadicOptionFlag)
+{
+  // 1. Without flag provided
+  {
+    std::optional<std::vector<std::string>> run_args;
+    bool                                    verbose = false;
+
+    auto build_cmd = cli::cmd<"build", "Build">()
+                       .flag<"verbose", 'v'>(verbose, "Verbose")
+                       .flag<"run", 'r'>(run_args, "Run with args");
+
+    const char    *argv[] = { "build", "-v" };
+    cli::ArgStream stream{ .argc = 2, .argv = argv };
+    std::tuple<>   empty;
+
+    build_cmd.parseStream(stream, empty);
+
+    EXPECT_TRUE(verbose);
+    EXPECT_FALSE(run_args.has_value());
+  }
+
+  // 2. Flag provided without args: `--run`
+  {
+    std::optional<std::vector<std::string>> run_args;
+
+    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
+
+    const char    *argv[] = { "build", "--run" };
+    cli::ArgStream stream{ .argc = 2, .argv = argv };
+    std::tuple<>   empty;
+
+    build_cmd.parseStream(stream, empty);
+
+    ASSERT_TRUE(run_args.has_value());
+    EXPECT_TRUE(run_args->empty());
+  }
+
+  // 3. Short flag without args: `-r`
+  {
+    std::optional<std::vector<std::string>> run_args;
+
+    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
+
+    const char    *argv[] = { "build", "-r" };
+    cli::ArgStream stream{ .argc = 2, .argv = argv };
+    std::tuple<>   empty;
+
+    build_cmd.parseStream(stream, empty);
+
+    ASSERT_TRUE(run_args.has_value());
+    EXPECT_TRUE(run_args->empty());
+  }
+
+  // 4. Flag provided with greedy arguments and followed by another flag
+  {
+    std::optional<std::vector<std::string>> run_args;
+    bool                                    clean = false;
+
+    auto build_cmd = cli::cmd<"build", "Build">()
+                       .flag<"clean", 'c'>(clean, "Clean")
+                       .flag<"run", 'r'>(run_args, "Run with args");
+
+    const char    *argv[] = { "build", "-r", "arg1", "arg2", "-c" };
+    cli::ArgStream stream{ .argc = 5, .argv = argv };
+    std::tuple<>   empty;
+
+    build_cmd.parseStream(stream, empty);
+
+    EXPECT_TRUE(clean);
+    ASSERT_TRUE(run_args.has_value());
+    ASSERT_EQ(run_args->size(), 2U);
+    EXPECT_EQ((*run_args)[0], "arg1");
+    EXPECT_EQ((*run_args)[1], "arg2");
+  }
+
+  // 5. Flag with '=' syntax
+  {
+    std::optional<std::vector<std::string>> run_args;
+
+    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
+
+    const char    *argv[] = { "build", "--run=foo,bar,baz" };
+    cli::ArgStream stream{ .argc = 2, .argv = argv };
+    std::tuple<>   empty;
+
+    build_cmd.parseStream(stream, empty);
+
+    ASSERT_TRUE(run_args.has_value());
+    ASSERT_EQ(run_args->size(), 3U);
+    EXPECT_EQ((*run_args)[0], "foo");
+    EXPECT_EQ((*run_args)[1], "bar");
+    EXPECT_EQ((*run_args)[2], "baz");
+  }
+}
+
 } // namespace zc::tests

@@ -49,6 +49,7 @@ enum class Key : u8 {
   Down,
   Enter,
   Space,
+  Esc,
 };
 
 inline Key read_key()
@@ -62,6 +63,12 @@ inline Key read_key()
     return Key::Enter;
   if (c == ' ' || c == 'x')
     return Key::Space;
+  if (c == 'k')
+    return Key::Up;
+  if (c == 'j')
+    return Key::Down;
+  if (c == 'q') // TODO: or esc
+    return Key::Esc;
 
 #ifdef ZC_WINDOWS
   if (c == -32 || c == 0 || static_cast<unsigned char>(c) == 224) {

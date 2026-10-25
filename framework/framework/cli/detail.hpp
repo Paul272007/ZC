@@ -21,6 +21,45 @@ struct is_vector<std::vector<T, Alloc>> : std::true_type {};
 template<typename T>
 inline constexpr bool is_vector_v = is_vector<std::remove_cvref_t<T>>::value;
 
+template<typename T>
+struct is_optional : std::false_type {};
+
+template<typename T>
+struct is_optional<std::optional<T>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_optional_v = is_optional<std::remove_cvref_t<T>>::value;
+
+template<typename T>
+struct is_variadic_target : std::false_type {};
+
+template<typename T, typename Alloc>
+struct is_variadic_target<std::vector<T, Alloc>> : std::true_type {};
+
+template<typename T, typename Alloc>
+struct is_variadic_target<std::optional<std::vector<T, Alloc>>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_variadic_target_v = is_variadic_target<std::remove_cvref_t<T>>::value;
+
+template<typename T>
+struct vector_elem_type {
+  using type = void;
+};
+
+template<typename T, typename Alloc>
+struct vector_elem_type<std::vector<T, Alloc>> {
+  using type = T;
+};
+
+template<typename T, typename Alloc>
+struct vector_elem_type<std::optional<std::vector<T, Alloc>>> {
+  using type = T;
+};
+
+template<typename T>
+using vector_elem_t = typename vector_elem_type<std::remove_cvref_t<T>>::type;
+
 template<FixedString LongFlag, char ShortFlag, typename OptsTuple>
 consteval bool has_conflicting_option()
 {
@@ -91,7 +130,11 @@ void reset_matched(Tuple &items)
 template<Assignable T>
 bool parse_value(std::string_view str, T &out)
 {
-  if constexpr (is_vector_v<T>) {
+  if constexpr (is_optional_v<T>) {
+    if (!out)
+      out.emplace();
+    return parse_value(str, *out);
+  } else if constexpr (is_vector_v<T>) {
     typename T::value_type elem{};
     if (!parse_value(str, elem))
       return false;
@@ -121,13 +164,37 @@ bool try_option(Opt &opt, ArgStream &args)
 
   if (arg.starts_with("--")) {
     const std::string_view body = arg.substr(2);
-    // Long flag with '=' : --jobs=4
+    // Long flag with '=' : --jobs=4 or --run=arg1,arg2
     if (body.starts_with(ln) && body.size() > ln.size() && body[ln.size()] == '=') {
-      if (const std::string_view val = body.substr(ln.size() + 1); !parse_value(val, opt.target))
-        return false;
-      opt.matched = true;
-      args.advance();
-      return true;
+      const std::string_view val = body.substr(ln.size() + 1);
+      if constexpr (is_variadic_target_v<T>) {
+        auto &vec = [&]() -> auto & {
+          if constexpr (is_optional_v<T>) {
+            if (!opt.target.has_value())
+              opt.target.emplace();
+            return *opt.target;
+          } else {
+            return opt.target;
+          }
+        }();
+        using Elem = vector_elem_t<T>;
+        for (const auto part : val | std::views::split(',') |
+               std::views::filter([](auto &&w) { return !std::ranges::empty(w); })) {
+          Elem elem{};
+          if (!parse_value(std::string_view(part), elem))
+            return false;
+          vec.push_back(std::move(elem));
+        }
+        opt.matched = true;
+        args.advance();
+        return true;
+      } else {
+        if (!parse_value(val, opt.target))
+          return false;
+        opt.matched = true;
+        args.advance();
+        return true;
+      }
     }
     if (body != ln)
       return false;
@@ -138,14 +205,38 @@ bool try_option(Opt &opt, ArgStream &args)
     if (arg.size() >= 3) {
       // Short flag with '=' : -j=4
       if (arg.at(2) == '=') {
-        if (const std::string_view val = arg.substr(3); !parse_value(val, opt.target))
-          return false;
-        opt.matched = true;
-        args.advance();
-        return true;
+        const std::string_view val = arg.substr(3);
+        if constexpr (is_variadic_target_v<T>) {
+          auto &vec = [&]() -> auto & {
+            if constexpr (is_optional_v<T>) {
+              if (!opt.target.has_value())
+                opt.target.emplace();
+              return *opt.target;
+            } else {
+              return opt.target;
+            }
+          }();
+          using Elem = vector_elem_t<T>;
+          for (const auto part : val | std::views::split(',') |
+                 std::views::filter([](auto &&w) { return !std::ranges::empty(w); })) {
+            Elem elem{};
+            if (!parse_value(std::string_view(part), elem))
+              return false;
+            vec.push_back(std::move(elem));
+          }
+          opt.matched = true;
+          args.advance();
+          return true;
+        } else {
+          if (!parse_value(val, opt.target))
+            return false;
+          opt.matched = true;
+          args.advance();
+          return true;
+        }
       }
-      // For non-booleans : Short flag without '=' : -j4
-      if constexpr (!std::is_same_v<T, bool>) {
+      // For non-booleans and non-variadics : Short flag without '=' : -j4
+      if constexpr (!std::is_same_v<T, bool> && !is_variadic_target_v<T>) {
         if (const std::string_view val = arg.substr(2); parse_value(val, opt.target)) {
           opt.matched = true;
           args.advance();
@@ -160,6 +251,48 @@ bool try_option(Opt &opt, ArgStream &args)
     opt.target  = true;
     opt.matched = true;
     args.advance();
+    return true;
+  } else if constexpr (is_variadic_target_v<T>) {
+    args.advance(); // consume the flag token (e.g. -r or --run)
+    opt.matched = true;
+
+    auto &vec = [&]() -> auto & {
+      if constexpr (is_optional_v<T>) {
+        if (!opt.target.has_value())
+          opt.target.emplace();
+        return *opt.target;
+      } else {
+        return opt.target;
+      }
+    }();
+
+    using Elem = vector_elem_t<T>;
+
+    bool consumed_any = false;
+    while (args.hasNext()) {
+      std::string_view cur = args.current();
+      if (cur == "--" || is_flag(cur))
+        break;
+
+      Elem elem{};
+      if (!parse_value(cur, elem))
+        break;
+
+      vec.push_back(std::move(elem));
+      consumed_any = true;
+      args.advance();
+    }
+
+    if (!consumed_any) {
+      if constexpr (is_optional_v<T>) {
+        // Flag given with 0 arguments; target is now an active empty vector
+      } else if (opt.hasImplicitValue()) {
+        opt.target = opt.implicitValue();
+      } else {
+        return false;
+      }
+    }
+
     return true;
   } else {
     if (opt.hasImplicitValue()) {
@@ -359,7 +492,19 @@ void print_opt_row(const Opt &opt)
 
   if constexpr (std::is_same_v<T, stdfs::path>)
     col += " <path>";
-  else if constexpr (std::is_assignable_v<T &, std::string_view> || is_vector_v<T>)
+  else if constexpr (is_optional_v<T>) {
+    using Val = typename std::remove_cvref_t<T>::value_type;
+    if constexpr (is_vector_v<Val>)
+      col += " [<args>...]";
+    else if constexpr (std::is_same_v<Val, stdfs::path>)
+      col += " [<path>]";
+    else if constexpr (std::is_assignable_v<Val &, std::string_view>)
+      col += " [<text>]";
+    else if constexpr (std::is_arithmetic_v<Val> && !std::is_same_v<Val, bool>)
+      col += " [<value>]";
+  } else if constexpr (is_vector_v<T>)
+    col += " <text>...";
+  else if constexpr (std::is_assignable_v<T &, std::string_view>)
     col += " <text>";
   else if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>)
     col += " <value>";

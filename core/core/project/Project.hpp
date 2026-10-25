@@ -4,6 +4,7 @@
 #include "core/project/BuildMode.hpp"
 #include "core/project/LanguageConf.hpp"
 #include "core/project/target/ProjectTarget.hpp"
+#include "core/util/directories.hpp"
 #include "framework/shell.hpp"
 #include "framework/Version.hpp"
 
