@@ -65,8 +65,8 @@ protected:
 public:
   ~Registry() override;
   Registry(Registry &&)                 = delete;
-  Registry &operator=(Registry &&)      = delete;
   Registry(const Registry &)            = delete;
+  Registry &operator=(Registry &&)      = delete;
   Registry &operator=(const Registry &) = delete;
 
   [[nodiscard]] static Registry &get();

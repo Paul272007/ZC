@@ -8,14 +8,14 @@ namespace zc
 enum class CliError : u8 {
   MissingSubCommand,
   MissingFlag,
-  UnknownSubCommand, // unused
+  UnknownSubCommand,
   UnknownFlag,
-  MissingValue,      // unused
+  MissingValue,
   MissingPositional,
   UnexpectedPositional,
   IncompatibleFlags,
   Interrupted,
-  InvalidValue, // unused
+  InvalidValue,
 };
 
 constexpr u8 exit_code_base(CliError /**/) noexcept

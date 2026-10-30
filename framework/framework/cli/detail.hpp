@@ -1,10 +1,20 @@
 #pragma once
 
+#include <array>
 #include <charconv>
+#include <cstddef>
+#include <format>
+#include <optional>
+#include <ranges>
+#include <string>
 #include <tuple>
+#include <type_traits>
+#include <vector>
 
-#include "ArgStream.hpp"
-#include "FixedString.hpp"
+#include "framework/cli/Args.hpp"
+#include "framework/cli/ArgStream.hpp"
+#include "framework/Exception.hpp"
+#include "framework/fs.hpp"
 #include "framework/ui/UI.hpp"
 #include "framework/util/concepts.hpp"
 #include "framework/util/helpers.hpp"
@@ -31,104 +41,185 @@ template<typename T>
 inline constexpr bool is_optional_v = is_optional<std::remove_cvref_t<T>>::value;
 
 template<typename T>
-struct is_variadic_target : std::false_type {};
-
-template<typename T, typename Alloc>
-struct is_variadic_target<std::vector<T, Alloc>> : std::true_type {};
-
-template<typename T, typename Alloc>
-struct is_variadic_target<std::optional<std::vector<T, Alloc>>> : std::true_type {};
+inline constexpr bool is_flag_arg_v = std::derived_from<std::remove_cvref_t<T>, FlagTag>;
 
 template<typename T>
-inline constexpr bool is_variadic_target_v = is_variadic_target<std::remove_cvref_t<T>>::value;
+inline constexpr bool is_positional_arg_v = std::derived_from<std::remove_cvref_t<T>, PositionalTag>;
 
 template<typename T>
-struct vector_elem_type {
-  using type = void;
-};
+inline constexpr bool requires_subcommand_v =
+  requires { requires static_cast<bool>(std::remove_cvref_t<T>::requires_subcommand); };
 
-template<typename T, typename Alloc>
-struct vector_elem_type<std::vector<T, Alloc>> {
-  using type = T;
-};
+// ——— Compile-time validation ———
 
-template<typename T, typename Alloc>
-struct vector_elem_type<std::optional<std::vector<T, Alloc>>> {
-  using type = T;
+struct ArgMeta {
+  bool             is_pos{};
+  bool             is_required{};
+  bool             is_list{};
+  std::string_view name{};
+  char             short_name{ '\0' };
 };
 
 template<typename T>
-using vector_elem_t = typename vector_elem_type<std::remove_cvref_t<T>>::type;
-
-template<FixedString LongFlag, char ShortFlag, typename OptsTuple>
-consteval bool has_conflicting_option()
+consteval ArgMeta make_arg_meta()
 {
-  return []<typename... Opts>(std::type_identity<std::tuple<Opts...>>) {
-    return (
-      (Opts::longName() == LongFlag.sv() || (ShortFlag != '\0' && Opts::shortName() == ShortFlag)) || ...
+  using A = std::remove_cvref_t<T>;
+  if constexpr (is_flag_arg_v<A>) {
+    return ArgMeta{
+      .is_pos      = false,
+      .is_required = A::isRequired(),
+      .is_list     = A::isList(),
+      .name        = A::longName(),
+      .short_name  = A::shortName(),
+    };
+  } else {
+    return ArgMeta{
+      .is_pos      = true,
+      .is_required = A::isRequired(),
+      .is_list     = A::isList(),
+      .name        = A::name(),
+      .short_name  = '\0',
+    };
+  }
+}
+
+template<std::size_t N>
+consteval bool has_duplicate_flag_names(const std::array<ArgMeta, N> &metas)
+{
+  for (std::size_t i = 0; i < N; ++i) {
+    if (metas[i].is_pos)
+      continue;
+    for (std::size_t j = i + 1; j < N; ++j) {
+      if (metas[j].is_pos)
+        continue;
+      if (metas[i].name == metas[j].name)
+        return true;
+      if (metas[i].short_name != '\0' && metas[i].short_name == metas[j].short_name)
+        return true;
+    }
+  }
+  return false;
+}
+
+template<std::size_t N>
+consteval bool has_duplicate_positional_names(const std::array<ArgMeta, N> &metas)
+{
+  for (std::size_t i = 0; i < N; ++i) {
+    if (!metas[i].is_pos)
+      continue;
+    for (std::size_t j = i + 1; j < N; ++j)
+      if (metas[j].is_pos && metas[i].name == metas[j].name)
+        return true;
+  }
+  return false;
+}
+
+template<std::size_t N>
+consteval bool has_flag_positional_conflict(const std::array<ArgMeta, N> &metas)
+{
+  for (std::size_t i = 0; i < N; ++i) {
+    for (std::size_t j = i + 1; j < N; ++j)
+      if (metas[i].is_pos != metas[j].is_pos && metas[i].name == metas[j].name)
+        return true;
+  }
+  return false;
+}
+
+template<std::size_t N>
+consteval bool has_required_after_optional_positional(const std::array<ArgMeta, N> &metas)
+{
+  bool seen_optional = false;
+  for (std::size_t i = 0; i < N; ++i) {
+    if (!metas[i].is_pos)
+      continue;
+    if (metas[i].is_required && seen_optional)
+      return true;
+    if (!metas[i].is_required)
+      seen_optional = true;
+  }
+  return false;
+}
+
+template<std::size_t N>
+consteval bool has_positional_after_list_positional(const std::array<ArgMeta, N> &metas)
+{
+  bool seen_list = false;
+  for (std::size_t i = 0; i < N; ++i) {
+    if (!metas[i].is_pos)
+      continue;
+    if (seen_list)
+      return true;
+    if (metas[i].is_list)
+      seen_list = true;
+  }
+  return false;
+}
+
+template<typename ArgsTuple>
+consteval void validate_args()
+{
+  []<typename... Elems>(std::type_identity<std::tuple<Elems...>>) consteval {
+    static_assert(
+      ((is_flag_arg_v<Elems> || is_positional_arg_v<Elems>) && ...),
+      "All elements returned by options()/allArgs() must be CLI argument types from Args.hpp"
     );
-  }(std::type_identity<OptsTuple>{});
-}
 
-template<FixedString Name, typename PosTuple>
-consteval bool has_conflicting_positional()
-{
-  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
-    return ((Poss::name() == Name.sv()) || ...);
-  }(std::type_identity<PosTuple>{});
-}
+    constexpr std::array<ArgMeta, sizeof...(Elems)> metas{ make_arg_meta<Elems>()... };
 
-template<typename PosTuple>
-consteval bool has_optional_positional()
-{
-  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
-    return ((!Poss::isRequired()) || ...);
-  }(std::type_identity<PosTuple>{});
-}
-
-template<typename PosTuple>
-consteval bool has_variadic_positional()
-{
-  return []<typename... Poss>(std::type_identity<std::tuple<Poss...>>) {
-    return (is_vector_v<decltype(Poss::target)> || ...);
-  }(std::type_identity<PosTuple>{});
-}
-
-template<typename SubCmd, typename SubsTuple>
-consteval bool has_conflicting_subcommand()
-{
-  return []<typename... Subs>(std::type_identity<std::tuple<Subs...>>) {
-    return ((Subs::name() == SubCmd::name()) || ...);
-  }(std::type_identity<SubsTuple>{});
-}
-
-template<typename TupleA, typename TupleB>
-consteval bool has_conflicting_option_tuples()
-{
-  return []<typename... OptsA>(std::type_identity<std::tuple<OptsA...>>) {
-    return (
-      []<typename OptA, typename... OptsB>(
-        std::type_identity<OptA>, std::type_identity<std::tuple<OptsB...>>
-      ) {
-        return (
-          (OptA::longName() == OptsB::longName() ||
-           (OptA::shortName() != '\0' && OptA::shortName() == OptsB::shortName())) ||
-          ...
-        );
-      }(std::type_identity<OptsA>{}, std::type_identity<TupleB>{}) ||
-      ...
+    static_assert(!has_duplicate_flag_names(metas), "Duplicate option/flag name");
+    static_assert(!has_duplicate_positional_names(metas), "Duplicate positional argument name");
+    static_assert(
+      !has_flag_positional_conflict(metas), "Option long name conflicts with a positional argument name"
     );
-  }(std::type_identity<TupleA>{});
+    static_assert(
+      !has_required_after_optional_positional(metas),
+      "Cannot declare a required positional argument after an optional positional argument"
+    );
+    static_assert(
+      !has_positional_after_list_positional(metas),
+      "Cannot declare a positional argument after a ListPositional argument"
+    );
+  }(std::type_identity<std::remove_cvref_t<ArgsTuple>>{});
 }
+
+template<typename... SubCmds>
+consteval bool has_duplicate_subcommands()
+{
+  constexpr std::array<std::string_view, sizeof...(SubCmds)> names{ SubCmds::name()... };
+  for (std::size_t i = 0; i < names.size(); ++i) {
+    for (std::size_t j = i + 1; j < names.size(); ++j)
+      if (names[i] == names[j])
+        return true;
+  }
+  return false;
+}
+
+template<typename ArgsTuple>
+inline constexpr bool has_positionals_v = []<typename... Elems>(std::type_identity<std::tuple<Elems...>>) {
+  return (is_positional_arg_v<Elems> || ...);
+}(std::type_identity<std::remove_cvref_t<ArgsTuple>>{});
+
+// ——— Runtime parsing ———
 
 template<typename Tuple>
 void reset_matched(Tuple &items)
 {
-  std::apply([](auto &...item) { ((item.matched = false), ...); }, items);
+  std::apply(
+    [](auto &...item) {
+      auto reset_one = []<typename T>(T &arg) {
+        using ArgType = std::remove_cvref_t<T>;
+        arg.setMatched(false);
+        if constexpr (ArgType::isList())
+          arg.storage().clear();
+      };
+      (reset_one(item), ...);
+    },
+    items
+  );
 }
 
 template<Assignable T>
-bool parse_value(std::string_view str, T &out)
+bool parse_value(const std::string_view str, T &out)
 {
   if constexpr (is_optional_v<T>) {
     if (!out)
@@ -147,311 +238,300 @@ bool parse_value(std::string_view str, T &out)
     out = to_bool(str);
     return true;
   } else if constexpr (std::is_arithmetic_v<T>) {
-    auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), out);
-    return ec == std::errc{};
+    const char *end = str.data() + str.size();
+    auto [ptr, ec]  = std::from_chars(str.data(), end, out);
+    return ec == std::errc{} && ptr == end;
   }
   return false;
 }
 
-template<typename Opt>
-bool try_option(Opt &opt, ArgStream &args)
+struct FlagMatch {
+  bool                            matched    = false;
+  std::optional<std::string_view> inline_val = std::nullopt;
+  std::string_view                label{};
+};
+
+template<typename OptType>
+[[nodiscard]] FlagMatch match_flag_token(const std::string_view arg) noexcept
 {
-  using T = std::remove_reference_t<decltype(opt.target)>;
-
-  const auto arg = args.current();
-  const auto ln  = opt.longName();
-  const char sn  = opt.shortName();
-
+  const std::string_view ln = OptType::longName();
   if (arg.starts_with("--")) {
     const std::string_view body = arg.substr(2);
-    // Long flag with '=' : --jobs=4 or --run=arg1,arg2
-    if (body.starts_with(ln) && body.size() > ln.size() && body[ln.size()] == '=') {
-      const std::string_view val = body.substr(ln.size() + 1);
-      if constexpr (is_variadic_target_v<T>) {
-        auto &vec = [&]() -> auto & {
-          if constexpr (is_optional_v<T>) {
-            if (!opt.target.has_value())
-              opt.target.emplace();
-            return *opt.target;
-          } else {
-            return opt.target;
-          }
-        }();
-        using Elem = vector_elem_t<T>;
-        for (const auto part : val | std::views::split(',') |
-               std::views::filter([](auto &&w) { return !std::ranges::empty(w); })) {
-          Elem elem{};
-          if (!parse_value(std::string_view(part), elem))
-            return false;
-          vec.push_back(std::move(elem));
-        }
-        opt.matched = true;
-        args.advance();
-        return true;
-      } else {
-        if (!parse_value(val, opt.target))
-          return false;
-        opt.matched = true;
-        args.advance();
-        return true;
-      }
-    }
-    if (body != ln)
-      return false;
-  } else {
-    if (!opt.hasShortName() || arg.size() < 2 || arg.at(0) != '-' || arg.at(1) != sn)
-      return false;
-
-    if (arg.size() >= 3) {
-      // Short flag with '=' : -j=4
-      if (arg.at(2) == '=') {
-        const std::string_view val = arg.substr(3);
-        if constexpr (is_variadic_target_v<T>) {
-          auto &vec = [&]() -> auto & {
-            if constexpr (is_optional_v<T>) {
-              if (!opt.target.has_value())
-                opt.target.emplace();
-              return *opt.target;
-            } else {
-              return opt.target;
-            }
-          }();
-          using Elem = vector_elem_t<T>;
-          for (const auto part : val | std::views::split(',') |
-                 std::views::filter([](auto &&w) { return !std::ranges::empty(w); })) {
-            Elem elem{};
-            if (!parse_value(std::string_view(part), elem))
-              return false;
-            vec.push_back(std::move(elem));
-          }
-          opt.matched = true;
-          args.advance();
-          return true;
-        } else {
-          if (!parse_value(val, opt.target))
-            return false;
-          opt.matched = true;
-          args.advance();
-          return true;
-        }
-      }
-      // For non-booleans and non-variadics : Short flag without '=' : -j4
-      if constexpr (!std::is_same_v<T, bool> && !is_variadic_target_v<T>) {
-        if (const std::string_view val = arg.substr(2); parse_value(val, opt.target)) {
-          opt.matched = true;
-          args.advance();
-          return true;
-        }
-      }
-      return false;
-    }
+    if (body == ln)
+      return { .matched = true, .label = arg };
+    if (body.starts_with(ln) && body.size() > ln.size() && body[ln.size()] == '=')
+      return {
+        .matched    = true,
+        .inline_val = body.substr(ln.size() + 1),
+        .label      = arg.substr(0, 2 + ln.size()),
+      };
+    return {};
   }
 
-  if constexpr (std::is_same_v<T, bool>) {
-    opt.target  = true;
-    opt.matched = true;
+  if (!OptType::hasShortName() || arg.size() < 2 || arg[0] != '-' || arg[1] != OptType::shortName())
+    return {};
+  if (arg.size() == 2)
+    return { .matched = true, .label = arg };
+  if (arg[2] == '=')
+    return { .matched = true, .inline_val = arg.substr(3), .label = arg.substr(0, 2) };
+  if constexpr (!OptType::isSwitch() && !OptType::isList())
+    return { .matched = true, .inline_val = arg.substr(2), .label = arg.substr(0, 2) };
+  return {};
+}
+
+template<typename Opt>
+void consume_inline_value(Opt &opt, const std::string_view val, const std::string_view label)
+{
+  using OptType = std::remove_cvref_t<Opt>;
+  if constexpr (OptType::isList()) {
+    bool any = false;
+    for (const auto part : val | std::views::split(',') |
+           std::views::filter([](auto &&w) { return !std::ranges::empty(w); })) {
+      typename OptType::elem_type elem{};
+      if (const std::string_view sv(part); !parse_value(sv, elem))
+        throw_or_terminate(Exception(CliError::InvalidValue, "invalid value '{}' for '{}'", sv, label));
+      opt.storage().push_back(std::move(elem));
+      any = true;
+    }
+    if (!any && !OptType::allowsEmpty())
+      throw_or_terminate(Exception(CliError::MissingValue, "missing value for '{}'", label));
+  } else if (!parse_value(val, opt.storage())) {
+    throw_or_terminate(Exception(CliError::InvalidValue, "invalid value '{}' for '{}'", val, label));
+  }
+}
+
+template<typename Opt>
+void consume_list_tokens(Opt &opt, ArgStream &args, const std::string_view label)
+{
+  using OptType = std::remove_cvref_t<Opt>;
+  args.advance();
+
+  bool any = false;
+  while (args.hasNext()) {
+    const std::string_view cur = args.current();
+    if (cur == "--" || is_flag(cur))
+      break;
+
+    typename OptType::elem_type elem{};
+    if (!parse_value(cur, elem))
+      break;
+
+    opt.storage().push_back(std::move(elem));
+    any = true;
     args.advance();
-    return true;
-  } else if constexpr (is_variadic_target_v<T>) {
-    args.advance(); // consume the flag token (e.g. -r or --run)
-    opt.matched = true;
+  }
 
-    auto &vec = [&]() -> auto & {
-      if constexpr (is_optional_v<T>) {
-        if (!opt.target.has_value())
-          opt.target.emplace();
-        return *opt.target;
-      } else {
-        return opt.target;
-      }
-    }();
+  if (!any && !OptType::allowsEmpty())
+    throw_or_terminate(Exception(CliError::MissingValue, "missing value for '{}'", label));
+}
 
-    using Elem = vector_elem_t<T>;
+template<typename Opt>
+void consume_next_value(Opt &opt, ArgStream &args, const std::string_view label)
+{
+  if (args.pos + 1 >= args.argc)
+    throw_or_terminate(Exception(CliError::MissingValue, "missing value for '{}'", label));
 
-    bool consumed_any = false;
-    while (args.hasNext()) {
-      std::string_view cur = args.current();
-      if (cur == "--" || is_flag(cur))
-        break;
+  if (const std::string_view val = args.peek(); !parse_value(val, opt.storage()))
+    throw_or_terminate(Exception(CliError::InvalidValue, "invalid value '{}' for '{}'", val, label));
 
-      Elem elem{};
-      if (!parse_value(cur, elem))
-        break;
+  args.advance(2);
+}
 
-      vec.push_back(std::move(elem));
-      consumed_any = true;
-      args.advance();
-    }
-
-    if (!consumed_any) {
-      if constexpr (is_optional_v<T>) {
-        // Flag given with 0 arguments; target is now an active empty vector
-      } else if (opt.hasImplicitValue()) {
-        opt.target = opt.implicitValue();
-      } else {
-        return false;
-      }
-    }
-
-    return true;
+template<typename Opt>
+bool try_flag_arg(Opt &opt, ArgStream &args)
+{
+  using OptType = std::remove_cvref_t<Opt>;
+  if constexpr (!is_flag_arg_v<OptType>) {
+    return false;
   } else {
-    if (opt.hasImplicitValue()) {
-      if (const std::string_view next = args.peek(); !next.empty() && !is_flag(next)) {
-        if (T parsed_val{}; parse_value(next, parsed_val)) {
-          opt.target  = std::move(parsed_val);
-          opt.matched = true;
-          args.advance(2);
-          return true;
-        }
-      }
-      opt.target  = opt.implicitValue();
-      opt.matched = true;
-      args.advance(1);
-      return true;
-    }
-    if (const std::string_view val = args.peek(); val.empty() || !parse_value(val, opt.target))
+    const FlagMatch m = match_flag_token<OptType>(args.current());
+    if (!m.matched)
       return false;
-    opt.matched = true;
-    args.advance(2);
+
+    if (m.inline_val) {
+      consume_inline_value(opt, *m.inline_val, m.label);
+      args.advance();
+    } else if constexpr (OptType::isSwitch()) {
+      opt.storage() = true;
+      args.advance();
+    } else if constexpr (OptType::isList()) {
+      consume_list_tokens(opt, args, m.label);
+    } else {
+      consume_next_value(opt, args, m.label);
+    }
+
+    opt.setMatched(true);
     return true;
   }
 }
 
-/// @brief Try to find a match between command-line arguments and given options/flags
-/// @tparam Tuple The type of the options tuple
-/// @param options The options to try to match
-/// @param args The command-line arguments to parse
-/// @return Whether it found a matching flag
 template<typename Tuple>
-bool try_options_from(Tuple &options, ArgStream &args)
+bool try_flags_from(Tuple &items, ArgStream &args)
 {
-  return std::apply([&args](auto &...opt) { return (try_option(opt, args) || ...); }, options);
+  return std::apply([&args](auto &...item) { return (try_flag_arg(item, args) || ...); }, items);
 }
 
-template<typename Tuple1, typename Tuple2>
-bool try_combined_flags(Tuple1 &opts, Tuple2 &globs, const std::string_view arg)
+template<typename Tuple>
+bool try_combined_flags(Tuple &items, const std::string_view arg)
 {
-  if (arg.size() < 3 || arg.at(0) != '-' || arg.at(1) == '-')
+  if (arg.size() < 3 || arg[0] != '-' || arg[1] == '-')
     return false;
 
   const std::string_view chars = arg.substr(1);
 
-  // Also check that all flags exist and are boolean flags
-  for (char c : chars) {
+  for (const char c : chars) {
     bool found      = false;
-    auto check_flag = [&](auto &opt) {
-      using T = std::remove_reference_t<decltype(opt.target)>;
-      if constexpr (std::is_same_v<T, bool>) {
-        if (opt.shortName() == c)
-          found = true;
+    auto check_flag = [&]<typename T>(T & /*opt*/) {
+      using OptType = std::remove_cvref_t<T>;
+      if constexpr (is_flag_arg_v<OptType>) {
+        if constexpr (OptType::isSwitch()) {
+          if (OptType::shortName() == c)
+            found = true;
+        }
       }
     };
-    std::apply([&](auto &...o) { (check_flag(o), ...); }, opts);
-    if (!found)
-      std::apply([&](auto &...o) { (check_flag(o), ...); }, globs);
-
+    std::apply([&](auto &...o) { (check_flag(o), ...); }, items);
     if (!found)
       return false;
   }
 
-  // Activate all found flags
-  for (char c : chars) {
-    auto activate_flag = [&](auto &opt) {
-      using T = std::remove_reference_t<decltype(opt.target)>;
-      if constexpr (std::is_same_v<T, bool>) {
-        if (opt.shortName() == c) {
-          opt.target  = true;
-          opt.matched = true;
+  for (const char c : chars) {
+    auto activate_flag = [&]<typename T>(T &opt) {
+      using OptType = std::remove_cvref_t<T>;
+      if constexpr (is_flag_arg_v<OptType>) {
+        if constexpr (OptType::isSwitch()) {
+          if (OptType::shortName() == c) {
+            opt.storage() = true;
+            opt.setMatched(true);
+          }
         }
       }
     };
-    std::apply([&](auto &...o) { (activate_flag(o), ...); }, opts);
-    std::apply([&](auto &...o) { (activate_flag(o), ...); }, globs);
+    std::apply([&](auto &...o) { (activate_flag(o), ...); }, items);
   }
 
   return true;
 }
 
 template<typename Tuple>
-bool try_positional(Tuple &poss, const std::string_view item)
+void consume_flag_token(Tuple &items, ArgStream &args)
+{
+  const std::string_view cur = args.current();
+  if (try_flags_from(items, args))
+    return;
+  if (try_combined_flags(items, cur)) {
+    args.advance();
+    return;
+  }
+  throw_or_terminate(Exception(CliError::UnknownFlag, "unknown option '{}'", cur));
+}
+
+template<typename SubsTuple>
+bool try_dispatch_subcommand(
+  SubsTuple &subs, ArgStream &args, const bool execute_action, const std::string_view cmd_path,
+  bool &matched_leaf
+)
+{
+  bool dispatched = false;
+  std::apply(
+    [&](auto &...sub) {
+      auto try_one = [&](auto &s) {
+        if (!dispatched && args.current() == s.name()) {
+          dispatched = true;
+          args.advance();
+          matched_leaf = s.parseStream(args, execute_action, std::format("{} {}", cmd_path, s.name()));
+        }
+      };
+      (try_one(sub), ...);
+    },
+    subs
+  );
+  return dispatched;
+}
+
+template<typename Tuple>
+bool try_positional_from(Tuple &items, const std::string_view token)
 {
   bool assigned = false;
   std::apply(
-    [&](auto &...pos) {
-      auto try_assign = [&](auto &p) {
-        using TargetT = std::remove_reference_t<decltype(p.target)>;
-        if (!assigned && (!p.matched || is_vector_v<TargetT>)) {
-          if (parse_value(item, p.target)) {
-            p.matched = true;
-            assigned  = true;
+    [&](auto &...item) {
+      auto try_assign = [&]<typename T>(T &p) {
+        using PosType = std::remove_cvref_t<T>;
+        if constexpr (is_positional_arg_v<PosType>) {
+          if (!assigned && (!p.isSet() || PosType::isList())) {
+            if (!parse_value(token, p.storage()))
+              throw_or_terminate(Exception(
+                CliError::InvalidValue, "invalid value '{}' for argument '{}'", token, PosType::name()
+              ));
+            p.setMatched(true);
+            assigned = true;
           }
         }
       };
-      (try_assign(pos), ...);
+      (try_assign(item), ...);
     },
-    poss
+    items
   );
   return assigned;
 }
 
+template<bool RequireSub, typename Tuple>
+void consume_positional_token(Tuple &items, ArgStream &args)
+{
+  const std::string_view cur = args.current();
+  if (try_positional_from(items, cur)) {
+    args.advance();
+    return;
+  }
+  if constexpr (RequireSub)
+    throw_or_terminate(Exception(CliError::UnknownSubCommand, "unknown subcommand '{}'", cur));
+  else
+    throw_or_terminate(Exception(CliError::UnexpectedPositional, "unexpected argument '{}'", cur));
+}
+
 template<typename Tuple>
-void check_required_options(const Tuple &items)
+void check_required_args(const Tuple &items)
 {
   std::apply(
-    [](const auto &...opt) {
-      auto check_one = []<typename T>(const T &o) {
-        using OptType = std::remove_cvref_t<T>;
-        if constexpr (OptType::isRequired()) {
-          if (!o.matched) {
+    [](const auto &...item) {
+      auto check_one = []<typename T>(const T &arg) {
+        using ArgType = std::remove_cvref_t<T>;
+        if constexpr (is_flag_arg_v<ArgType> && ArgType::isRequired()) {
+          if (!arg.isSet())
             throw_or_terminate(
-              Exception(CliError::MissingFlag, "missing required option '--{}'", o.longName())
+              Exception(CliError::MissingFlag, "missing required option '--{}'", ArgType::longName())
             );
-          }
+        } else if constexpr (is_positional_arg_v<ArgType> && ArgType::isRequired()) {
+          if (!arg.isSet())
+            throw_or_terminate(
+              Exception(CliError::MissingPositional, "missing required argument '{}'", ArgType::name())
+            );
         }
       };
-      (check_one(opt), ...);
+      (check_one(item), ...);
     },
     items
   );
 }
 
-template<typename Tuple>
-void check_required_positionals(const Tuple &pos_items)
-{
-  std::apply(
-    [](const auto &...pos) {
-      auto check_one = []<typename T>(const T &p) {
-        using PosType = std::remove_cvref_t<T>;
-        if constexpr (PosType::isRequired()) {
-          if (!p.matched) {
-            throw_or_terminate(
-              Exception(CliError::MissingPositional, "missing required argument '{}'", p.name())
-            );
-          }
-        }
-      };
-      (check_one(pos), ...);
-    },
-    pos_items
-  );
-}
+// ——— Help UI ———
 
-// UI
 template<typename Tuple>
 void print_pos_usage(const Tuple &items)
 {
   std::apply(
-    [](const auto &...pos) {
-      auto print_one = []<typename T>(const T &p) {
-        using PosType                   = std::remove_cvref_t<T>;
-        using TargetT                   = std::remove_reference_t<decltype(p.target)>;
-        constexpr std::string_view dots = is_vector_v<TargetT> ? "..." : "";
-        if constexpr (PosType::isRequired())
-          ui.print(" <{}>{}", p.name(), dots);
-        else
-          ui.print(" [<{}>{}]", p.name(), dots);
+    [](const auto &...item) {
+      auto print_one = []<typename T>(const T & /*p*/) {
+        using PosType = std::remove_cvref_t<T>;
+        if constexpr (is_positional_arg_v<PosType>) {
+          constexpr std::string_view dots = PosType::isList() ? "..." : "";
+          if constexpr (PosType::isRequired())
+            ui.print(" <{}>{}", PosType::name(), dots);
+          else
+            ui.print(" [<{}>{}]", PosType::name(), dots);
+        }
       };
-      (print_one(pos), ...);
+      (print_one(item), ...);
     },
     items
   );
@@ -461,66 +541,71 @@ template<typename Pos>
 void print_pos_row(const Pos &pos)
 {
   using PosType   = std::remove_cvref_t<Pos>;
-  std::string col = std::format("  <{}>", pos.name());
+  std::string col = std::format("  <{}>", PosType::name());
 
-  if constexpr (PosType::isRequired()) {
-    std::string help_str = std::format("{} [required]", pos.help);
-    ui.println("{:<32} {}", col, help_str);
-  } else {
-    ui.println("{:<32} {}", col, pos.help);
-  }
+  if constexpr (PosType::isRequired())
+    ui.println("{:<32} {} [required]", col, pos.description());
+  else
+    ui.println("{:<32} {}", col, pos.description());
 }
 
 template<typename Tuple>
 void print_all_pos(const Tuple &items)
 {
-  std::apply([](const auto &...pos) { (print_pos_row(pos), ...); }, items);
+  std::apply(
+    [](const auto &...item) {
+      auto maybe_print = []<typename T>(const T &p) {
+        if constexpr (is_positional_arg_v<T>)
+          print_pos_row(p);
+      };
+      (maybe_print(item), ...);
+    },
+    items
+  );
 }
 
 template<typename Opt>
 void print_opt_row(const Opt &opt)
 {
-  using T       = std::remove_reference_t<decltype(opt.target)>;
   using OptType = std::remove_cvref_t<Opt>;
 
-  const auto ln = opt.longName();
-  const auto sn = opt.shortName();
+  std::string col = std::format("  --{}", OptType::longName());
+  if constexpr (OptType::hasShortName())
+    std::format_to(std::back_inserter(col), ", -{}", OptType::shortName());
 
-  std::string col = std::format("  --{}", ln);
-  if (opt.hasShortName())
-    std::format_to(std::back_inserter(col), ", -{}", sn);
-
-  if constexpr (std::is_same_v<T, stdfs::path>)
-    col += " <path>";
-  else if constexpr (is_optional_v<T>) {
-    using Val = typename std::remove_cvref_t<T>::value_type;
-    if constexpr (is_vector_v<Val>)
-      col += " [<args>...]";
-    else if constexpr (std::is_same_v<Val, stdfs::path>)
-      col += " [<path>]";
-    else if constexpr (std::is_assignable_v<Val &, std::string_view>)
-      col += " [<text>]";
-    else if constexpr (std::is_arithmetic_v<Val> && !std::is_same_v<Val, bool>)
-      col += " [<value>]";
-  } else if constexpr (is_vector_v<T>)
-    col += " <text>...";
-  else if constexpr (std::is_assignable_v<T &, std::string_view>)
-    col += " <text>";
-  else if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>)
-    col += " <value>";
-
-  if constexpr (OptType::isRequired()) {
-    std::string help_str = std::format("{} [required]", opt.help);
-    ui.println("{:<32} {}", col, help_str);
-  } else {
-    ui.println("{:<32} {}", col, opt.help);
+  if constexpr (!OptType::isSwitch()) {
+    if constexpr (OptType::isList()) {
+      col += OptType::allowsEmpty() ? " [<args>...]" : " <args>...";
+    } else {
+      using ValT = typename OptType::value_type;
+      if constexpr (std::is_same_v<ValT, stdfs::path>)
+        col += " <path>";
+      else if constexpr (std::is_assignable_v<ValT &, std::string_view>)
+        col += " <text>";
+      else if constexpr (std::is_arithmetic_v<ValT>)
+        col += " <value>";
+    }
   }
+
+  if constexpr (OptType::isRequired())
+    ui.println("{:<32} {} [required]", col, opt.description());
+  else
+    ui.println("{:<32} {}", col, opt.description());
 }
 
 template<typename Tuple>
 void print_all_opts(const Tuple &items)
 {
-  std::apply([](const auto &...opt) { (print_opt_row(opt), ...); }, items);
+  std::apply(
+    [](const auto &...item) {
+      auto maybe_print = []<typename T>(const T &o) {
+        if constexpr (is_flag_arg_v<T>)
+          print_opt_row(o);
+      };
+      (maybe_print(item), ...);
+    },
+    items
+  );
 }
 
 template<typename Cmd>

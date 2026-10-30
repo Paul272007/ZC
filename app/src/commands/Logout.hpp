@@ -1,17 +1,17 @@
 #pragma once
 
-#include "commands/Command.hpp"
+#include "AppCommand.hpp"
 #include "core/global-config/GlobalConfig.hpp"
 
 namespace zc::app
 {
 
-class Logout final : public Command
+class Logout final : public AppCommand<"logout", "Log out of your account">
 {
 public:
-  explicit Logout(const CommandCtx &cmd_ctx) : Command(cmd_ctx, false) {}
+  Logout() = default;
 
-  void execute() override
+  void run() override
   {
     core::gc().setToken("");
     core::gc().setUsername("");

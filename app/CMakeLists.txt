@@ -1,20 +1,15 @@
 add_executable(zc-app
+  src/commands/AppCommand.hpp
   src/commands/Build.hpp
-  src/commands/BuildCommand.hpp
-  src/commands/Command.hpp
   src/commands/Config.hpp
   src/commands/Init.hpp
   src/commands/Install.hpp
-  src/commands/InstallCommand.hpp
   src/commands/List.hpp
   src/commands/Login.hpp
+  src/commands/Logout.hpp
   src/commands/Uninstall.hpp
   src/commands/Update.hpp
   src/commands/Use.hpp
-
-  src/context/BuildCommandCtx.hpp
-  src/context/CommandCtx.hpp
-  src/context/InstallCommandCtx.hpp
 
   src/util/helpers.hpp
   src/util/helpers.cpp

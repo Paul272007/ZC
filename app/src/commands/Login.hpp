@@ -3,7 +3,7 @@
 #include <chrono>
 #include <thread>
 
-#include "commands/Command.hpp"
+#include "AppCommand.hpp"
 #include "core/global-config/GlobalConfig.hpp"
 #include "core/util/GithubClient.hpp"
 #include "framework/network.hpp"
@@ -11,7 +11,7 @@
 namespace zc::app
 {
 
-class Login final : public Command
+class Login final : public AppCommand<"login", "Log into your Github account">
 {
   [[nodiscard]] static json initiateLogin()
   {
@@ -34,9 +34,9 @@ class Login final : public Command
   }
 
 public:
-  explicit Login(const CommandCtx &cmd_ctx) : Command(cmd_ctx, false) {}
+  Login() = default;
 
-  void execute() override
+  void run() override
   {
     if (!force_ && !core::gc().token().empty()) {
       const bool res = ui.ask("An account is already logged in. Do you want to change the account ?");

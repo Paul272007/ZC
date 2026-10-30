@@ -1,11 +1,10 @@
 add_library(zc-framework STATIC
-  framework/cli/AppBuilder.hpp
+  framework/cli/App.hpp
+  framework/cli/Args.hpp
   framework/cli/ArgStream.hpp
-  framework/cli/CommandBuilder.hpp
+  framework/cli/CommandBase.hpp
   framework/cli/detail.hpp
   framework/cli/FixedString.hpp
-  framework/cli/Option.hpp
-  framework/cli/Positional.hpp
 
   framework/ui/DefaultUIStrategy.hpp
   framework/ui/Table.hpp

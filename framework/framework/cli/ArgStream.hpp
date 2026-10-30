@@ -8,8 +8,8 @@ namespace zc::cli
 {
 
 struct ArgStream {
-  const int    argc{};
-  const char **argv{};
+  const int           argc{};
+  const char * const *argv{};
 
   int pos = 1; // Skip executable name
 

@@ -1,5 +1,7 @@
 #include "core/project/target/ProjectBinTarget.hpp"
 
+#include <string_view>
+
 namespace zc::core
 {
 
@@ -57,7 +59,7 @@ std::vector<std::string> ProjectBinTarget::generateBuildStatements() const
   return statements;
 }
 
-int ProjectBinTarget::execute(const std::vector<std::string> &args, const sh::Output output) const
+int ProjectBinTarget::execute(const std::vector<std::string_view> &args, const sh::Output output) const
 {
   sh::Cmd cmd({ outputFiles().front().string() }, output);
   for (const auto &arg : args)

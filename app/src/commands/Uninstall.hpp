@@ -1,28 +1,36 @@
 #pragma once
 
-#include "commands/Command.hpp"
-#include "commands/InstallCommand.hpp"
+#include <filesystem>
+#include <string>
+
+#include "AppCommand.hpp"
 #include "core/registry/Registry.hpp"
+#include "framework/cli/Args.hpp"
+#include "util/helpers.hpp"
 
 namespace zc::app
 {
 
-class Uninstall final : public Command, InstallCommand
+class Uninstall final : public AppCommand<"uninstall", "Uninstall packages">
 {
+  ZC_LIST_POSITIONAL(targets, std::string, "Packages to uninstall");
+  ZC_OPTION(local, stdfs::path, 'l', "Uninstall from local project instead of remote", {});
+  ZC_FLAG(sync, 's', "Also remove uninstalled packages from project dependencies");
+
   void uninstallFromPath() const
   {
-    if (target_path_.empty())
+    if (local_->empty())
       return;
 
-    const core::Project project(target_path_);
+    const core::Project project(*local_);
     auto                install_res = core::reg().uninstallFromPath(project, force_);
     if (!install_res)
       throw_or_terminate(install_res.error());
   }
 
-  void uninstallTargets() const
+  void uninstallTargets(const std::map<std::string, Version, std::less<>> &targets) const
   {
-    for (const auto &[pkg, ver] : targets_) {
+    for (const auto &[pkg, ver] : targets) {
       if (ver.isEmpty()) {
         auto uninstall_res = core::reg().uninstall(pkg, force_);
         if (!uninstall_res)
@@ -47,22 +55,25 @@ class Uninstall final : public Command, InstallCommand
   }
 
 public:
-  explicit Uninstall(const CommandCtx &cmd_ctx, InstallCommandCtx &inst_ctx)
-    : Command(cmd_ctx, (inst_ctx.targets.empty() && inst_ctx.target_path.empty()) || inst_ctx.sync),
-      InstallCommand(inst_ctx)
+  Uninstall() = default;
+
+  [[nodiscard]] bool requiresProject() const override
   {
+    return (targets_->empty() && local_->empty()) || sync_;
   }
 
-  void execute() override
+  auto options() { return std::tie(targets_, local_, sync_); }
+
+  void run() override
   {
-    // TODO: implement --sync flag
-    if (targets_.empty() && target_path_.empty()) {
+    if (targets_->empty() && local_->empty()) {
       auto install_res = p().uninstallDependencies();
       if (!install_res)
         throw_or_terminate(install_res.error());
     } else {
       uninstallFromPath();
-      uninstallTargets();
+      auto parsed = parse_targets(*targets_);
+      uninstallTargets(parsed);
     }
   }
 };

@@ -22,16 +22,23 @@ TEST(VersionTest, DefaultAndExplicitConstruction)
 
 TEST(VersionTest, StringParsing)
 {
-  Version v1("1.2.3");
-  EXPECT_EQ(v1.major(), 1);
-  EXPECT_EQ(v1.minor(), 2);
-  EXPECT_EQ(v1.patch(), 3);
+  constexpr Version v1("1.2.3");
+  static_assert(v1.major() == 1 && v1.minor() == 2 && v1.patch() == 3);
 
   Version v2("latest");
   EXPECT_TRUE(v2.isLatest());
 
   Version v4("");
   EXPECT_TRUE(v4.isEmpty());
+
+  const std::string      str        = "4.5.6";
+  const std::string_view sv         = "7.8.9";
+  Version                from_str   = str;
+  Version                from_sv    = sv;
+  Version                from_brace = {};
+  EXPECT_EQ(from_str, Version(4, 5, 6));
+  EXPECT_EQ(from_sv, Version(7, 8, 9));
+  EXPECT_TRUE(from_brace.isEmpty());
 
   EXPECT_THROW(Version("invalid.version.str"), Exception);
 }

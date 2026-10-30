@@ -9,7 +9,7 @@ namespace zc
 {
 
 #ifdef ZC_DEBUG
-  #define ZC_DEBUG_TIMER(name) zc::Timer _zc_timer(name);
+  #define ZC_DEBUG_TIMER(name) zc::Timer _zc_timer(name)
 #else
   #define ZC_DEBUG_TIMER(name)
 #endif

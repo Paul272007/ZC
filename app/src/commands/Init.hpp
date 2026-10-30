@@ -1,23 +1,25 @@
 #pragma once
 
-#include "Command.hpp"
+#include <string>
+#include <string_view>
+
+#include "commands/AppCommand.hpp"
 #include "core/global-config/GlobalConfig.hpp"
+#include "framework/cli/Args.hpp"
 
 namespace zc::app
 {
 
-class Init final : public Command
+class Init final : public AppCommand<"init", "Create and initialize new project">
 {
-  const bool git_;
-  const bool edit_;
+  ZC_FLAG(git, 'g', "Initialize git repository");
+  ZC_FLAG(edit, 'E', "Open project in editor once initialized");
 
-  stdfs::path      root_dir_;
-  std::string_view name_;
-  std::string_view author_;
-  std::string_view description_;
-  std::string_view project_template_;
-
-  std::vector<core::Language> languages_;
+  ZC_OPTION(name, std::string_view, 'n', "New project", "");
+  ZC_OPTION(author, std::string_view, 'a', "Set project author", "");
+  ZC_OPTION(description, std::string_view, 'd', "Set project description", "");
+  ZC_OPTION(template, std::string_view, 't', "Project template to use", "");
+  ZC_LIST_OPTION(languages, std::string_view, 'l', "Set project languages");
 
   static std::map<std::string, core::LanguageConf> promptLanguages()
   {
@@ -41,36 +43,22 @@ class Init final : public Command
     return selected_languages;
   }
 
-  // std::string chooseProjectTemplate()
-  //{
-  // // TODO: implement
-  //}
-
 public:
-  explicit Init(
-    const CommandCtx &cmd_ctx, const bool git, const bool edit, const std::string_view name,
-    const std::string_view author, const std::string_view description,
-    const std::string_view project_template, const std::vector<std::string_view> &languages
-  )
-    : Command(cmd_ctx, false),
-      git_(git),
-      edit_(edit),
-      root_dir_(cmd_ctx.project_path),
-      name_(name),
-      author_(author),
-      description_(description),
-      project_template_(project_template)
+  Init() = default;
+
+  auto options() { return std::tie(git_, edit_, name_, author_, description_, template_, languages_); }
+
+  void run() override
   {
-    for (const auto &str_l : languages)
+    std::vector<core::Language> languages;
+    for (const auto &str_l : *languages_)
       if (const auto l = core::language_from_str(str_l); l != core::Language::Unknown)
-        languages_.push_back(l);
+        languages.push_back(l);
       else
         throw_or_terminate(Exception(core::ZCError::InvalidValue, "Unknown language '{}'", str_l));
-  }
 
-  void execute() override
-  {
-    const stdfs::path project_file = root_dir_ / core::zc_project_file;
+    const stdfs::path root_dir     = *project_path_;
+    const stdfs::path project_file = root_dir / core::zc_project_file;
     if (!force_ && fs::file_exists(project_file)) {
       const bool res =
         ui.ask("A project seems to already exist in this directory. Do you want to overwrite it ?");
@@ -80,32 +68,27 @@ public:
 
     json root;
 
-    root["name"]        = name_.empty() ? ui.input(root_dir_.filename().string(), "Package name:") : name_;
-    root["author"]      = author_.empty() ? core::gc().username() : author_;
-    root["description"] = description_.empty() ? ui.input("", "Package description:") : description_;
+    root["name"]        = name_->empty() ? ui.input(root_dir.filename().string(), "Package name:") : *name_;
+    root["author"]      = author_->empty() ? core::gc().username() : *author_;
+    root["description"] = description_->empty() ? ui.input("", "Package description:") : *description_;
 
-    if (languages_.empty()) {
+    if (languages.empty()) {
       root["languages"] = promptLanguages();
     } else {
       root["languages"] = json::object();
-      for (const auto &l : languages_)
+      for (const auto &l : languages)
         root["languages"][to_str(l).value_or("C")] = core::gc().languages().at(l);
     }
-
-    // TODO: verify that name is valid
 
     auto write_res = fs::write_json(project_file, root);
     if (!write_res)
       throw_or_terminate(write_res.error());
 
-    // TODO: initialize with template
-    // TODO: allow single target project creation using zc init
-
     if (core::gc().alwaysInitGit() || git_)
       sh::exec({ "git", "init" });
 
     if (core::gc().openAfterInit() || edit_)
-      sh::exec({ core::gc().editor(), root_dir_.string() });
+      sh::exec({ core::gc().editor(), root_dir.string() });
   }
 };
 

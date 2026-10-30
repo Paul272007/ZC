@@ -1,64 +1,66 @@
 #pragma once
 
-#include "commands/BuildCommand.hpp"
-#include "commands/Command.hpp"
-#include "commands/InstallCommand.hpp"
+#include <filesystem>
+#include <string_view>
+
+#include "commands/AppCommand.hpp"
+#include "core/global-config/GlobalConfig.hpp"
 #include "core/registry/Registry.hpp"
+#include "framework/cli/Args.hpp"
+#include "util/helpers.hpp"
 
 namespace zc::app
 {
 
-class Install final : public Command, InstallCommand, BuildCommand
+class Install final : public AppCommand<"install", "Install packages">
 {
-  const bool save_path_;
+  ZC_LIST_POSITIONAL(targets, std::string, "Packages to install");
+
+  ZC_FLAG(sync, 's', "Also add installed packages to project dependencies");
+  ZC_FLAG(save, 'S', "Save path of local project in registry");
+  ZC_OPTION(local, stdfs::path, 'l', "Install from local project instead of remote", {});
+  ZC_OPTION(jobs, u32, 'j', "Number of concurrent jobs for compilation", core::gc().jobs());
 
   void installFromPath() const
   {
-    if (target_path_.empty())
+    if (local_->empty())
       return;
 
-    core::Project project(target_path_);
-    auto          install_res = core::reg().installFromPath(project, jobs_, save_path_, force_);
+    core::Project project(*local_);
+    auto          install_res = core::reg().installFromPath(project, *jobs_, save_, force_);
     if (!install_res)
       throw_or_terminate(install_res.error());
-
-    // if (sync_)
-    // p().add_dependency(LocalTarget::get_target({ project.pconf.name, project.pconf.version }));
   }
 
-  void installFromServer() const
+  void installFromServer(const std::map<std::string, Version, std::less<>> &targets) const
   {
-    for (const auto &[pkg, ver] : targets_) {
-      auto install_res = core::reg().installFromServer(pkg, ver, jobs_, force_);
+    for (const auto &[pkg, ver] : targets) {
+      auto install_res = core::reg().installFromServer(pkg, ver, *jobs_, force_);
       if (!install_res)
         throw_or_terminate(install_res.error());
-      // TODO: sync
     }
   }
 
 public:
-  explicit Install(
-    const CommandCtx &cmd_ctx, InstallCommandCtx &inst_ctx, const BuildCommandCtx build_ctx,
-    const bool save_path
-  )
-    : Command(cmd_ctx, (inst_ctx.targets.empty() && inst_ctx.target_path.empty()) || inst_ctx.sync),
-      InstallCommand(inst_ctx),
-      BuildCommand(build_ctx),
-      save_path_(save_path)
+  Install() = default;
+
+  [[nodiscard]] bool requiresProject() const override
   {
+    return (targets_->empty() && local_->empty()) || sync_;
   }
 
-  void execute() override
+  auto options() { return std::tie(targets_, local_, sync_, save_, jobs_); }
+
+  void run() override
   {
-    // TODO: add installFromStd option
-    // TODO: implement --sync flag
-    if (targets_.empty() && target_path_.empty()) {
-      auto install_res = p().installDependencies(jobs_);
+    if (targets_->empty() && local_->empty()) {
+      auto install_res = p().installDependencies(*jobs_);
       if (!install_res)
         throw_or_terminate(install_res.error());
     } else {
       installFromPath();
-      installFromServer();
+      auto parsed = parse_targets(*targets_);
+      installFromServer(parsed);
     }
   }
 };

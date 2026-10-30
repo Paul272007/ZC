@@ -1,14 +1,112 @@
 #include <gtest/gtest.h>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
 
-#include "framework/cli/AppBuilder.hpp"
+#include "framework/cli/App.hpp"
+#include "framework/cli/Args.hpp"
 #include "framework/cli/ArgStream.hpp"
-#include "framework/cli/CommandBuilder.hpp"
+#include "framework/cli/CommandBase.hpp"
+#include "framework/cli/detail.hpp"
 #include "framework/cli/FixedString.hpp"
-#include "framework/cli/Option.hpp"
-#include "framework/cli/Positional.hpp"
+#include "framework/Exception.hpp"
 
 namespace zc::tests
 {
+
+namespace
+{
+
+template<cli::Command Cmd>
+bool parse_cmd(Cmd &cmd, const std::vector<const char *> &argv, const bool execute_action = false)
+{
+  cli::ArgStream stream{ .argc = static_cast<int>(argv.size()), .argv = argv.data() };
+  return cmd.parseStream(stream, execute_action);
+}
+
+class SampleCmd final : public cli::CommandBase<"sample", "Sample command">
+{
+public:
+  cli::ListPositional<std::string, "targets">   targets{ "Targets" };
+  cli::Flag<"clean", 'c'>                       clean{ "Clean" };
+  cli::Flag<"all", 'a'>                         all{ "All" };
+  cli::Flag<"backup", 'b'>                      backup{ "Backup" };
+  cli::Option<int, "jobs", 'j'>                 jobs{ 4, "Jobs" };
+  cli::RequiredOption<std::string, "name", 'n'> name_opt{ "Name" };
+  cli::ListOption<std::string, "run", 'r'>      run{ "Run" };
+
+  bool executed = false;
+
+  auto options() { return std::tie(targets, clean, all, backup, jobs, name_opt, run); }
+
+  void execute() { executed = true; }
+};
+
+class PushCmd final : public cli::CommandBase<"push", "Push changes">
+{
+public:
+  cli::RequiredPositional<std::string, "remote"> remote{ "Remote name" };
+  cli::Positional<std::string, "branch">         branch{ "Branch name", "main" };
+  cli::Flag<"force", 'f'>                        force{ "Force push" };
+
+  bool executed = false;
+
+  auto options() { return std::tie(remote, branch, force); }
+
+  void execute() { executed = true; }
+};
+
+class StatusCmd final : public cli::CommandBase<"status", "Show status">
+{
+public:
+  bool executed = false;
+
+  void execute() { executed = true; }
+};
+
+using GitCli = cli::RootCommand<"git", "Version control", PushCmd, StatusCmd>;
+
+class ReqListCmd final : public cli::CommandBase<"reqlist", "Required list test">
+{
+public:
+  cli::RequiredListOption<std::string, "items", 'i'> items{ "Items" };
+
+  auto options() { return std::tie(items); }
+
+  void execute() {}
+};
+
+template<cli::FixedString Name, cli::FixedString Desc>
+class SharedBaseCmd : public cli::CommandBase<Name, Desc>
+{
+public:
+  cli::Flag<"quiet", 'q'> quiet{ "Quiet mode" };
+
+  template<typename Self>
+  auto allArgs(this Self &self)
+  {
+    auto &base = static_cast<SharedBaseCmd &>(self);
+    if constexpr (requires { self.options(); })
+      return std::tuple_cat(self.options(), std::tie(base.quiet));
+    else
+      return std::tie(base.quiet);
+  }
+};
+
+class ChildWithSharedCmd final : public SharedBaseCmd<"child", "Child command">
+{
+public:
+  cli::Flag<"verbose", 'v'> verbose{ "Verbose mode" };
+
+  bool executed = false;
+
+  auto options() { return std::tie(verbose); }
+
+  void execute() { executed = true; }
+};
+
+} // namespace
 
 TEST(CliTest, FixedString)
 {
@@ -44,33 +142,42 @@ TEST(CliTest, ArgStream)
   EXPECT_EQ(stream.peek(), "");
 }
 
-TEST(CliTest, OptionAndPositionalStructures)
+TEST(CliTest, ArgDescriptorsAndMetadata)
 {
-  int  val = 0;
-  auto o1  = cli::opt<int, "jobs", 'j'>(val, "Number of jobs");
-  EXPECT_EQ(o1.longName(), "jobs");
-  EXPECT_EQ(o1.shortName(), 'j');
-  EXPECT_TRUE(o1.hasLongName());
-  EXPECT_TRUE(o1.hasShortName());
-  EXPECT_FALSE(o1.isRequired());
-  EXPECT_FALSE(o1.hasImplicitValue());
+  cli::Flag<"verbose", 'v'> f{ "Verbose output" };
+  EXPECT_EQ(f.longName(), "verbose");
+  EXPECT_EQ(f.shortName(), 'v');
+  EXPECT_TRUE(f.hasShortName());
+  EXPECT_FALSE(f.isRequired());
+  EXPECT_TRUE(f.isSwitch());
+  EXPECT_FALSE(f.isList());
+  EXPECT_FALSE(f.isSet());
+  EXPECT_FALSE(f);
+  EXPECT_FALSE(*f);
+  EXPECT_EQ(f.description(), "Verbose output");
 
-  auto o2 = cli::opt_with_default<int, "threads", 't'>(val, 8, "Thread count");
-  EXPECT_TRUE(o2.hasImplicitValue());
-  EXPECT_EQ(o2.implicitValue(), 8);
+  cli::Option<int, "jobs", 'j'> opt{ 4, "Number of jobs" };
+  EXPECT_EQ(opt.longName(), "jobs");
+  EXPECT_EQ(opt.shortName(), 'j');
+  EXPECT_FALSE(opt.isRequired());
+  EXPECT_FALSE(opt.isSwitch());
+  EXPECT_FALSE(opt.isSet());
+  EXPECT_FALSE(static_cast<bool>(opt));
+  EXPECT_EQ(*opt, 4);
 
-  auto o3 = cli::required_opt<int, "count">(val, "Count");
-  EXPECT_TRUE(o3.isRequired());
-  EXPECT_FALSE(o3.hasShortName());
+  cli::RequiredOption<std::string, "config"> req_opt{ "Config path" };
+  EXPECT_TRUE(req_opt.isRequired());
+  EXPECT_FALSE(req_opt.hasShortName());
+  EXPECT_TRUE(req_opt->empty());
 
-  std::string file;
-  auto        p1 = cli::pos<std::string, "file">(file, "Input file");
-  EXPECT_EQ(p1.name(), "file");
-  EXPECT_FALSE(p1.isRequired());
+  cli::Positional<std::string, "file"> pos{ "Input file", "default.txt" };
+  EXPECT_EQ(pos.name(), "file");
+  EXPECT_FALSE(pos.isRequired());
+  EXPECT_EQ(*pos, "default.txt");
 
-  auto p2 = cli::required_pos<std::string, "dest">(file, "Destination");
-  EXPECT_EQ(p2.name(), "dest");
-  EXPECT_TRUE(p2.isRequired());
+  cli::RequiredPositional<std::string, "dest"> req_pos{ "Destination" };
+  EXPECT_EQ(req_pos.name(), "dest");
+  EXPECT_TRUE(req_pos.isRequired());
 }
 
 TEST(CliTest, DetailParseValue)
@@ -79,6 +186,7 @@ TEST(CliTest, DetailParseValue)
   EXPECT_TRUE(cli::detail::parse_value("123", int_val));
   EXPECT_EQ(int_val, 123);
   EXPECT_FALSE(cli::detail::parse_value("abc", int_val));
+  EXPECT_FALSE(cli::detail::parse_value("123abc", int_val));
 
   double double_val = 0.0;
   EXPECT_TRUE(cli::detail::parse_value("3.14", double_val));
@@ -95,228 +203,275 @@ TEST(CliTest, DetailParseValue)
   EXPECT_EQ(sv_val, "hello");
 }
 
-TEST(CliTest, CombinedFlags)
+TEST(CliTest, CombinedShortFlags)
 {
-  bool a = false;
-  bool b = false;
-  bool c = false;
+  SampleCmd cmd;
+  EXPECT_TRUE(parse_cmd(cmd, { "sample", "-abc", "-n", "proj" }));
 
-  auto opt_a = cli::opt<bool, "all", 'a'>(a);
-  auto opt_b = cli::opt<bool, "backup", 'b'>(b);
-  auto opt_c = cli::opt<bool, "compress", 'c'>(c);
+  EXPECT_TRUE(cmd.all);
+  EXPECT_TRUE(cmd.backup);
+  EXPECT_TRUE(cmd.clean);
 
-  auto opts  = std::make_tuple(opt_a, opt_b);
-  auto globs = std::make_tuple(opt_c);
-
-  EXPECT_TRUE(cli::detail::try_combined_flags(opts, globs, "-abc"));
-  EXPECT_TRUE(a);
-  EXPECT_TRUE(b);
-  EXPECT_TRUE(c);
-
-  EXPECT_FALSE(cli::detail::try_combined_flags(opts, globs, "-abx"));
+  SampleCmd bad;
+  try {
+    (void)parse_cmd(bad, { "sample", "-abx", "-n", "proj" });
+    FAIL() << "Expected UnknownFlag exception";
+  } catch (const Exception &e) {
+    EXPECT_EQ(e, CliError::UnknownFlag);
+  }
 }
 
-TEST(CliTest, CommandParsingFlagsAndPositionals)
+TEST(CliTest, SelfDescribingCommandDefaults)
 {
-  bool             verbose = false;
-  int              jobs    = 1;
-  std::string_view input;
-  bool             action_executed = false;
+  SampleCmd cmd;
+  EXPECT_TRUE(parse_cmd(cmd, { "sample", "--name", "x" }));
 
-  auto my_cmd = cli::cmd<"build", "Build project">()
-                  .flag<"verbose", 'v'>(verbose, "Verbose output")
-                  .flag<"jobs", 'j'>(jobs, "Concurrent jobs")
-                  .positional<"input">(input, "Input source")
-                  .setAction([&] { action_executed = true; });
-
-  const char    *argv[] = { "build", "-v", "--jobs=4", "main.cpp" };
-  cli::ArgStream stream{ .argc = 4, .argv = argv };
-  std::tuple<>   empty;
-
-  my_cmd.parseStream(stream, empty);
-
-  EXPECT_TRUE(verbose);
-  EXPECT_EQ(jobs, 4);
-  EXPECT_EQ(input, "main.cpp");
-  EXPECT_TRUE(action_executed);
+  EXPECT_FALSE(cmd.clean);
+  EXPECT_FALSE(*cmd.clean);
+  EXPECT_EQ(*cmd.jobs, 4);
+  EXPECT_FALSE(cmd.jobs);
+  EXPECT_EQ(*cmd.name_opt, "x");
+  EXPECT_FALSE(cmd.run);
+  EXPECT_TRUE(cmd.run->empty());
+  EXPECT_TRUE(cmd.targets->empty());
 }
 
-TEST(CliTest, SubcommandDispatch)
+TEST(CliTest, SelfDescribingCommandValuesAndSyntaxes)
 {
-  bool             sub_executed = false;
-  std::string_view remote_name;
+  SampleCmd cmd;
+  ASSERT_TRUE(parse_cmd(cmd, { "sample", "-c", "-j8", "--name=x", "a", "b", "-r", "p1", "p2" }, true));
 
-  auto push_cmd = cli::cmd<"push", "Push changes">().positional<"remote">(remote_name).setAction([&] {
-    sub_executed = true;
-  });
-
-  auto root_cmd = cli::cmd<"git", "Version control">().subcommand(push_cmd).requiresSubcommand();
-
-  const char    *argv[] = { "git", "push", "origin" };
-  cli::ArgStream stream{ .argc = 3, .argv = argv };
-  std::tuple<>   empty;
-
-  root_cmd.parseStream(stream, empty);
-
-  EXPECT_TRUE(sub_executed);
-  EXPECT_EQ(remote_name, "origin");
+  EXPECT_TRUE(cmd.clean);
+  EXPECT_TRUE(cmd.jobs);
+  EXPECT_EQ(*cmd.jobs, 8);
+  EXPECT_EQ(*cmd.name_opt, "x");
+  EXPECT_TRUE(cmd.run);
+  ASSERT_EQ(cmd.run->size(), 2U);
+  EXPECT_EQ((*cmd.run)[0], "p1");
+  EXPECT_EQ((*cmd.run)[1], "p2");
+  ASSERT_EQ(cmd.targets->size(), 2U);
+  EXPECT_EQ((*cmd.targets)[0], "a");
+  EXPECT_EQ((*cmd.targets)[1], "b");
+  EXPECT_TRUE(cmd.executed);
 }
 
-TEST(CliTest, MissingRequiredFlagThrows)
+TEST(CliTest, ListOptionVariants)
 {
-  int  required_val = 0;
-  auto my_cmd       = cli::cmd<"test", "Test command">().requiredFlag<"mandatory">(required_val);
-
-  const char    *argv[] = { "test" };
-  cli::ArgStream stream{ .argc = 1, .argv = argv };
-  std::tuple<>   empty;
-
-  EXPECT_THROW(my_cmd.parseStream(stream, empty), Exception);
-}
-
-TEST(CliTest, AppBuilderHelpAndVersion)
-{
-  bool executed = false;
-  auto root_cmd = cli::cmd<"myapp", "App description">().setAction([&] { executed = true; });
-
-  auto app = cli::app(root_cmd).version("2.1.0");
-
-  // Test --version
-  char  arg_app[]  = "myapp";
-  char  arg_ver[]  = "--version";
-  char *argv_ver[] = { arg_app, arg_ver };
-  EXPECT_TRUE(app.parse(2, argv_ver));
-  EXPECT_FALSE(executed);
-
-  // Test --help
-  char  arg_help[]  = "--help";
-  char *argv_help[] = { arg_app, arg_help };
-  EXPECT_TRUE(app.parse(2, argv_help));
-  EXPECT_FALSE(executed);
-
-  // Test normal execution
-  char *argv_run[] = { arg_app };
-  EXPECT_TRUE(app.parse(1, argv_run));
-  EXPECT_TRUE(executed);
-}
-
-TEST(CliTest, VariadicPositionalArguments)
-{
-  std::vector<std::string> targets;
-  bool                     executed = false;
-
-  auto install_cmd = cli::cmd<"install", "Install packages">()
-                       .positional<"targets">(targets, "Packages to install")
-                       .setAction([&] { executed = true; });
-
-  auto root_cmd = cli::cmd<"zc", "Package manager">().subcommand(install_cmd).requiresSubcommand();
-
-  const char    *argv[] = { "zc", "install", "pkg1", "pkg2", "pkg3" };
-  cli::ArgStream stream{ .argc = 5, .argv = argv };
-  std::tuple<>   empty;
-
-  root_cmd.parseStream(stream, empty);
-
-  EXPECT_TRUE(executed);
-  ASSERT_EQ(targets.size(), 3U);
-  EXPECT_EQ(targets[0], "pkg1");
-  EXPECT_EQ(targets[1], "pkg2");
-  EXPECT_EQ(targets[2], "pkg3");
-}
-
-TEST(CliTest, OptionalVariadicOptionFlag)
-{
-  // 1. Without flag provided
+  // 1. Flag provided without arguments: `--run`
   {
-    std::optional<std::vector<std::string>> run_args;
-    bool                                    verbose = false;
-
-    auto build_cmd = cli::cmd<"build", "Build">()
-                       .flag<"verbose", 'v'>(verbose, "Verbose")
-                       .flag<"run", 'r'>(run_args, "Run with args");
-
-    const char    *argv[] = { "build", "-v" };
-    cli::ArgStream stream{ .argc = 2, .argv = argv };
-    std::tuple<>   empty;
-
-    build_cmd.parseStream(stream, empty);
-
-    EXPECT_TRUE(verbose);
-    EXPECT_FALSE(run_args.has_value());
+    SampleCmd cmd;
+    (void)parse_cmd(cmd, { "sample", "-n", "x", "--run" });
+    EXPECT_TRUE(cmd.run);
+    EXPECT_TRUE(cmd.run->empty());
   }
 
-  // 2. Flag provided without args: `--run`
+  // 2. Greedy list followed by another flag: `-r arg1 arg2 -c`
   {
-    std::optional<std::vector<std::string>> run_args;
-
-    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
-
-    const char    *argv[] = { "build", "--run" };
-    cli::ArgStream stream{ .argc = 2, .argv = argv };
-    std::tuple<>   empty;
-
-    build_cmd.parseStream(stream, empty);
-
-    ASSERT_TRUE(run_args.has_value());
-    EXPECT_TRUE(run_args->empty());
+    SampleCmd cmd;
+    (void)parse_cmd(cmd, { "sample", "-n", "x", "-r", "arg1", "arg2", "-c" });
+    EXPECT_TRUE(cmd.clean);
+    EXPECT_TRUE(cmd.run);
+    ASSERT_EQ(cmd.run->size(), 2U);
+    EXPECT_EQ((*cmd.run)[0], "arg1");
+    EXPECT_EQ((*cmd.run)[1], "arg2");
   }
 
-  // 3. Short flag without args: `-r`
+  // 3. Comma-separated '=' syntax: `--run=foo,bar,baz`
   {
-    std::optional<std::vector<std::string>> run_args;
-
-    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
-
-    const char    *argv[] = { "build", "-r" };
-    cli::ArgStream stream{ .argc = 2, .argv = argv };
-    std::tuple<>   empty;
-
-    build_cmd.parseStream(stream, empty);
-
-    ASSERT_TRUE(run_args.has_value());
-    EXPECT_TRUE(run_args->empty());
+    SampleCmd cmd;
+    (void)parse_cmd(cmd, { "sample", "-n", "x", "--run=foo,bar,baz" });
+    EXPECT_TRUE(cmd.run);
+    std::vector<std::string> collected(cmd.run.begin(), cmd.run.end());
+    ASSERT_EQ(collected.size(), 3U);
+    EXPECT_EQ(collected[0], "foo");
+    EXPECT_EQ(collected[1], "bar");
+    EXPECT_EQ(collected[2], "baz");
   }
 
-  // 4. Flag provided with greedy arguments and followed by another flag
+  // 4. RequiredListOption fails when given 0 values
   {
-    std::optional<std::vector<std::string>> run_args;
-    bool                                    clean = false;
+    ReqListCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "reqlist", "--items" });
+      FAIL() << "Expected MissingValue exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::MissingValue);
+    }
+  }
+}
 
-    auto build_cmd = cli::cmd<"build", "Build">()
-                       .flag<"clean", 'c'>(clean, "Clean")
-                       .flag<"run", 'r'>(run_args, "Run with args");
+TEST(CliTest, DoubleDashEndOfOptions)
+{
+  SampleCmd cmd;
+  (void)parse_cmd(cmd, { "sample", "-n", "x", "--", "-c", "--not-a-flag" });
 
-    const char    *argv[] = { "build", "-r", "arg1", "arg2", "-c" };
-    cli::ArgStream stream{ .argc = 5, .argv = argv };
-    std::tuple<>   empty;
+  EXPECT_FALSE(cmd.clean);
+  ASSERT_EQ(cmd.targets->size(), 2U);
+  EXPECT_EQ((*cmd.targets)[0], "-c");
+  EXPECT_EQ((*cmd.targets)[1], "--not-a-flag");
+}
 
-    build_cmd.parseStream(stream, empty);
-
-    EXPECT_TRUE(clean);
-    ASSERT_TRUE(run_args.has_value());
-    ASSERT_EQ(run_args->size(), 2U);
-    EXPECT_EQ((*run_args)[0], "arg1");
-    EXPECT_EQ((*run_args)[1], "arg2");
+TEST(CliTest, ErrorDiagnostics)
+{
+  // Missing required option
+  {
+    SampleCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "sample", "-c" });
+      FAIL() << "Expected MissingFlag exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::MissingFlag);
+    }
   }
 
-  // 5. Flag with '=' syntax
+  // Missing option value
   {
-    std::optional<std::vector<std::string>> run_args;
-
-    auto build_cmd = cli::cmd<"build", "Build">().flag<"run", 'r'>(run_args, "Run with args");
-
-    const char    *argv[] = { "build", "--run=foo,bar,baz" };
-    cli::ArgStream stream{ .argc = 2, .argv = argv };
-    std::tuple<>   empty;
-
-    build_cmd.parseStream(stream, empty);
-
-    ASSERT_TRUE(run_args.has_value());
-    ASSERT_EQ(run_args->size(), 3U);
-    EXPECT_EQ((*run_args)[0], "foo");
-    EXPECT_EQ((*run_args)[1], "bar");
-    EXPECT_EQ((*run_args)[2], "baz");
+    SampleCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "sample", "-n", "x", "--jobs" });
+      FAIL() << "Expected MissingValue exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::MissingValue);
+    }
   }
+
+  // Invalid option value
+  {
+    SampleCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "sample", "-n", "x", "--jobs=notanint" });
+      FAIL() << "Expected InvalidValue exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::InvalidValue);
+    }
+  }
+
+  // Missing required positional
+  {
+    PushCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "push", "-f" });
+      FAIL() << "Expected MissingPositional exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::MissingPositional);
+    }
+  }
+
+  // Unexpected positional
+  {
+    StatusCmd cmd;
+    try {
+      (void)parse_cmd(cmd, { "status", "extra" });
+      FAIL() << "Expected UnexpectedPositional exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::UnexpectedPositional);
+    }
+  }
+}
+
+TEST(CliTest, RootCommandAndApp)
+{
+  cli::App<GitCli> app("git 2.0.0");
+
+  // --version returns false without executing a command
+  {
+    const char *argv[] = { "git", "--version" };
+    EXPECT_FALSE(app.parse(2, argv));
+  }
+
+  // --help returns false without executing a command
+  {
+    const char *argv[] = { "git", "--help" };
+    EXPECT_FALSE(app.parse(2, argv));
+  }
+
+  // Subcommand --help also returns false without executing
+  {
+    const char *argv[] = { "git", "push", "--help" };
+    EXPECT_FALSE(app.parse(3, argv));
+    EXPECT_FALSE(app.root().subcommand<PushCmd>().executed);
+  }
+
+  // Missing subcommand throws MissingSubCommand
+  {
+    const char *argv[] = { "git" };
+    try {
+      (void)app.parse(1, argv);
+      FAIL() << "Expected MissingSubCommand exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::MissingSubCommand);
+    }
+  }
+
+  // Unknown subcommand throws UnknownSubCommand
+  {
+    const char *argv[] = { "git", "rebase" };
+    try {
+      (void)app.parse(2, argv);
+      FAIL() << "Expected UnknownSubCommand exception";
+    } catch (const Exception &e) {
+      EXPECT_EQ(e, CliError::UnknownSubCommand);
+    }
+  }
+
+  // Subcommand dispatch and execution
+  {
+    const char *argv[] = { "git", "push", "origin", "develop", "-f" };
+    app.run(5, argv);
+
+    const auto &push = app.root().subcommand<PushCmd>();
+    EXPECT_TRUE(push.executed);
+    EXPECT_EQ(*push.remote, "origin");
+    EXPECT_EQ(*push.branch, "develop");
+    EXPECT_TRUE(push.force);
+  }
+}
+
+TEST(CliTest, SharedIntermediateBaseAllArgs)
+{
+  ChildWithSharedCmd cmd;
+  ASSERT_TRUE(parse_cmd(cmd, { "child", "-vq" }, true));
+
+  EXPECT_TRUE(cmd.verbose);
+  EXPECT_TRUE(cmd.quiet);
+  EXPECT_TRUE(cmd.executed);
+}
+
+TEST(CliTest, DeclarationMacrosAndSnakeToKebab)
+{
+  class MacroCmd final : public cli::CommandBase<"macro", "Macro test">
+  {
+  public:
+    ZC_REQUIRED_POSITIONAL(source_file, std::string_view, "Source file");
+    ZC_POSITIONAL(out_dir, std::string_view, "Output dir", "dist");
+    ZC_FLAG(dry_run, 'n', "Dry run");
+    ZC_OPTION(max_jobs, int, 'j', "Max jobs", 2);
+    ZC_REQUIRED_OPTION(api_key, std::string_view, 'k', "API key");
+    ZC_LIST_OPTION(extra_args, std::string_view, 'e', "Extra args");
+
+    auto options() { return std::tie(source_file_, out_dir_, dry_run_, max_jobs_, api_key_, extra_args_); }
+
+    void execute() {}
+  };
+
+  MacroCmd cmd;
+  EXPECT_EQ(cmd.source_file_.name(), "source-file");
+  EXPECT_EQ(cmd.out_dir_.name(), "out-dir");
+  EXPECT_EQ(*cmd.out_dir_, "dist");
+  EXPECT_EQ(cmd.dry_run_.longName(), "dry-run");
+  EXPECT_EQ(cmd.max_jobs_.longName(), "max-jobs");
+  EXPECT_EQ(cmd.api_key_.longName(), "api-key");
+  EXPECT_EQ(cmd.extra_args_.longName(), "extra-args");
+
+  ASSERT_TRUE(parse_cmd(
+    cmd, { "macro", "main.cpp", "--dry-run", "--max-jobs=6", "--api-key", "secret", "-e", "a", "b" }
+  ));
+  EXPECT_EQ(*cmd.source_file_, "main.cpp");
+  EXPECT_EQ(*cmd.out_dir_, "dist");
+  EXPECT_TRUE(cmd.dry_run_);
+  EXPECT_EQ(*cmd.max_jobs_, 6);
+  EXPECT_EQ(*cmd.api_key_, "secret");
+  ASSERT_EQ(cmd.extra_args_->size(), 2U);
 }
 
 } // namespace zc::tests

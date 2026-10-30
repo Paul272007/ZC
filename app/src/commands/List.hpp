@@ -1,8 +1,11 @@
 #pragma once
 
-#include "commands/Command.hpp"
+#include <string_view>
+
+#include "commands/AppCommand.hpp"
 #include "core/registry/package_index.hpp"
 #include "core/registry/Registry.hpp"
+#include "framework/cli/Args.hpp"
 #include "framework/ui/Table.hpp"
 #include "util/helpers.hpp"
 #include "util/ListType.hpp"
@@ -10,20 +13,18 @@
 namespace zc::app
 {
 
-class List final : public Command
+class List final : public AppCommand<"list", "List all sorts of things">
 {
-  ListType type_;
-  bool     simple_;
-
-  explicit List(const CommandCtx &ctx, const ListType &type, const bool simple)
-    : Command(ctx, type == ListType::Dependencies), type_(type), simple_(simple)
-  {
-    if (type_ == ListType::Unknown)
-      throw_or_terminate(Exception(CliError::InvalidValue, "unknown list type"));
-  }
+  ZC_POSITIONAL(type, std::string_view, "Type of things to list", "");
+  ZC_FLAG(simple, 's', "Use simple list instead of table");
 
   static void displayPackagesTable()
   {
+    if (core::reg().pkgs().empty()) {
+      ui.println("No installed packages...");
+      return;
+    }
+
     std::vector<std::vector<std::string>> pkgs = {
       { "Name", "Default version", "Origin" },
     };
@@ -43,13 +44,18 @@ class List final : public Command
 
   static void displayRemotePackagesTable()
   {
-    std::vector<std::vector<std::string>> pkgs = {
-      { "Name", "Latest version available" },
-    };
-
     auto remote_pkgs_res = core::index::availablePkgs();
     if (!remote_pkgs_res)
       throw_or_terminate(remote_pkgs_res.error());
+
+    if (remote_pkgs_res->empty()) {
+      ui.println("No remote packages...");
+      return;
+    }
+
+    std::vector<std::vector<std::string>> pkgs = {
+      { "Name", "Latest version available" },
+    };
 
     for (const auto &[k, v] : *remote_pkgs_res)
       pkgs.push_back({ k, v.string() });
@@ -70,14 +76,22 @@ class List final : public Command
   }
 
 public:
-  explicit List(const CommandCtx &ctx, const std::string_view type, const bool simple)
-    : List(ctx, parse_type(type), simple)
+  List() = default;
+
+  [[nodiscard]] bool requiresProject() const override
   {
+    return parse_type(*type_) == ListType::Dependencies;
   }
 
-  void execute() override
+  auto options() { return std::tie(type_, simple_); }
+
+  void run() override
   {
-    switch (type_) {
+    const auto t = parse_type(*type_);
+    if (t == ListType::Unknown)
+      throw_or_terminate(Exception(CliError::InvalidValue, "unknown list type"));
+
+    switch (t) {
     case ListType::ProjectTemplates:
     case ListType::FileTemplates:
       ui.debug("Not implemented");

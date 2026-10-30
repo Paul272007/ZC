@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "core/project/Project.hpp"
 #include "core/project/target/ProjectCompiledTarget.hpp"
 #include "core/registry/target/RegistryBinTarget.hpp"
@@ -38,7 +40,7 @@ public:
   [[nodiscard]] std::unique_ptr<RegistryTarget> whenInstalled() const override;
 
   [[nodiscard]] int
-  execute(const std::vector<std::string> &args, sh::Output output = sh::Output::ShowAll) const;
+  execute(const std::vector<std::string_view> &args, sh::Output output = sh::Output::ShowAll) const;
 };
 
 } // namespace zc::core

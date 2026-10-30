@@ -1,25 +1,27 @@
 #pragma once
 
-#include "commands/Command.hpp"
+#include <string_view>
+
+#include "commands/AppCommand.hpp"
 #include "core/global-config/GlobalConfig.hpp"
+#include "framework/cli/Args.hpp"
 
 namespace zc::app
 {
 
-class Config final : public Command
+class Config final : public AppCommand<"config", "Manage global configuration">
 {
-  std::string_view key_;
-  std::string_view value_;
+  ZC_REQUIRED_POSITIONAL(key, std::string_view, "Configuration key to modify");
+  ZC_POSITIONAL(value, std::string_view, "Value given to the key");
 
 public:
-  explicit Config(const CommandCtx &ctx, const std::string_view key, const std::string_view value)
-    : Command(ctx, false), key_(key), value_(value)
-  {
-  }
+  Config() = default;
 
-  void execute() override
+  auto options() { return std::tie(key_, value_); }
+
+  void run() override
   {
-    auto conf_res = core::gc().set(key_, value_);
+    auto conf_res = core::gc().set(*key_, *value_);
     if (!conf_res)
       throw_or_terminate(conf_res.error());
   }

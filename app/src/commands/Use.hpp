@@ -1,28 +1,36 @@
 #pragma once
 
-#include "Command.hpp"
+#include <filesystem>
+#include <string>
+
+#include "AppCommand.hpp"
 #include "core/registry/Registry.hpp"
-#include "InstallCommand.hpp"
+#include "framework/cli/Args.hpp"
+#include "util/helpers.hpp"
 
 namespace zc::app
 {
 
-class Use final : public Command, InstallCommand
+class Use final : public AppCommand<"use", "Set default version for packages">
 {
+  ZC_LIST_POSITIONAL(targets, std::string, "Packages and their version to use");
+  ZC_OPTION(local, stdfs::path, 'l', "Use version of this local project", {});
+  ZC_FLAG(sync, 's', "For each project dependency, set its version as default");
+
   void useFromPath() const
   {
-    if (target_path_.empty())
+    if (local_->empty())
       return;
 
-    const core::Project p(target_path_);
+    const core::Project p(*local_);
     auto                use_res = core::reg().setDefaultVersion(p.name(), p.version());
     if (!use_res)
       throw_or_terminate(use_res.error());
   }
 
-  void useTargets() const
+  static void useTargets(const std::map<std::string, Version, std::less<>> &targets)
   {
-    for (const auto &[name, version] : targets_) {
+    for (const auto &[name, version] : targets) {
       Version v;
       if (version.isEmpty() || version.isLatest()) {
         auto latest_res = core::reg().latestOf(name);
@@ -39,21 +47,25 @@ class Use final : public Command, InstallCommand
   }
 
 public:
-  explicit Use(const CommandCtx &cmd_ctx, InstallCommandCtx &inst_ctx)
-    : Command(cmd_ctx, (inst_ctx.targets.empty() && inst_ctx.target_path.empty()) || inst_ctx.sync),
-      InstallCommand(inst_ctx)
+  Use() = default;
+
+  [[nodiscard]] bool requiresProject() const override
   {
+    return (targets_->empty() && local_->empty()) || sync_;
   }
 
-  void execute() override
+  auto options() { return std::tie(targets_, local_, sync_); }
+
+  void run() override
   {
-    if (targets_.empty() && target_path_.empty()) {
+    if (targets_->empty() && local_->empty()) {
       auto use_res = p().useDependencies();
       if (!use_res)
         throw_or_terminate(use_res.error());
     } else {
       useFromPath();
-      useTargets();
+      auto parsed = parse_targets(*targets_);
+      useTargets(parsed);
     }
   }
 };

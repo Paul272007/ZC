@@ -1,8 +1,12 @@
 #pragma once
 
+#include <array>
+#include <charconv>
+#include <concepts>
 #include <format>
 #include <nlohmann/json.hpp>
-#include <sstream>
+#include <ostream>
+#include <ranges>
 #include <string>
 #include <string_view>
 
@@ -19,36 +23,44 @@ class Version
   i32 minor_ = 0;
   i32 patch_ = 0;
 
-public:
-  constexpr Version(const std::string &text)
+  constexpr void parse(const std::string_view text)
   {
-    if (text.empty()) {
-      (*this) = empty();
+    if (text.empty())
       return;
-    }
+
     if (text == "latest") {
-      (*this) = latest();
+      *this = latest();
       return;
     }
 
-    std::stringstream ss(text);
-    std::vector<i32>  parts;
+    std::array<i32, 3> parts{};
+    u8                 idx = 0;
 
-    try {
-      std::string segment;
-      while (std::getline(ss, segment, '.')) // Get 3 first numbers in string
-        if (!segment.empty())
-          parts.push_back(std::stoi(segment));
-    } catch (const std::exception &) {
-      throw Exception(FormatError::InvalidVersion, "Invalid version format: {}", text);
+    for (const auto part : text | std::views::split('.')) {
+      const std::string_view seg(part);
+      if (seg.empty())
+        continue;
+
+      i32         val = 0;
+      const char *end = seg.data() + seg.size();
+      auto [ptr, ec]  = std::from_chars(seg.data(), end, val);
+      if (ec != std::errc{} || ptr != end)
+        throw Exception(FormatError::InvalidVersion, "Invalid version format: {}", text);
+
+      if (idx < parts.size())
+        parts[idx++] = val;
     }
 
-    if (!parts.empty())
-      major_ = parts.at(0);
-    if (parts.size() >= 2)
-      minor_ = parts.at(1);
-    if (parts.size() >= 3)
-      patch_ = parts.at(2);
+    major_ = parts[0];
+    minor_ = parts[1];
+    patch_ = parts[2];
+  }
+
+public:
+  template<std::convertible_to<std::string_view> S>
+  constexpr Version(const S &text)
+  {
+    parse(text);
   }
 
   constexpr Version(const i32 major = 0, const i32 minor = 0, const i32 patch = 0) noexcept
@@ -58,28 +70,28 @@ public:
 
   friend std::ostream &operator<<(std::ostream &s, const Version &v) { return s << v.string(); }
 
-  [[nodiscard]] auto operator<=>(const Version &) const = default;
+  [[nodiscard]] constexpr auto operator<=>(const Version &) const = default;
 
   [[nodiscard]] std::string string() const { return std::format("{}.{}.{}", major_, minor_, patch_); }
 
-  [[nodiscard]] static Version empty() { return { 0, 0, 0 }; }
+  [[nodiscard]] static constexpr Version empty() noexcept { return { 0, 0, 0 }; }
 
-  [[nodiscard]] static Version latest() { return { -1, -1, -1 }; }
+  [[nodiscard]] static constexpr Version latest() noexcept { return { -1, -1, -1 }; }
 
-  [[nodiscard]] bool isEmpty() const { return *this == empty(); }
+  [[nodiscard]] constexpr bool isEmpty() const noexcept { return *this == empty(); }
 
-  [[nodiscard]] bool isLatest() const { return *this == latest(); }
+  [[nodiscard]] constexpr bool isLatest() const noexcept { return *this == latest(); }
 
-  [[nodiscard]] i32 major() const { return major_; }
+  [[nodiscard]] constexpr i32 major() const noexcept { return major_; }
 
-  [[nodiscard]] i32 minor() const { return minor_; }
+  [[nodiscard]] constexpr i32 minor() const noexcept { return minor_; }
 
-  [[nodiscard]] i32 patch() const { return patch_; }
+  [[nodiscard]] constexpr i32 patch() const noexcept { return patch_; }
 };
 
 inline void from_json(const json &j, Version &v)
 {
-  v = j.get<std::string>();
+  v = j.get<std::string_view>();
 }
 
 inline void to_json(json &j, const Version &v)
