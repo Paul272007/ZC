@@ -72,7 +72,14 @@ public:
 
   [[nodiscard]] constexpr auto operator<=>(const Version &) const = default;
 
-  [[nodiscard]] std::string string() const { return std::format("{}.{}.{}", major_, minor_, patch_); }
+  [[nodiscard]] std::string string() const
+  {
+    if (isEmpty())
+      return "default";
+    if (isLatest())
+      return "latest";
+    return std::format("{}.{}.{}", major_, minor_, patch_);
+  }
 
   [[nodiscard]] static constexpr Version empty() noexcept { return { 0, 0, 0 }; }
 

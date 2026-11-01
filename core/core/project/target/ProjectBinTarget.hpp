@@ -4,7 +4,6 @@
 
 #include "core/project/Project.hpp"
 #include "core/project/target/ProjectCompiledTarget.hpp"
-#include "core/registry/target/RegistryBinTarget.hpp"
 #include "framework/shell.hpp"
 
 namespace zc::core
@@ -30,6 +29,8 @@ public:
     : ProjectCompiledTarget(parent, std::move(root))
   {
   }
+
+  [[nodiscard]] constexpr std::string_view typeName() const noexcept override { return "BIN"; }
 
   [[nodiscard]] std::expected<void, Exception> install() const override;
 

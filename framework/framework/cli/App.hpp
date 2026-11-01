@@ -13,7 +13,7 @@ template<Command Root>
 class App
 {
   Root             root_{};
-  std::string_view version_{};
+  std::string_view version_;
 
 public:
   constexpr explicit App(const std::string_view version = "") : version_(version) {}

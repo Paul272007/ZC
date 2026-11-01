@@ -80,14 +80,14 @@ public:
 
   [[nodiscard]] bool requiresProject() const override
   {
-    return parse_type(*type_) == ListType::Dependencies;
+    return parse_list_type(*type_) == ListType::Dependencies;
   }
 
   auto options() { return std::tie(type_, simple_); }
 
   void run() override
   {
-    const auto t = parse_type(*type_);
+    const auto t = parse_list_type(*type_);
     if (t == ListType::Unknown)
       throw_or_terminate(Exception(CliError::InvalidValue, "unknown list type"));
 

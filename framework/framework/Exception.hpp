@@ -68,6 +68,18 @@ template<typename E>
 #endif
 }
 
+#define ZC_DO_OR_RETURN(action)                \
+  do {                                         \
+    if (auto zc_res_ = (action); !zc_res_)     \
+      return std::unexpected(zc_res_.error()); \
+  } while (false)
+
+#define ZC_DO_OR_THROW(action)             \
+  do {                                     \
+    if (auto zc_res_ = (action); !zc_res_) \
+      throw_or_terminate(zc_res_.error()); \
+  } while (false)
+
 } // namespace zc
 
 template<>

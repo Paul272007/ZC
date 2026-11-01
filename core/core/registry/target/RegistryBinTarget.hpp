@@ -55,6 +55,8 @@ struct RegistryBinTarget final : RegistryTarget {
       stdfs::remove(link_path);
     return {};
   }
+
+  [[nodiscard]] constexpr bool canBeADependency() const noexcept override { return false; }
 };
 
 } // namespace zc::core

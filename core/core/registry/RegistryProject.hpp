@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <vector>
 
 #include "core/registry/target/RegistryTarget.hpp"
@@ -39,6 +40,16 @@ struct RegistryProject {
         return res;
     return {};
   }
+
+  [[nodiscard]] const RegistryTarget *findTarget(std::string_view name) const noexcept
+  {
+    for (const auto &t : targets)
+      if (t->name == name)
+        return t.get();
+    return nullptr;
+  }
+
+  [[nodiscard]] bool hasTarget(std::string_view name) const noexcept { return findTarget(name) != nullptr; }
 };
 
 inline void to_json(json &j, const RegistryProject &p)

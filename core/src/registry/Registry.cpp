@@ -1,8 +1,12 @@
 #include "core/registry/Registry.hpp"
 
+#include <algorithm>
+#include <expected>
+
 #include "core/project/Project.hpp"
 #include "core/registry/package_index.hpp"
 #include "core/util/directories.hpp"
+#include "core/util/ZCError.hpp"
 #include "framework/Exception.hpp"
 #include "framework/fs.hpp"
 #include "framework/ui/UI.hpp"
@@ -242,6 +246,41 @@ const RegistryPkg *Registry::getPkg(const std::string_view name) const
 {
   const auto it = pkgs_.find(name);
   return it == pkgs_.end() ? nullptr : &it->second;
+}
+
+[[nodiscard]] const RegistryProject *Registry::getSnapshot(std::string_view name, Version version) const
+{
+  const auto it = pkgs_.find(name);
+  if (it == pkgs_.end())
+    return nullptr;
+
+  const auto * const pkg = &it->second;
+
+  auto ver_it = std::ranges::find_if(pkg->versions, [&](const auto &rp) { return rp.version == version; });
+  if (ver_it == pkg->versions.end())
+    return nullptr;
+
+  return &*ver_it;
+}
+
+[[nodiscard]] std::expected<RegistryProject *, Exception> Registry::defaultOf(std::string_view name)
+{
+  auto it_res = getPkgIt(name);
+  if (!it_res)
+    return std::unexpected(it_res.error());
+
+  auto &rp = (*it_res)->second;
+
+  auto ver_it =
+    std::ranges::find_if(rp.versions, [&](const auto &rp2) { return rp2.version == rp.default_version; });
+
+  if (ver_it == rp.versions.end())
+    return std::unexpected(Exception(
+      ZCError::VersionNotFound, "default version {} for package {} is not installed", rp.default_version,
+      name
+    ));
+
+  return &*ver_it;
 }
 
 std::expected<Version, Exception> Registry::latestOf(const std::string_view name) const

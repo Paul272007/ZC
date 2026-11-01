@@ -64,4 +64,13 @@ TEST(UITest, UIModeAndCustomStrategy)
   ui.info("Hello default");
 }
 
+TEST(UITest, StyleAnsiSequenceCombination)
+{
+  EXPECT_EQ(detail::ansi_seq(Style::None), "");
+  EXPECT_EQ(detail::ansi_seq(Style::Bold), "\033[1m");
+  EXPECT_EQ(detail::ansi_seq(Style::Red), "\033[31m");
+  EXPECT_EQ(detail::ansi_seq(Style::Bold | Style::Underlined | Style::Red), "\033[1;4;31m");
+  EXPECT_EQ(detail::ansi_seq(Style::SBlink | Style::Cyan), "\033[5;36m");
+}
+
 } // namespace zc::tests

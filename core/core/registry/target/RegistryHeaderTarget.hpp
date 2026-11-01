@@ -21,6 +21,8 @@ struct RegistryHeaderTarget final : RegistryTarget {
   {
     return removeHeaderSymlink(pkg_name);
   }
+
+  [[nodiscard]] constexpr bool canBeADependency() const noexcept override { return true; }
 };
 
 } // namespace zc::core

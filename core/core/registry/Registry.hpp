@@ -1,9 +1,14 @@
 #pragma once
 
+#include <expected>
+#include <string_view>
+
 #include "core/Conf.hpp"
 #include "core/registry/RegistryPkg.hpp"
-#include "core/util/directories.hpp"
+#include "core/registry/RegistryProject.hpp"
+#include "framework/Exception.hpp"
 #include "framework/util/types.hpp"
+#include "framework/Version.hpp"
 
 namespace zc::core
 {
@@ -78,7 +83,9 @@ public:
   // ——— Public utilities ———
 
   [[nodiscard]] const RegistryPkg *getPkg(std::string_view name) const;
+  [[nodiscard]] const RegistryProject *getSnapshot(std::string_view name, Version version) const;
 
+  [[nodiscard]] std::expected<RegistryProject *, Exception> defaultOf(std::string_view name);
   [[nodiscard]] std::expected<Version, Exception> latestOf(std::string_view name) const;
 
   [[nodiscard]] std::expected<void, Exception> setPath(std::string_view name, const stdfs::path &path);

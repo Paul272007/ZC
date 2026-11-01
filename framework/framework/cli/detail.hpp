@@ -53,11 +53,12 @@ inline constexpr bool requires_subcommand_v =
 // ——— Compile-time validation ———
 
 struct ArgMeta {
-  bool             is_pos{};
-  bool             is_required{};
-  bool             is_list{};
-  std::string_view name{};
-  char             short_name{ '\0' };
+  bool is_pos      = false;
+  bool is_required = false;
+  bool is_list     = false;
+  char short_name  = '\0';
+
+  std::string_view name;
 };
 
 template<typename T>
@@ -69,16 +70,16 @@ consteval ArgMeta make_arg_meta()
       .is_pos      = false,
       .is_required = A::isRequired(),
       .is_list     = A::isList(),
-      .name        = A::longName(),
       .short_name  = A::shortName(),
+      .name        = A::longName(),
     };
   } else {
     return ArgMeta{
       .is_pos      = true,
       .is_required = A::isRequired(),
       .is_list     = A::isList(),
-      .name        = A::name(),
       .short_name  = '\0',
+      .name        = A::name(),
     };
   }
 }
@@ -248,7 +249,7 @@ bool parse_value(const std::string_view str, T &out)
 struct FlagMatch {
   bool                            matched    = false;
   std::optional<std::string_view> inline_val = std::nullopt;
-  std::string_view                label{};
+  std::string_view                label;
 };
 
 template<typename OptType>

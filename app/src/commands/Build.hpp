@@ -6,6 +6,7 @@
 #include "commands/AppCommand.hpp"
 #include "core/global-config/GlobalConfig.hpp"
 #include "core/project/target/ProjectBinTarget.hpp"
+#include "core/project/target/ProjectTarget.hpp"
 #include "core/util/ZCError.hpp"
 #include "framework/cli/Args.hpp"
 
@@ -51,8 +52,11 @@ public:
     if (clean_)
       p().clean();
 
-    if (targets_->empty() || targets_->front() == "all") {
-      // or deduce targets to build using stdfs::current_path() ?
+    if (!targets_) {
+      // TODO: or deduce targets to build using stdfs::current_path() ?
+      // core::ProjectTarget *currentTarget = detectedTarget();
+      // TODO: and build all if at the root and project has no single target (fallback)
+
       auto build_res = p().buildAll(mode, *jobs_);
       if (!build_res)
         throw_or_terminate(build_res.error());
@@ -75,8 +79,11 @@ public:
       return;
 
     for (const auto &name : targets_) {
+      if (name == "all")
+        continue;
+
       const auto it = std::ranges::find_if(p().targets(), [&](const auto &t) { return t->name() == name; });
-      if (it == p().targets().end())
+      if (it == p().targets().end()) // impossible: already checked earlier when building
         throw_or_terminate(
           Exception(core::ZCError::TargetNotFound, "target '{}' not found in project", name)
         );

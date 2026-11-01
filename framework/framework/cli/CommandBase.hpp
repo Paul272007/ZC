@@ -8,6 +8,7 @@
 #include "framework/cli/detail.hpp"
 #include "framework/cli/FixedString.hpp"
 #include "framework/Exception.hpp"
+#include "framework/ui/Style.hpp"
 #include "framework/ui/UI.hpp"
 #include "framework/util/concepts.hpp"
 #include "framework/util/helpers.hpp"
@@ -122,7 +123,7 @@ public:
     constexpr bool has_subs    = sizeof...(SubCmds) > 0;
     constexpr bool require_sub = detail::requires_subcommand_v<Self>;
 
-    ui.println_underlined("\nUsage:");
+    ui.println(Style::Underlined, "\nUsage:");
     if constexpr (has_subs)
       ui.print(require_sub ? "  {} <command> [options]" : "  {} [command] [options]", cmd_path);
     else
@@ -131,19 +132,19 @@ public:
     ui.println("\n\n{}\n", desc());
 
     if constexpr (detail::has_positionals_v<decltype(items)>) {
-      ui.println_underlined("Arguments:");
+      ui.println(Style::Underlined, "Arguments:");
       detail::print_all_pos(items);
       ui.ln();
     }
 
-    ui.println_underlined("Options:");
+    ui.println(Style::Underlined, "Options:");
     ui.println("{:<32} {}", "  --help, -h", "Show this help message and exit");
     if (show_version_in_help)
       ui.println("{:<32} {}", "  --version, -V", "Show version information and exit");
     detail::print_all_opts(items);
 
     if constexpr (has_subs) {
-      ui.println_underlined("\nCommands:");
+      ui.println(Style::Underlined, "\nCommands:");
       detail::print_all_cmds(self.subcommands());
     }
     ui.ln();

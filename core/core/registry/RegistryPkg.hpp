@@ -18,7 +18,15 @@ struct RegistryPkg {
 
   std::vector<RegistryProject> versions;
 
-  bool operator==(const RegistryPkg &) const = default;
+  [[nodiscard]] bool operator==(const RegistryPkg &) const = default;
+
+  [[nodiscard]] const RegistryProject *getVersion(Version version) const
+  {
+    for (const auto &v : versions)
+      if (v.version == version)
+        return &v;
+    return nullptr;
+  }
 };
 
 inline void to_json(json &j, const RegistryPkg &p)

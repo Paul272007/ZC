@@ -2,6 +2,8 @@
 
 #include <string_view>
 
+#include "core/registry/target/RegistryBinTarget.hpp"
+
 namespace zc::core
 {
 

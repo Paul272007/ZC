@@ -7,6 +7,7 @@ add_library(zc-framework STATIC
   framework/cli/FixedString.hpp
 
   framework/ui/DefaultUIStrategy.hpp
+  framework/ui/Style.hpp
   framework/ui/Table.hpp
   framework/ui/TableCharset.hpp
   framework/ui/UI.hpp

@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "core/Conf.hpp"
@@ -9,6 +10,7 @@
 #include "core/project/target/ProjectTargetDependency.hpp"
 #include "core/project/target/ProjectTargetResolvedFlags.hpp"
 #include "core/registry/target/RegistryTarget.hpp"
+#include "framework/Version.hpp"
 
 namespace zc { class Exception; } // namespace zc
 
@@ -20,6 +22,8 @@ class Project;
 /// @brief A project build target
 class ProjectTarget : public Conf
 {
+  friend class Project;
+
 protected:
   Project *parent_;
 
@@ -58,7 +62,7 @@ public:
   ProjectTarget(const ProjectTarget &)            = delete;
   ProjectTarget &operator=(ProjectTarget &&)      = delete;
   ProjectTarget &operator=(const ProjectTarget &) = delete;
-  ~ProjectTarget() override                       = default;
+  ~ProjectTarget() override;
 
   [[nodiscard]] static std::unique_ptr<ProjectTarget> fromRoot(stdfs::path root, Project *parent);
 
@@ -66,6 +70,8 @@ public:
   fromJson(stdfs::path root, const json &conf, Project *parent);
 
   // ——— Getters ———
+
+  [[nodiscard]] virtual constexpr std::string_view typeName() const noexcept = 0;
 
   [[nodiscard]] const std::string &name() const noexcept { return name_; }
 
@@ -86,6 +92,15 @@ public:
   [[nodiscard]] virtual ProjectTargetResolvedFlags resolveFlags() const;
 
   void resolveInternalDeps(const std::vector<std::unique_ptr<ProjectTarget>> &project_targets);
+
+  // ——— Dependencies ———
+
+  void save();
+
+  void addDependency(ProjectTargetDependency dep);
+
+  [[nodiscard]] std::expected<void, Exception>
+  removeDependency(std::string_view pkg, Version version, std::string_view target);
 };
 
 } // namespace zc::core

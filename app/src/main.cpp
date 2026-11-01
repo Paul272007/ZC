@@ -13,6 +13,7 @@
 
 #include <exception>
 
+#include "commands/Add.hpp"
 #include "commands/Build.hpp"
 #include "commands/Config.hpp"
 #include "commands/Init.hpp"
@@ -33,7 +34,7 @@
 using ZCCli = zc::cli::RootCommand<
   "zc", "The C and C++ package manager and build system!", zc::app::Install, zc::app::Update,
   zc::app::Uninstall, zc::app::Use, zc::app::List, zc::app::Config, zc::app::Login, zc::app::Logout,
-  zc::app::Init, zc::app::Build
+  zc::app::Init, zc::app::Build, zc::app::Add
 >;
 
 int main(const int argc, const char **argv)

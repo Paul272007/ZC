@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "core/Conf.hpp"
 #include "core/project/BuildMode.hpp"
 #include "core/project/LanguageConf.hpp"
@@ -13,6 +15,8 @@ namespace zc::core
 
 class Project final : public Conf
 {
+  friend class ProjectTarget;
+
   const stdfs::path root_;
 
   std::string name_;
@@ -20,6 +24,8 @@ class Project final : public Conf
   std::string description_;
 
   Version version_;
+
+  bool is_multi_target_ = false;
 
   std::map<Language, LanguageConf>            languages_;
   std::vector<std::unique_ptr<ProjectTarget>> targets_;
@@ -45,9 +51,11 @@ public:
   Project(Project &&)                 = delete;
   Project &operator=(const Project &) = delete;
   Project &operator=(Project &&)      = delete;
-  ~Project() override                 = default;
+  ~Project() override;
 
   explicit Project(stdfs::path root = stdfs::current_path());
+
+  void save();
 
   // ——— Getters ———
 
@@ -72,6 +80,10 @@ public:
   [[nodiscard]] const std::map<Language, LanguageConf> &languages() const noexcept { return languages_; }
 
   [[nodiscard]] const auto &targets() const noexcept { return targets_; }
+
+  [[nodiscard]] ProjectTarget *findTarget(std::string_view name) const noexcept;
+
+  [[nodiscard]] ProjectTarget *targetAt(const stdfs::path &dir) const;
 
   // ——— Dependencies ———
 

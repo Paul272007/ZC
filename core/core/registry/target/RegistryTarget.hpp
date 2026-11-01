@@ -41,6 +41,8 @@ struct RegistryTarget {
 
   [[nodiscard]] virtual RegistryTargetType type() const = 0;
 
+  [[nodiscard]] virtual constexpr bool canBeADependency() const noexcept = 0;
+
   [[nodiscard]] virtual std::expected<void, Exception>
   addSymlinks(std::string_view pkg_name, const stdfs::path &snapshot_dir) const = 0;
 

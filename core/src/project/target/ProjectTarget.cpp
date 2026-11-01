@@ -1,22 +1,42 @@
 #include "core/project/target/ProjectTarget.hpp"
 
+#include <algorithm>
+#include <expected>
+#include <utility>
+
 #include "core/project/Project.hpp"
 #include "core/project/target/ProjectBinTarget.hpp"
 #include "core/project/target/ProjectHeaderTarget.hpp"
 #include "core/project/target/ProjectLibTarget.hpp"
+#include "core/project/target/ProjectTargetDependency.hpp"
 #include "core/registry/Registry.hpp"
 #include "core/registry/target/RegistryLibTarget.hpp"
+#include "core/util/directories.hpp"
+#include "core/util/ZCError.hpp"
+#include "framework/Exception.hpp"
+#include "framework/ui/UI.hpp"
 
 namespace zc::core
 {
 
 ProjectTarget::ProjectTarget(Project *parent, stdfs::path root)
-  : Conf(root / zc_target_file),
+  : Conf(root / (parent && root == parent->root() ? zc_project_file : zc_target_file)),
     parent_(parent),
     root_(std::move(root)),
     name_(parent_ && root_ == parent_->root() ? parent_->name() : root_.filename().string())
 {
   // TODO: check folders structure and target name
+}
+
+ProjectTarget::~ProjectTarget()
+{
+  if (modified_) {
+    try {
+      ProjectTarget::write();
+    } catch (const std::exception &e) {
+      ui.debug("{}", e.what());
+    }
+  }
 }
 
 void ProjectTarget::load()
@@ -29,11 +49,17 @@ void ProjectTarget::load()
 
 void ProjectTarget::write()
 {
-  json root;
+  if (parent_ && root_ == parent_->root()) {
+    parent_->write();
+    return;
+  }
+
+  json root = fs::read_json(file_).value_or(json::object());
   writeToJson(root);
   auto res = fs::write_json(file_, root);
   if (!res)
     throw_or_terminate(res.error());
+  modified_ = false;
 }
 
 void ProjectTarget::loadFromJson(const json &conf)
@@ -52,12 +78,30 @@ void ProjectTarget::loadFromJson(const json &conf)
 
 void ProjectTarget::writeToJson(json &conf) const
 {
-  conf["public_macros"]  = public_macros_;
-  conf["private_macros"] = private_macros_;
-  conf["internal_deps"]  = raw_internal_deps_;
-  conf["dependencies"]   = json::object();
-  for (const auto &dep : external_deps_)
-    conf["dependencies"][dep.package] = dep;
+  conf["type"] = typeName();
+
+  if (!public_macros_.empty())
+    conf["public_macros"] = public_macros_;
+  else
+    conf.erase("public_macros");
+
+  if (!private_macros_.empty())
+    conf["private_macros"] = private_macros_;
+  else
+    conf.erase("private_macros");
+
+  if (!raw_internal_deps_.empty())
+    conf["internal_deps"] = raw_internal_deps_;
+  else
+    conf.erase("internal_deps");
+
+  if (!external_deps_.empty()) {
+    conf["dependencies"] = json::object();
+    for (const auto &dep : external_deps_)
+      conf["dependencies"][dep.package] = dep;
+  } else {
+    conf.erase("dependencies");
+  }
 }
 
 stdfs::path ProjectTarget::installDir() const
@@ -244,6 +288,67 @@ void ProjectTarget::resolveInternalDeps(const std::vector<std::unique_ptr<Projec
       );
     internal_deps_.emplace_back(found, link_mode);
   }
+}
+
+void ProjectTarget::save()
+{
+  if (modified_)
+    write();
+}
+
+void ProjectTarget::addDependency(ProjectTargetDependency dep)
+{
+  auto it = std::ranges::find_if(external_deps_, [&](const ProjectTargetDependency &d) {
+    return d.package == dep.package;
+  });
+
+  if (it != external_deps_.end()) {
+    it->version = dep.version;
+    for (auto &[target_name, link_mode] : dep.targets) {
+      auto target_it = std::ranges::find(it->targets, target_name, &std::pair<std::string, Link>::first);
+      if (target_it != it->targets.end())
+        target_it->second = link_mode;
+      else
+        it->targets.emplace_back(std::move(target_name), link_mode);
+    }
+  } else {
+    external_deps_.push_back(std::move(dep));
+  }
+
+  modified_ = true;
+}
+
+std::expected<void, Exception>
+ProjectTarget::removeDependency(std::string_view pkg, Version version, std::string_view target)
+{
+  auto it = std::ranges::find_if(external_deps_, [&](const ProjectTargetDependency &d) {
+    return d.package == pkg && (version.isEmpty() || d.version == version);
+  });
+
+  if (it == external_deps_.end()) {
+    if (version.isEmpty())
+      return std::unexpected(
+        Exception(ZCError::PkgNotFound, "Package '{}' not found in target dependencies", pkg)
+      );
+    return std::unexpected(
+      Exception(ZCError::PkgNotFound, "Package '{}@{}' not found in target dependencies", pkg, version)
+    );
+  }
+
+  if (target.empty()) {
+    external_deps_.erase(it);
+  } else {
+    const auto erased = std::erase_if(it->targets, [&](const auto &pair) { return pair.first == target; });
+    if (erased == 0)
+      return std::unexpected(Exception(
+        ZCError::TargetNotFound, "Target '{}' of package '{}' not found in target dependencies", target, pkg
+      ));
+    if (it->targets.empty())
+      external_deps_.erase(it);
+  }
+
+  modified_ = true;
+  return {};
 }
 
 } // namespace zc::core

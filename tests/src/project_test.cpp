@@ -335,4 +335,148 @@ TEST(ProjectTest, RegistryInstallUpdateSymlinksAndExternalDep)
   stdfs::remove_all(app_dir, ec);
 }
 
+TEST(ProjectTest, SingleTargetDependencyPersistencePreservesRootProjectInfo)
+{
+  const stdfs::path temp_dir = stdfs::temp_directory_path() / "zc_test_single_persist";
+  std::error_code   ec;
+  stdfs::remove_all(temp_dir, ec);
+  stdfs::create_directories(temp_dir / "src" / "a" / "b" / "c", ec);
+
+  ASSERT_TRUE(
+    fs::write(
+      temp_dir / "zc.json",
+      R"({
+  "name": "single_persist",
+  "author": "Paul",
+  "description": "Root target persistence test",
+  "version": "1.2.3",
+  "type": "BIN",
+  "output": "custom_bin"
+})"
+    )
+      .has_value()
+  );
+
+  {
+    core::Project project(temp_dir);
+    auto         *detected = project.targetAt(temp_dir / "src" / "a" / "b" / "c");
+    ASSERT_NE(detected, nullptr);
+    EXPECT_EQ(detected->name(), "single_persist");
+
+    detected->addDependency(
+      {
+        .package = "fmt",
+        .version = Version(10, 0, 0),
+        .targets = { { "fmt_core", core::Link::Dynamic } },
+      }
+    );
+    detected->addDependency(
+      {
+        .package = "fmt",
+        .version = Version(10, 1, 0),
+        .targets = { { "fmt_extra", core::Link::Static } },
+      }
+    );
+    detected->save();
+  }
+
+  {
+    core::Project reloaded(temp_dir);
+    EXPECT_EQ(reloaded.name(), "single_persist");
+    EXPECT_EQ(reloaded.author(), "Paul");
+    EXPECT_EQ(reloaded.description(), "Root target persistence test");
+    EXPECT_EQ(reloaded.version(), Version(1, 2, 3));
+    ASSERT_EQ(reloaded.targets().size(), 1);
+
+    auto *bin_target = dynamic_cast<core::ProjectBinTarget *>(reloaded.targets().front().get());
+    ASSERT_NE(bin_target, nullptr);
+    ASSERT_EQ(bin_target->externalDeps().size(), 1);
+
+    const auto &dep = bin_target->externalDeps().front();
+    EXPECT_EQ(dep.package, "fmt");
+    EXPECT_EQ(dep.version, Version(10, 1, 0));
+    ASSERT_EQ(dep.targets.size(), 2);
+    EXPECT_EQ(dep.targets[0], std::make_pair(std::string("fmt_core"), core::Link::Dynamic));
+    EXPECT_EQ(dep.targets[1], std::make_pair(std::string("fmt_extra"), core::Link::Static));
+
+    auto rem_one = bin_target->removeDependency("fmt", Version{}, "fmt_core");
+    ASSERT_TRUE(rem_one.has_value()) << rem_one.error().what();
+  }
+
+  // Destructor auto-save verified on next reload
+  {
+    core::Project reloaded2(temp_dir);
+    auto         *t = reloaded2.targets().front().get();
+    ASSERT_EQ(t->externalDeps().size(), 1);
+    ASSERT_EQ(t->externalDeps().front().targets.size(), 1);
+    EXPECT_EQ(t->externalDeps().front().targets.front().first, "fmt_extra");
+
+    auto rem_all = t->removeDependency("fmt", Version{}, "");
+    ASSERT_TRUE(rem_all.has_value()) << rem_all.error().what();
+  }
+
+  {
+    core::Project reloaded3(temp_dir);
+    EXPECT_TRUE(reloaded3.targets().front()->externalDeps().empty());
+  }
+
+  stdfs::remove_all(temp_dir, ec);
+}
+
+TEST(ProjectTest, MultiTargetAtDeepSubdirAndPersistence)
+{
+  const stdfs::path temp_dir = stdfs::temp_directory_path() / "zc_test_multi_persist";
+  std::error_code   ec;
+  stdfs::remove_all(temp_dir, ec);
+  stdfs::create_directories(temp_dir / "libs" / "math" / "src" / "detail", ec);
+  stdfs::create_directories(temp_dir / "app" / "src" / "commands" / "sub", ec);
+
+  ASSERT_TRUE(fs::write(temp_dir / "libs" / "math" / "target.json", R"({ "type": "LIB" })").has_value());
+  ASSERT_TRUE(fs::write(temp_dir / "app" / "target.json", R"({ "type": "BIN" })").has_value());
+  ASSERT_TRUE(
+    fs::write(
+      temp_dir / "zc.json",
+      R"({
+  "name": "workspace_pkg",
+  "version": "0.1.0",
+  "targets": ["libs/math", "app"]
+})"
+    )
+      .has_value()
+  );
+
+  {
+    core::Project project(temp_dir);
+    EXPECT_EQ(project.targetAt(temp_dir), nullptr);
+
+    auto *app_t = project.targetAt(temp_dir / "app" / "src" / "commands" / "sub");
+    ASSERT_NE(app_t, nullptr);
+    EXPECT_EQ(app_t->name(), "app");
+
+    auto *math_t = project.targetAt(temp_dir / "libs" / "math" / "src" / "detail");
+    ASSERT_NE(math_t, nullptr);
+    EXPECT_EQ(math_t->name(), "math");
+
+    app_t->addDependency(
+      {
+        .package = "spdlog",
+        .version = Version(1, 12, 0),
+        .targets = { { "spdlog", core::Link::Static } },
+      }
+    );
+    project.save();
+  }
+
+  {
+    core::Project reloaded(temp_dir);
+    ASSERT_EQ(reloaded.targets().size(), 2);
+    auto *app_t = reloaded.findTarget("app");
+    ASSERT_NE(app_t, nullptr);
+    ASSERT_EQ(app_t->externalDeps().size(), 1);
+    EXPECT_EQ(app_t->externalDeps().front().package, "spdlog");
+  }
+
+  stdfs::remove_all(temp_dir, ec);
+}
+
 } // namespace zc::tests

@@ -2,6 +2,7 @@
 
 #include "core/global-config/GlobalConfig.hpp"
 #include "core/project/Project.hpp"
+#include "core/util/helpers.hpp"
 #include "framework/fs.hpp"
 
 namespace zc::core

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdio>
+#include <string_view>
 
 #include "framework/signals.hpp"
 #include "framework/ui/DefaultUIStrategy.hpp"
+#include "framework/ui/Style.hpp"
 #include "framework/ui/UIStrategy.hpp"
 #include "framework/util/raw_mode.hpp"
 #include "framework/util/terminal.hpp"
@@ -57,7 +59,7 @@ class UI
     if (!in_)
       return false;
 
-    setStyle(b_blue);
+    setStyle(Style::Bold | Style::Blue);
     flush();
     int c = std::fgetc(in_);
     if (c == EOF) {
@@ -187,6 +189,8 @@ public:
   // ——— Output style
 
   void setStyle(const std::string_view style) const { print("{}", style); }
+
+  void setStyle(const Style s) const { print("{}", detail::ansi_seq(s)); }
 
   void resetStyle() const { print("{}", reset); }
 
@@ -366,6 +370,16 @@ public:
   }
 
   template<typename... Args>
+  void print(Style s, std::format_string<Args...> fmt, Args &&...args) const
+  {
+    if (!quiet()) {
+      setStyle(s);
+      std::print(out_, fmt, std::forward<Args>(args)...);
+      resetStyle();
+    }
+  }
+
+  template<typename... Args>
   void println(std::format_string<Args...> fmt, Args &&...args) const
   {
     if (!quiet())
@@ -373,28 +387,20 @@ public:
   }
 
   template<typename... Args>
+  void println(Style s, std::format_string<Args...> fmt, Args &&...args) const
+  {
+    if (!quiet()) {
+      setStyle(s);
+      std::println(out_, fmt, std::forward<Args>(args)...);
+      resetStyle();
+    }
+  }
+
+  template<typename... Args>
   void println_err(std::format_string<Args...> fmt, Args &&...args) const
   {
     if (!quiet())
       std::println(err_, fmt, std::forward<Args>(args)...);
-  }
-
-  template<typename... Args>
-  void println_underlined(std::format_string<Args...> fmt, Args &&...args) const
-  {
-    if (!quiet()) {
-      std::string str = std::format(fmt, std::forward<Args>(args)...);
-      println("{}{}{}", ul, str, reset);
-    }
-  }
-
-  template<typename... Args>
-  void println_bold(std::format_string<Args...> fmt, Args &&...args) const
-  {
-    if (!quiet()) {
-      std::string str = std::format(fmt, std::forward<Args>(args)...);
-      println("{}{}{}", bold, str, reset);
-    }
   }
 
   template<typename... Args>

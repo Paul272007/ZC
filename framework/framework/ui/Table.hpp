@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "framework/ui/Style.hpp"
 #include "framework/ui/TableCharset.hpp"
 #include "framework/util/concepts.hpp"
 #include "framework/util/types.hpp"
@@ -29,6 +30,9 @@ class Table
   Thickness row_thickness_           : 3 { Thickness::Single };
   Thickness col_thickness_           : 3 { Thickness::Single };
 
+  Style header_style_  = Style::Bold;
+  Style content_style_ = Style::None;
+
   TableContent<> content_;
 
   [[nodiscard]] std::vector<u64> widths() const;
@@ -44,7 +48,7 @@ class Table
   void drawBottomLine(const std::vector<u64> &widths) const;
   void drawSeparatorLine(const std::vector<u64> &widths) const;
   void drawMiddleLine(const std::vector<u64> &widths) const;
-  void drawRow(u64 idx, const std::vector<u64> &widths) const;
+  void drawRow(u64 idx, const std::vector<u64> &widths, bool is_header = false) const;
 
 public:
   template<Formattable T = std::string>
@@ -80,6 +84,10 @@ public:
   void setSeparatorThickness(Thickness row_separator_thickness, Thickness col_separator_thickness);
 
   void setThickness(Thickness row_thickness, Thickness col_thickness);
+
+  void setHeaderStyle(Style style);
+
+  void setContentStyle(Style style);
 
   // ——— Public interface ———
 

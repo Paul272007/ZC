@@ -1,5 +1,6 @@
 #include "framework/ui/Table.hpp"
 
+#include "framework/ui/Style.hpp"
 #include "framework/ui/UI.hpp"
 
 namespace zc
@@ -104,14 +105,16 @@ void Table::drawBottomLine(const std::vector<u64> &widths) const
   );
 }
 
-void Table::drawRow(const u64 idx, const std::vector<u64> &widths) const
+void Table::drawRow(const u64 idx, const std::vector<u64> &widths, const bool is_header) const
 {
   ui.print("{}", box(Thickness::None, col_border_thickness_).vert);
   for (u64 i = 0; i < widths.size(); i++) {
     if (i > 0)
       ui.print("{}", box(Thickness::None, colThick(i)).vert);
-    const std::string_view text = cell(idx, i);
-    ui.print(" {}", text);
+
+    const bool             cell_is_header = is_header || (i == 0 && has_row_headers_);
+    const std::string_view text           = cell(idx, i);
+    ui.print(cell_is_header ? header_style_ : content_style_, " {}", text);
     padding(widths[i] - text.size() - 1);
   }
   ui.println("{}", box(Thickness::None, col_border_thickness_).vert);
@@ -144,6 +147,16 @@ void Table::setThickness(const Thickness row_thickness, const Thickness col_thic
   col_thickness_ = col_thickness;
 }
 
+void Table::setHeaderStyle(Style style)
+{
+  header_style_ = style;
+}
+
+void Table::setContentStyle(Style style)
+{
+  content_style_ = style;
+}
+
 void Table::draw() const
 {
   if (content_.empty())
@@ -154,7 +167,7 @@ void Table::draw() const
 
   u64 idx = 0;
   if (has_col_headers_) {
-    drawRow(idx++, max_widths);
+    drawRow(idx++, max_widths, true);
     if (idx < content_.size())
       drawSeparatorLine(max_widths);
   }

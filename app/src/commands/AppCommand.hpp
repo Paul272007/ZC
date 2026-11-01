@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include "core/project/Project.hpp"
+#include "core/project/target/ProjectTarget.hpp"
 #include "framework/cli/Args.hpp"
 #include "framework/cli/CommandBase.hpp"
 #include "framework/Exception.hpp"
@@ -43,6 +44,8 @@ protected:
   [[nodiscard]] bool hasProject() const noexcept { return project_ != nullptr; }
 
   [[nodiscard]] virtual bool requiresProject() const { return RequireProject; }
+
+  [[nodiscard]] core::ProjectTarget *detectedTarget() const { return p().targetAt(*project_path_); }
 
   virtual void run() = 0;
 

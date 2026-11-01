@@ -1,5 +1,8 @@
 #include "core/project/Project.hpp"
 
+#include <cstddef>
+#include <filesystem>
+
 #include "core/global-config/GlobalConfig.hpp"
 #include "core/project/Language.hpp"
 #include "core/project/LanguageConf.hpp"
@@ -9,6 +12,7 @@
 #include "engine/Ctx.hpp"
 #include "engine/engine.hpp"
 #include "framework/shell.hpp"
+#include "framework/ui/UI.hpp"
 #include "framework/util/string.hpp"
 
 namespace zc::core
@@ -158,9 +162,11 @@ void Project::load()
     languages_.insert_or_assign(Language::CXX, gc().languages().at(Language::CXX));
 
   if (jsonContainsArray(json_conf, "targets")) {
+    is_multi_target_ = true;
     for (const auto &target : json_conf["targets"])
       targets_.push_back(ProjectTarget::fromRoot(root_ / target.get<std::string_view>(), this));
   } else {
+    is_multi_target_ = false;
     // Load target from root directory
     targets_.push_back(ProjectTarget::fromJson(root_, json_conf, this));
   }
@@ -171,7 +177,8 @@ void Project::load()
 
 void Project::write()
 {
-  json j;
+  json j = fs::read_json(file_).value_or(json::object());
+
   j["name"]        = name_;
   j["author"]      = author_;
   j["description"] = description_;
@@ -183,6 +190,22 @@ void Project::write()
       langs[*name] = conf;
   j["languages"] = langs;
 
+  if (is_multi_target_) {
+    json targets = json::array();
+    for (const auto &t : targets_) {
+      std::error_code ec;
+      const auto      rel = stdfs::relative(t->root(), root_, ec);
+      targets.push_back((!ec && !rel.empty()) ? rel.generic_string() : t->name());
+    }
+    j["targets"] = std::move(targets);
+  } else {
+    j.erase("targets");
+    if (!targets_.empty()) {
+      targets_.front()->writeToJson(j);
+      targets_.front()->modified_ = false;
+    }
+  }
+
   auto write_res = fs::write_json(file_, j);
   if (!write_res)
     throw_or_terminate(write_res.error());
@@ -192,6 +215,65 @@ void Project::write()
 Project::Project(stdfs::path root) : Conf(root / zc_project_file), root_(std::move(root))
 {
   load();
+}
+
+Project::~Project()
+{
+  try {
+    save();
+  } catch (const std::exception &e) {
+    ui.debug("{}", e.what());
+  }
+}
+
+void Project::save()
+{
+  if (!is_multi_target_) {
+    if (modified_ || (!targets_.empty() && targets_.front()->modified_))
+      write();
+  } else {
+    if (modified_)
+      write();
+    for (const auto &t : targets_)
+      t->save();
+  }
+}
+
+ProjectTarget *Project::findTarget(const std::string_view name) const noexcept
+{
+  for (const auto &t : targets_)
+    if (t->name() == name)
+      return t.get();
+
+  return nullptr;
+}
+
+ProjectTarget *Project::targetAt(const stdfs::path &dir) const
+{
+  std::error_code   ec;
+  const stdfs::path abs_dir = stdfs::weakly_canonical(dir, ec);
+  if (ec)
+    return nullptr;
+
+  ProjectTarget *best      = nullptr;
+  std::size_t    best_size = 0;
+
+  for (const auto &t : targets_) {
+    const stdfs::path abs_target = stdfs::weakly_canonical(t->root(), ec);
+    if (ec)
+      continue;
+
+    const stdfs::path rel = abs_dir.lexically_relative(abs_target);
+    if (!rel.empty() && *rel.begin() != "..") {
+      const std::size_t len = abs_target.native().size();
+      if (!best || len > best_size) {
+        best      = t.get();
+        best_size = len;
+      }
+    }
+  }
+
+  return best;
 }
 
 std::expected<void, Exception> Project::installDependencies(const u32 jobs) const
@@ -281,14 +363,10 @@ Project::generateBuildConfig(BuildMode mode, const bool compile_commands) const
 std::expected<void, Exception>
 Project::buildTarget(const std::string_view target, const BuildMode mode, const u32 jobs) const
 {
-  bool found = false;
-  for (const auto &t : targets_) {
-    if (t->name() == target) {
-      found = true;
-      break;
-    }
-  }
-  if (!found)
+  if (target == "all")
+    return buildAll();
+
+  if (!findTarget(target))
     return std::unexpected(Exception(ZCError::TargetNotFound, "target '{}' not found in project", target));
 
   auto config_res = generateBuildConfig(mode);

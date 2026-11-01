@@ -26,6 +26,8 @@ public:
   {
   }
 
+  [[nodiscard]] constexpr std::string_view typeName() const noexcept override { return "LIB"; }
+
   [[nodiscard]] std::string sharedFmt() const;
   [[nodiscard]] std::string staticFmt() const;
 

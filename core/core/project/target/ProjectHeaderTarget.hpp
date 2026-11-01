@@ -24,6 +24,8 @@ public:
   {
   }
 
+  [[nodiscard]] constexpr std::string_view typeName() const noexcept override { return "HEADER"; }
+
   [[nodiscard]] std::expected<void, Exception> install() const override;
   [[nodiscard]] std::vector<std::string> generateBuildStatements() const override;
   [[nodiscard]] std::vector<stdfs::path> outputFiles() const override;
