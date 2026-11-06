@@ -1,6 +1,7 @@
 #include "framework/Version.hpp"
 
 #include <gtest/gtest.h>
+#include <sstream>
 
 namespace zc::tests
 {

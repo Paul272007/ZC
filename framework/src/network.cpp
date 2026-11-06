@@ -2,6 +2,7 @@
 
 #include <curl/curl.h>
 #include <fstream>
+#include <memory>
 
 namespace zc::net
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <expected>
+#include <memory>
 #include <string>
 
 #include "core/registry/target/RegistryTargetDependency.hpp"

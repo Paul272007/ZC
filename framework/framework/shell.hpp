@@ -1,4 +1,18 @@
 #pragma once
+
+#include <cstdio>
+#include <cstdlib>
+#include <format>
+#include <initializer_list>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#ifndef ZC_WINDOWS
+  #include <sys/wait.h>
+#endif
+
+#include "framework/Exception.hpp"
 #include "util/concepts.hpp"
 #include "util/string.hpp"
 #include "util/types.hpp"
@@ -10,7 +24,7 @@ namespace zc::sh
 inline constexpr std::string_view hide_all = " > NUL 2>&1";
 // TODO: add other variables for windows
 #else
-inline constexpr std::string_view hide_all         = "&>/dev/null";
+inline constexpr std::string_view hide_all         = ">/dev/null 2>&1";
 inline constexpr std::string_view hide_stdout      = "1>/dev/null";
 inline constexpr std::string_view hide_stderr      = "2>/dev/null";
 inline constexpr std::string_view stderr_to_stdout = "2>&1";

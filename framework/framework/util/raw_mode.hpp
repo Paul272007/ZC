@@ -1,6 +1,7 @@
 #pragma once
 
 #include <csignal>
+#include <cstdio>
 
 #include "types.hpp"
 

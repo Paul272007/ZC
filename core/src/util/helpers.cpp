@@ -1,5 +1,6 @@
 #include "core/util/helpers.hpp"
 
+#include <cstdlib>
 #include <string_view>
 #include <thread>
 

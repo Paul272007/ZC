@@ -1,5 +1,7 @@
 #include "core/util/directories.hpp"
 
+#include <cstdlib>
+
 #include "core/util/platform.hpp"
 #include "core/util/ZCError.hpp"
 #include "framework/Exception.hpp"

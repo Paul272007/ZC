@@ -1,5 +1,7 @@
 #pragma once
 
+#include <format>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <variant>

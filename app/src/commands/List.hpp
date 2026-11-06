@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ranges>
 #include <string_view>
 
 #include "commands/AppCommand.hpp"

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <expected>
+#include <string>
+#include <vector>
 
 #include "framework/Exception.hpp"
 #include "framework/util/types.hpp"

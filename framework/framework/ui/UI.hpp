@@ -1,7 +1,18 @@
 #pragma once
 
 #include <cstdio>
+#include <cstdlib>
+#include <format>
+#include <iterator>
+#include <memory>
+#include <print>
+#include <string>
 #include <string_view>
+#include <vector>
+
+#ifndef ZC_WINDOWS
+  #include <unistd.h>
+#endif
 
 #include "framework/signals.hpp"
 #include "framework/ui/DefaultUIStrategy.hpp"
@@ -131,7 +142,9 @@ public:
       registered_atexit = true;
       (void)std::atexit([] {
         set_raw_mode(false);
-        write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
+#ifndef ZC_WINDOWS
+        [[maybe_unused]] const auto res = write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
+#endif
       });
     }
   }

@@ -2,6 +2,10 @@
 
 #include <csignal>
 
+#ifndef ZC_WINDOWS
+  #include <unistd.h>
+#endif
+
 #include "framework/util/raw_mode.hpp"
 #include "framework/util/terminal.hpp"
 #include "framework/util/types.hpp"
@@ -37,8 +41,10 @@ void on()
     detail::interrupted_ = 1;
 
     set_raw_mode(false);
-    write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
-    write(STDERR_FILENO, show_cursor.data(), show_cursor.size());
+#ifndef ZC_WINDOWS
+    [[maybe_unused]] const auto r1 = write(STDOUT_FILENO, show_cursor.data(), show_cursor.size());
+    [[maybe_unused]] const auto r2 = write(STDERR_FILENO, show_cursor.data(), show_cursor.size());
+#endif
 
     if constexpr (Action != nullptr) {
       if constexpr (requires { Action(s); })

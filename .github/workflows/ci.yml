@@ -26,22 +26,30 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install LLVM & Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "19"
-          cached: true
-          env: true
-
-      - name: Install dependencies
+      - name: Install LLVM 21 & dependencies
         run: |
+          wget -qO llvm.sh https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 21
           sudo apt-get update
           sudo apt-get install -y \
+            clang-21 \
+            clang-tidy-21 \
+            clang-format-21 \
+            libclang-rt-21-dev \
+            libstdc++-14-dev \
             ninja-build \
             libarchive-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             nlohmann-json3-dev
+          sudo ln -sf /usr/bin/clang-21 /usr/local/bin/clang
+          sudo ln -sf /usr/bin/clang++-21 /usr/local/bin/clang++
+          sudo ln -sf /usr/bin/clang-21 /usr/local/bin/cc
+          sudo ln -sf /usr/bin/clang++-21 /usr/local/bin/c++
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          /usr/bin/clang-21 --version
+          /usr/bin/clang++-21 --version
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -52,8 +60,8 @@ jobs:
       - name: Configure CMake
         run: |
           cmake --preset debug \
-            -DCMAKE_C_COMPILER=${{ env.LLVM_PATH }}/bin/clang \
-            -DCMAKE_CXX_COMPILER=${{ env.LLVM_PATH }}/bin/clang++ \
+            -DCMAKE_C_COMPILER=/usr/bin/clang-21 \
+            -DCMAKE_CXX_COMPILER=/usr/bin/clang++-21 \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
@@ -63,6 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          version: '21'
           style: 'file'
           tidy-checks: 'file'
           database: 'build'

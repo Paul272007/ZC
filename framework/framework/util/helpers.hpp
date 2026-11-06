@@ -1,8 +1,11 @@
 #pragma once
 
+#include <array>
 #include <expected>
 #include <format>
+#include <optional>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "framework/Exception.hpp"

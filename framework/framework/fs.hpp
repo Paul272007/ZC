@@ -1,6 +1,8 @@
 #pragma once
 
 #include <expected>
+#include <format>
+#include <string>
 
 #include "framework/attributes.h"
 #include "framework/util/types.hpp"

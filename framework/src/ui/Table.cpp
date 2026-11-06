@@ -1,5 +1,7 @@
 #include "framework/ui/Table.hpp"
 
+#include <algorithm>
+
 #include "framework/ui/Style.hpp"
 #include "framework/ui/UI.hpp"
 

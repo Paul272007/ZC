@@ -1,6 +1,8 @@
 #include "core/util/crypto.hpp"
 
+#include <array>
 #include <fstream>
+#include <iomanip>
 #include <openssl/evp.h>
 #include <sstream>
 

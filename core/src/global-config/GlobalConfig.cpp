@@ -1,5 +1,7 @@
 #include "core/global-config/GlobalConfig.hpp"
 
+#include <algorithm>
+#include <ranges>
 #include <string>
 #include <sys/stat.h>
 
