@@ -444,7 +444,7 @@ public:
   }
 
   template<typename... Args>
-  void debug(std::format_string<Args...> fmt, Args &&...args) const
+  void debug([[maybe_unused]] std::format_string<Args...> fmt, [[maybe_unused]] Args &&...args) const
   {
 #ifdef ZC_DEBUG
     if (!quiet()) {

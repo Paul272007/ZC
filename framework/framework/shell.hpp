@@ -79,7 +79,10 @@ public:
     return *this;
   }
 
-  [[nodiscard]] std::string string() const { return join(tokens_, " ") + " " + suffix(output_); }
+  [[nodiscard]] std::string string() const
+  {
+    return std::format("{} {}", join(tokens_, " "), suffix(output_));
+  }
 
   int operator()() const
   {

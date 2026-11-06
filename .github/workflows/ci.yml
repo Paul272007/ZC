@@ -75,7 +75,8 @@ jobs:
           style: 'file'
           tidy-checks: 'file'
           database: 'build'
-          file-types: 'c|cpp|h|hpp'
+          extensions: 'c,cpp,h,hpp'
+          ignore: 'build'
 
       - name: Build
         run: cmake --build --preset debug
