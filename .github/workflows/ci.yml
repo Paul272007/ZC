@@ -11,7 +11,7 @@ jobs:
     name: Code Hygiene & Commits
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
@@ -24,7 +24,7 @@ jobs:
     name: Build & Test (Linux Clang)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies & toolchain
         run: |
