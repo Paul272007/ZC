@@ -17,12 +17,18 @@
 namespace zc::core
 {
 
-GlobalConfig::GlobalConfig() : Conf(zc_dir() / zc_config_file)
+GlobalConfig::GlobalConfig()
+  : Conf(zc_dir() / zc_config_file), jobs_(default_jobs_count()), editor_(default_editor()), archiver_("ar")
 {
   if (!fs::file_exists(file_))
     modified_ = true;
   else
     GlobalConfig::load();
+
+  if (editor_.empty())
+    editor_ = std::string(default_editor());
+  if (archiver_.empty())
+    archiver_ = "ar";
 
   if (!languages_.contains(Language::C)) {
     languages_.insert_or_assign(
@@ -78,7 +84,7 @@ void GlobalConfig::load()
   clear_before_run_  = get_flag("clear_before_run", clear_before_run_);
   clear_after_run_   = get_flag("clear_after_run", clear_after_run_);
   open_after_init_   = get_flag("open_after_init", open_after_init_);
-  open_after_create_ = get_flag("open_after_create_", open_after_create_);
+  open_after_create_ = get_flag("open_after_create", open_after_create_);
 
   get_key_with_default(j, "jobs", jobs_, default_jobs_count());
 
