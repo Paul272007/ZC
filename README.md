@@ -11,6 +11,7 @@ The package manager and build system for C and C++ !
 
 ## 🛠️ Build Prerequisites
 
+* **OS**: macOS or Linux (it will most certainly not work on Windows)
 * **C++ Compiler**: Clang 23+ or GCC 16+ with C++26 support
 * **Build System**: [CMake](https://cmake.org) (>= 3.25) and [Ninja](https://ninja-build.org)
 * **Tooling**: `clang-format`, `clang-tidy`, `pre-commit`
@@ -23,7 +24,7 @@ The package manager and build system for C and C++ !
 
 ### Installing Dependencies
 
-#### macOS (Homebrew)
+#### macOS
 ```bash
 brew install cmake ninja llvm libarchive nlohmann-json openssl
 ```
