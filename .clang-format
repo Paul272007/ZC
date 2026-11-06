@@ -6,7 +6,6 @@ AlignConsecutiveAssignments: # Align consecutive variables assignments (Also ali
   AcrossEmptyLines: false               # Align even with empty lines in the middle
   AcrossComments: false               # Align even with comments in the middle
   AlignCompound: true                # Also align += with the =
-  AlignFunctionDeclarations: false      # Do not align function declarations
   AlignFunctionPointers: false          # Do not align function pointers
   PadOperators: true                # Assignment operators are left-padded to the same length as long ones
 AlignConsecutiveBitFields: # Style of aligning consecutive bit fields
@@ -14,7 +13,6 @@ AlignConsecutiveBitFields: # Style of aligning consecutive bit fields
   AcrossEmptyLines: false               # Align even with empty lines in the middle
   AcrossComments: false               # Align even with comments in the middle
   AlignCompound: true                # Also align += with the =
-  AlignFunctionDeclarations: false      # Do not align function declarations
   AlignFunctionPointers: false          # Do not align function pointers
   PadOperators: true                # Assignment operators are left-padded to the same length as long ones
 AlignConsecutiveDeclarations: # Style of aligning consecutive declarations
@@ -22,7 +20,6 @@ AlignConsecutiveDeclarations: # Style of aligning consecutive declarations
   AcrossEmptyLines: false               # Align even with empty lines in the middle
   AcrossComments: false               # Align even with comments in the middle
   AlignCompound: true                # Also align += with the =
-  AlignFunctionDeclarations: false      # Do not align function declarations
   AlignFunctionPointers: false          # Do not align function pointers
   PadOperators: true                # Assignment operators are left-padded to the same length as long ones
 AlignConsecutiveMacros: # Style of aligning consecutive macros
@@ -30,7 +27,6 @@ AlignConsecutiveMacros: # Style of aligning consecutive macros
   AcrossEmptyLines: true                # Align even with empty lines in the middle
   AcrossComments: true                # Align even with comments in the middle
   AlignCompound: true                # Also align += with the =
-  AlignFunctionDeclarations: false      # Do not align function declarations
   AlignFunctionPointers: false          # Do not align function pointers
   PadOperators: true                # Assignment operators are left-padded to the same length as long ones
 AlignConsecutiveShortCaseStatements: # Style of aligning consecutive short case labels
@@ -44,7 +40,6 @@ AlignConsecutiveTableGenBreakingDAGArgColons: # No idea what this is. Took LLVM'
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  AlignFunctionDeclarations: false
   AlignFunctionPointers: false
   PadOperators: false
 AlignConsecutiveTableGenCondOperatorColons: # Same
@@ -52,7 +47,6 @@ AlignConsecutiveTableGenCondOperatorColons: # Same
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  AlignFunctionDeclarations: false
   AlignFunctionPointers: false
   PadOperators: false
 AlignConsecutiveTableGenDefinitionColons: # same
@@ -60,7 +54,6 @@ AlignConsecutiveTableGenDefinitionColons: # same
   AcrossEmptyLines: false
   AcrossComments: false
   AlignCompound: false
-  AlignFunctionDeclarations: false
   AlignFunctionPointers: false
   PadOperators: false
 AlignEscapedNewlines: LeftWithLastLine            # Align backslashes in escaped newlines at the left, counting last line

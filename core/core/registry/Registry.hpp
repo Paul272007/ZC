@@ -82,11 +82,11 @@ public:
 
   // ——— Public utilities ———
 
-  [[nodiscard]] const RegistryPkg *getPkg(std::string_view name) const;
+  [[nodiscard]] const RegistryPkg     *getPkg(std::string_view name) const;
   [[nodiscard]] const RegistryProject *getSnapshot(std::string_view name, Version version) const;
 
   [[nodiscard]] std::expected<RegistryProject *, Exception> defaultOf(std::string_view name);
-  [[nodiscard]] std::expected<Version, Exception> latestOf(std::string_view name) const;
+  [[nodiscard]] std::expected<Version, Exception>           latestOf(std::string_view name) const;
 
   [[nodiscard]] std::expected<void, Exception> setPath(std::string_view name, const stdfs::path &path);
   [[nodiscard]] std::expected<void, Exception> setDefaultVersion(std::string_view name, Version version);

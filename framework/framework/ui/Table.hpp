@@ -36,6 +36,7 @@ class Table
   TableContent<> content_;
 
   [[nodiscard]] std::vector<u64> widths() const;
+
   [[nodiscard]] Thickness colThick(u64 col) const noexcept;
 
   // ——— Draw utilities ———

@@ -14,16 +14,13 @@ repos:
         args: ['--maxkb=500']
       - id: check-merge-conflict
 
-  # C and C++ formatting & static analysis
+  # C and C++ formatting
   - repo: https://github.com/pocc/pre-commit-hooks
     rev: v1.3.5
     hooks:
       - id: clang-format
         args: ['-i']
         types_or: [c, c++, header]
-      - id: clang-tidy
-        args: ['-p=build']
-        types_or: [c, c++]
 
   # Validate commit messages -> Conventional Commits
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook

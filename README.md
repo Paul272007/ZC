@@ -1,6 +1,6 @@
 # ZC
 
-[![CI](https://github.com/paul/ZC/actions/workflows/ci.yml/badge.svg)](https://github.com/paul/ZC/actions)
+[![CI](https://github.com/Paul272007/ZC/actions/workflows/ci.yml/badge.svg)](https://github.com/paul/ZC/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![C++26](https://img.shields.io/badge/C%2B%2B-26-blue.svg)](https://en.cppreference.com/w/cpp/compiler_support)
 [![C23](https://img.shields.io/badge/C-23-blue.svg)](https://en.cppreference.com/w/c/23)
@@ -9,7 +9,7 @@ The package manager and build system for C and C++ !
 
 ---
 
-## 🛠️ Prerequisites
+## 🛠️ Build Prerequisites
 
 * **C++ Compiler**: Clang 23+ or GCC 16+ with C++26 support
 * **Build System**: [CMake](https://cmake.org) (>= 3.25) and [Ninja](https://ninja-build.org)
@@ -25,7 +25,7 @@ The package manager and build system for C and C++ !
 
 #### macOS (Homebrew)
 ```bash
-brew install cmake ninja llvm libarchive nlohmann-json openssl@4
+brew install cmake ninja llvm libarchive nlohmann-json openssl
 ```
 
 #### Ubuntu / Debian
