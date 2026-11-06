@@ -11,8 +11,6 @@ set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Dependencies
-find_package(LLVM REQUIRED)
-find_package(Clang REQUIRED)
 find_package(CURL REQUIRED)
 find_package(LibArchive REQUIRED)
 find_package(OpenSSL REQUIRED)

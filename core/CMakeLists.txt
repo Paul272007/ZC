@@ -64,7 +64,6 @@ target_include_directories(zc-core PUBLIC .)
 target_link_libraries(zc-core PUBLIC
   zc-engine
   zc-framework
-  libclang
   nlohmann_json::nlohmann_json
   CURL::libcurl
   LibArchive::LibArchive
