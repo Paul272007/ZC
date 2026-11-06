@@ -26,15 +26,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install dependencies & toolchain
+      - name: Install LLVM & Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "19"
+          cached: true
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            clang \
-            clang-tidy \
             ninja-build \
-            llvm-dev \
-            libclang-dev \
             libarchive-dev \
             libcurl4-openssl-dev \
             libssl-dev \
