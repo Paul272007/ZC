@@ -31,6 +31,7 @@ jobs:
         with:
           version: "19"
           cached: true
+          env: true
 
       - name: Install dependencies
         run: |
@@ -51,8 +52,8 @@ jobs:
       - name: Configure CMake
         run: |
           cmake --preset debug \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=${{ env.LLVM_PATH }}/bin/clang \
+            -DCMAKE_CXX_COMPILER=${{ env.LLVM_PATH }}/bin/clang++ \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
