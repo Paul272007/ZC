@@ -1,22 +1,23 @@
-# ZC
-
-[![CI](https://github.com/Paul272007/ZC/actions/workflows/ci.yml/badge.svg)](https://github.com/paul/ZC/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![C++26](https://img.shields.io/badge/C%2B%2B-26-blue.svg)](https://en.cppreference.com/w/cpp/compiler_support)
-[![C23](https://img.shields.io/badge/C-23-blue.svg)](https://en.cppreference.com/w/c/23)
-
-The package manager and build system for C and C++ !
+<div align="center">
+  <h1>ZC</h1>
+  <p>The package manager and build system for C and C++ !</p>
+  <p>
+    <a href="https://github.com/paul/ZC/actions"><img src="https://github.com/Paul272007/ZC/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
+    <a href="https://en.cppreference.com/w/cpp/compiler_support"><img src="https://img.shields.io/badge/C%2B%2B-26-blue.svg" alt="C++26" /></a>
+    <a href="https://en.cppreference.com/w/c/23"><img src="https://img.shields.io/badge/C-23-blue.svg" alt="C23" /></a>
+  </p>
+</div>
 
 ---
 
 ## 🛠️ Build Prerequisites
 
-* **OS**: macOS or Linux (it will most certainly not work on Windows)
+* **OS**: MacOS or Linux (it will most certainly not compile on Windows)
 * **C++ Compiler**: Clang 23+ or GCC 16+ with C++26 support
 * **Build System**: [CMake](https://cmake.org) (>= 3.25) and [Ninja](https://ninja-build.org)
 * **Tooling**: `clang-format`, `clang-tidy`, `pre-commit`
 * **Dependencies**:
-  * LLVM & Clang development libraries
   * `libcurl`
   * `libarchive`
   * `OpenSSL`
@@ -26,14 +27,13 @@ The package manager and build system for C and C++ !
 
 #### macOS
 ```bash
-brew install cmake ninja llvm libarchive nlohmann-json openssl
+brew install cmake ninja libarchive nlohmann-json openssl
 ```
 
 #### Ubuntu / Debian
 ```bash
 sudo apt-get update && sudo apt-get install -y \
-  clang clang-tidy ninja-build \
-  llvm-dev libclang-dev \
+  clang-tidy ninja-build \
   libarchive-dev libcurl4-openssl-dev libssl-dev \
   nlohmann-json3-dev
 ```
